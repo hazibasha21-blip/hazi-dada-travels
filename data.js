@@ -14,7 +14,6 @@ const SUPABASE_KEY = "sb_publishable_LHHxBaLuQqrBh5Tv094PFQ_OSrlGDve";
 
 const SUPABASE_HEADERS = {
   apikey: SUPABASE_KEY,
-  Authorization: `Bearer ${SUPABASE_KEY}`,
   "Content-Type": "application/json"
 };
 
