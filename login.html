@@ -41,8 +41,8 @@
 <script src="../js/data.js"></script>
 <script src="../js/admin.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  if (isAdminLoggedIn()) { window.location.href = "dashboard.html"; return; }
+document.addEventListener("DOMContentLoaded", async () => { 
+  if (await isAdminLoggedIn()) { window.location.href = "dashboard.html"; return; }
 
   document.getElementById("toggle-password").addEventListener("click", () => {
     const field = document.getElementById("login-password");
