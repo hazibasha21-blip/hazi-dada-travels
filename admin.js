@@ -20,35 +20,38 @@
    server-side authentication.
    ========================================================= */
 
-const ADMIN_DEFAULT_EMAIL = "hazidadatravels5786@gmail.com";
-const ADMIN_DEFAULT_PASSWORD = "hazidada123@";
-
-async function sha256Hex(text) {
-  const data = new TextEncoder().encode(text);
-  const buf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function ensureAdminSeeded() {
-  if (!localStorage.getItem("hdt_admin_auth")) {
-    const hash = await sha256Hex(ADMIN_DEFAULT_PASSWORD);
-    localStorage.setItem("hdt_admin_auth", JSON.stringify({ email: ADMIN_DEFAULT_EMAIL, passwordHash: hash }));
-  }
-}
 async function adminLogin(email, password) {
-  await ensureAdminSeeded();
-  const admin = JSON.parse(localStorage.getItem("hdt_admin_auth"));
-  const hash = await sha256Hex(password);
-  if (email === admin.email.toLowerCase() && hash === admin.passwordHash) {
-    sessionStorage.setItem("hdt_admin_session", "true");
-    sessionStorage.setItem("hdt_admin_email", admin.email);
-    return true;
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
+
+  if (error || !data.session) {
+    return false;
   }
-  return false;
+
+  return true;
 }
-function isAdminLoggedIn() { return sessionStorage.getItem("hdt_admin_session") === "true"; }
-function adminLogout() { sessionStorage.removeItem("hdt_admin_session"); sessionStorage.removeItem("hdt_admin_email"); }
-function requireAdminAuth() { if (!isAdminLoggedIn()) window.location.href = "login.html"; }
+
+async function isAdminLoggedIn() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  return !!session;
+}
+
+async function adminLogout() {
+  await supabaseClient.auth.signOut();
+}
+
+async function requireAdminAuth() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    window.location.href = "login.html";
+    return false;
+  }
+
+  return true;
+}
 
 /* ---------------------------------------------------------
    FILE → BASE64 HELPER (used by every image upload field)
