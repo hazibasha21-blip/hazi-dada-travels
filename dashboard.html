@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard | Hazi Dada Travels</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="../images/logo/logo.png" type="image/png">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="admin-body">
+
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="a-brand"><img src="../images/logo/logo.png" alt="logo"><span>Hazi Dada</span></div>
+    <nav>
+      <a href="#" data-panel="dashboard" class="active">📊 Dashboard</a>
+      <a href="#" data-panel="trips">🧳 Trips</a>
+      <a href="#" data-panel="vehicles">🚌 Vehicles</a>
+      <a href="#" data-panel="gallery">🖼️ Gallery</a>
+      <a href="#" data-panel="videos">▶️ Videos</a>
+      <a href="#" data-panel="reviews">⭐ Reviews</a>
+      <a href="#" data-panel="settings">⚙️ Settings</a>
+    </nav>
+    <div class="a-logout"><button class="a-btn a-btn-outline a-btn-block a-logout-btn" style="color:#fff;border-color:rgba(255,255,255,.3);">Logout</button></div>
+  </aside>
+
+  <div style="flex:1; min-width:0;">
+    <div class="admin-topbar">
+      <strong>Admin Panel</strong>
+      <div style="display:flex; gap:.5rem;">
+        <a href="../index.html" class="a-btn a-btn-outline a-btn-small">View Website</a>
+        <button class="a-btn a-btn-outline a-btn-small a-logout-btn">Logout</button>
+      </div>
+    </div>
+    <nav class="admin-mobile-tabs">
+      <a href="#" data-panel="dashboard" class="active">Dashboard</a>
+      <a href="#" data-panel="trips">Trips</a>
+      <a href="#" data-panel="vehicles">Vehicles</a>
+      <a href="#" data-panel="gallery">Gallery</a>
+      <a href="#" data-panel="videos">Videos</a>
+      <a href="#" data-panel="reviews">Reviews</a>
+      <a href="#" data-panel="settings">Settings</a>
+    </nav>
+
+    <main class="admin-main">
+
+      <!-- DASHBOARD -->
+      <section id="panel-dashboard" class="admin-panel active">
+        <div class="a-panel-header"><h1>Dashboard</h1></div>
+        <div class="a-msg info">⚠️ Prototype authentication: this Admin Panel uses browser-only storage for demonstration. See README.md before going live.</div>
+        <div class="a-stat-grid">
+          <div class="a-stat-card"><div class="a-stat-value" id="stat-trips">0</div><div class="a-stat-label">Total Trips</div></div>
+          <div class="a-stat-card"><div class="a-stat-value" id="stat-vehicles">0</div><div class="a-stat-label">Total Vehicles</div></div>
+          <div class="a-stat-card"><div class="a-stat-value" id="stat-vehicles-available">0</div><div class="a-stat-label">Available Vehicles</div></div>
+          <div class="a-stat-card"><div class="a-stat-value" id="stat-gallery">0</div><div class="a-stat-label">Total Photos</div></div>
+          <div class="a-stat-card"><div class="a-stat-value" id="stat-videos">0</div><div class="a-stat-label">Total Videos</div></div>
+          <div class="a-stat-card"><div class="a-stat-value" id="stat-reviews">0</div><div class="a-stat-label">Total Reviews</div></div>
+        </div>
+        <div class="a-item-actions">
+          <button class="a-btn a-btn-primary" data-panel="trips">+ Add Trip</button>
+          <button class="a-btn a-btn-primary" data-panel="vehicles">+ Add Vehicle</button>
+          <button class="a-btn a-btn-primary" data-panel="gallery">+ Add Photo</button>
+          <button class="a-btn a-btn-primary" data-panel="videos">+ Add Video</button>
+          <button class="a-btn a-btn-primary" data-panel="reviews">+ Add Review</button>
+        </div>
+      </section>
+
+      <!-- TRIPS -->
+      <section id="panel-trips" class="admin-panel">
+        <div class="a-panel-header"><h1>Trips</h1><button class="a-btn a-btn-primary" id="add-trip-btn">+ Add Trip</button></div>
+        <div class="a-item-list" id="trips-list"></div>
+      </section>
+
+      <!-- VEHICLES -->
+      <section id="panel-vehicles" class="admin-panel">
+        <div class="a-panel-header"><h1>Vehicles</h1><button class="a-btn a-btn-primary" id="add-vehicle-btn">＋ Add New Vehicle</button></div>
+        <div class="a-item-list" id="vehicles-list"></div>
+      </section>
+
+      <!-- GALLERY -->
+      <section id="panel-gallery" class="admin-panel">
+        <div class="a-panel-header"><h1>Gallery</h1></div>
+        <form id="gallery-add-form" style="background:#fff;border-radius:12px;box-shadow:var(--a-shadow);padding:1rem;margin-bottom:1.2rem;">
+          <div class="a-form-group"><label>Photo</label><input type="file" name="image" accept="image/*" required></div>
+          <div class="a-form-group"><label>Caption</label><input type="text" name="caption" placeholder="e.g. Hill Station View"></div>
+          <button type="submit" class="a-btn a-btn-primary a-btn-block">+ Add Photo</button>
+        </form>
+        <div class="a-item-list" id="gallery-list"></div>
+      </section>
+
+      <!-- VIDEOS -->
+      <section id="panel-videos" class="admin-panel">
+        <div class="a-panel-header"><h1>Videos</h1><button class="a-btn a-btn-primary" id="add-video-btn">+ Add Video</button></div>
+        <div class="a-item-list" id="videos-list"></div>
+      </section>
+
+      <!-- REVIEWS -->
+      <section id="panel-reviews" class="admin-panel">
+        <div class="a-panel-header"><h1>Reviews</h1><button class="a-btn a-btn-primary" id="add-review-btn">+ Add Review</button></div>
+        <div class="a-item-list" id="reviews-list"></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="panel-settings" class="admin-panel">
+        <div class="a-panel-header"><h1>Business Settings</h1></div>
+        <form id="settings-form" style="background:#fff;border-radius:12px;box-shadow:var(--a-shadow);padding:1.2rem;margin-bottom:1.2rem;">
+          <div class="a-form-group"><label>Phone</label><input type="text" name="phone"></div>
+          <div class="a-form-group"><label>WhatsApp Number (digits + country code, no +)</label><input type="text" name="whatsapp"></div>
+          <div class="a-form-group"><label>Email</label><input type="email" name="email"></div>
+          <div class="a-form-group"><label>Address / Location</label><textarea name="address"></textarea></div>
+          <div class="a-form-group"><label>Business Hours</label><input type="text" name="hours"></div>
+          <div class="a-form-group"><label>Google Maps Link</label><input type="text" name="mapUrl"></div>
+          <div class="a-form-group"><label>Facebook Link</label><input type="text" name="facebook"></div>
+          <div class="a-form-group"><label>Instagram Link</label><input type="text" name="instagram"></div>
+          <div class="a-form-group"><label>YouTube Link</label><input type="text" name="youtube"></div>
+          <div class="a-form-group"><label>About Text</label><textarea name="aboutText"></textarea></div>
+          <div class="a-form-group"><label>Footer Text</label><input type="text" name="footerText"></div>
+          <button type="submit" class="a-btn a-btn-primary a-btn-block">Save Settings</button>
+        </form>
+
+        <div class="a-panel-header"><h1 style="font-size:1.05rem;">Change Admin Password</h1></div>
+        <form id="change-password-form" style="background:#fff;border-radius:12px;box-shadow:var(--a-shadow);padding:1.2rem;">
+          <div id="change-password-msg"></div>
+          <div class="a-form-group"><label>Current Password</label><input type="password" name="current" required></div>
+          <div class="a-form-group"><label>New Password</label><input type="password" name="next" required></div>
+          <div class="a-form-group"><label>Confirm New Password</label><input type="password" name="confirm" required></div>
+          <p class="muted" style="font-size:.8rem;color:var(--a-muted);">Minimum 8 characters, with an uppercase letter, lowercase letter, number and special character.</p>
+          <button type="submit" class="a-btn a-btn-primary a-btn-block">Update Password</button>
+        </form>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- TRIP MODAL -->
+<div class="a-modal-overlay" id="trip-modal">
+  <div class="a-modal-box">
+    <button type="button" class="a-modal-close" id="trip-modal-close">&times;</button>
+    <h2 id="trip-modal-title">Add Trip</h2>
+    <form id="trip-form">
+      <div class="a-form-group">
+        <label>Trip Image</label>
+        <img id="trip-image-preview" src="" alt="" style="width:100px;height:70px;object-fit:cover;border-radius:8px;margin-bottom:.5rem;">
+        <input type="file" id="trip-image-input" accept="image/*">
+      </div>
+      <div class="a-form-group"><label>Trip Name</label><input type="text" name="name" required></div>
+      <div class="a-form-group"><label>Destination</label><input type="text" name="destination" required></div>
+      <div class="a-form-group">
+        <label>Category</label>
+        <select name="category">
+          <option value="One Day">One Day</option><option value="Weekend">Weekend</option>
+          <option value="Family">Family</option><option value="Pilgrimage">Pilgrimage</option><option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="a-form-group"><label>Duration</label><input type="text" name="duration" placeholder="e.g. 2 Days / 1 Night"></div>
+      <div class="a-form-group"><label>Price</label><input type="text" name="price" placeholder="e.g. ₹4999"></div>
+      <div class="a-form-group"><label>Description</label><textarea name="description"></textarea></div>
+      <div class="a-form-group"><label>Highlights (one per line)</label><textarea name="highlights" placeholder="Sightseeing&#10;Temple&#10;Photography"></textarea></div>
+      <div class="a-form-group">
+        <label>Trip Gallery Photos</label>
+        <div id="trip-gallery-preview" style="margin-bottom:.5rem;"></div>
+        <input type="file" id="trip-gallery-input" accept="image/*" multiple>
+      </div>
+      <div class="a-form-group">
+        <label>Available Vehicles</label>
+        <div class="a-checkbox-list" id="trip-vehicle-checkboxes"></div>
+      </div>
+      <button type="submit" class="a-btn a-btn-primary a-btn-block">Save Trip</button>
+    </form>
+  </div>
+</div>
+
+<!-- VEHICLE MODAL -->
+<div class="a-modal-overlay" id="vehicle-modal">
+  <div class="a-modal-box">
+    <button type="button" class="a-modal-close" id="vehicle-modal-close">&times;</button>
+    <h2 id="vehicle-modal-title">Add New Vehicle</h2>
+    <form id="vehicle-form">
+      <div class="a-form-group">
+        <label>Vehicle Image</label>
+        <img id="vehicle-image-preview" src="" alt="" style="width:100px;height:70px;object-fit:cover;border-radius:8px;margin-bottom:.5rem;">
+        <input type="file" id="vehicle-image-input" accept="image/*">
+      </div>
+      <div class="a-form-group"><label>Vehicle Name</label><input type="text" name="name" required placeholder="e.g. SML Bus"></div>
+      <div class="a-form-group"><label>Vehicle Type</label><input type="text" name="type" placeholder="e.g. Bus"></div>
+      <div class="a-form-group"><label>Seating Capacity</label><input type="text" name="capacity" placeholder="e.g. 32 Seater"></div>
+      <div class="a-form-group"><label>Description</label><textarea name="description" placeholder="Comfortable vehicle suitable for group tours."></textarea></div>
+      <div class="a-form-group"><label>Availability</label><select name="available"><option value="true">Available</option><option value="false">Unavailable</option></select></div>
+      <button type="submit" class="a-btn a-btn-primary a-btn-block">Save Vehicle</button>
+    </form>
+  </div>
+</div>
+
+<!-- VIDEO MODAL -->
+<div class="a-modal-overlay" id="video-modal">
+  <div class="a-modal-box">
+    <button type="button" class="a-modal-close" id="video-modal-close">&times;</button>
+    <h2 id="video-modal-title">Add Video</h2>
+    <form id="video-form">
+      <div class="a-form-group"><label>Title</label><input type="text" name="title" required></div>
+      <div class="a-form-group"><label>Description</label><textarea name="description"></textarea></div>
+      <div class="a-form-group"><label>YouTube Video ID</label><input type="text" name="youtubeId" placeholder="e.g. dQw4w9WgXcQ"></div>
+      <button type="submit" class="a-btn a-btn-primary a-btn-block">Save Video</button>
+    </form>
+  </div>
+</div>
+
+<!-- REVIEW MODAL -->
+<div class="a-modal-overlay" id="review-modal">
+  <div class="a-modal-box">
+    <button type="button" class="a-modal-close" id="review-modal-close">&times;</button>
+    <h2 id="review-modal-title">Add Review</h2>
+    <form id="review-form-admin">
+      <div class="a-form-group"><label>Customer Name</label><input type="text" name="name" required></div>
+      <div class="a-form-group"><label>Rating</label>
+        <select name="rating"><option value="5">★★★★★ (5)</option><option value="4">★★★★☆ (4)</option><option value="3">★★★☆☆ (3)</option><option value="2">★★☆☆☆ (2)</option><option value="1">★☆☆☆☆ (1)</option></select>
+      </div>
+      <div class="a-form-group"><label>Review Text</label><textarea name="review" required></textarea></div>
+      <button type="submit" class="a-btn a-btn-primary a-btn-block">Save Review</button>
+    </form>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script src="../js/admin.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  requireAdminAuth();
+  initAdminNav();
+  initTripForm();
+  initVehicleForm();
+  initGalleryForm();
+  initVideoForm();
+  initReviewAdminForm();
+  initSettingsForm();
+  showAdminPanel("dashboard");
+});
+</script>
+</body>
+</html>

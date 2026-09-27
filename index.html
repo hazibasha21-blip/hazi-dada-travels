@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hazi Dada Travels | Explore. Travel. Create Memories.</title>
+<meta name="description" content="Discover memorable journeys with Hazi Dada Travels — trips, vehicles, gallery, videos and reviews. Book instantly via Call or WhatsApp.">
+<meta property="og:title" content="Hazi Dada Travels">
+<meta property="og:description" content="Discover memorable journeys with Hazi Dada Travels.">
+<meta property="og:type" content="website">
+<link rel="icon" href="images/logo/logo.png" type="image/png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="#/" class="brand" data-nav="home">
+      <img src="images/logo/logo.png" alt="Hazi Dada Travels logo">
+      <span>Hazi Dada Travels</span>
+    </a>
+
+    <nav class="top-nav" aria-label="Main navigation">
+      <a href="#/trips" data-nav="trips" data-i18n-nav="nav_trips">Trips</a>
+      <a href="#/vehicles" data-nav="vehicles" data-i18n-nav="nav_vehicles">Vehicles</a>
+      <a href="#/gallery" data-nav="gallery" data-i18n-nav="nav_gallery">Gallery</a>
+      <a href="#/videos" data-nav="videos" data-i18n-nav="nav_videos">Videos</a>
+      <a href="#/reviews" data-nav="reviews" data-i18n-nav="nav_reviews">Reviews</a>
+      <a href="#/contact" data-nav="contact" data-i18n-nav="nav_contact">Contact</a>
+    </nav>
+
+    <div class="header-actions">
+      <div class="lang-pills" role="group" aria-label="Select language">
+        <button class="lang-pill" data-lang="en">English</button>
+        <button class="lang-pill" data-lang="te">తెలుగు</button>
+        <button class="lang-pill" data-lang="hi">हिन्दी</button>
+      </div>
+      <button class="nav-toggle" id="nav-toggle-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile nav drawer -->
+<div class="mobile-nav" id="mobile-nav">
+  <div class="mobile-nav-panel">
+    <button class="mobile-nav-close" id="mobile-nav-close-btn" aria-label="Close menu">&times;</button>
+    <a href="#/" data-nav="home" data-i18n-nav="nav_home">Home</a>
+    <a href="#/trips" data-nav="trips" data-i18n-nav="nav_trips">Trips</a>
+    <a href="#/vehicles" data-nav="vehicles" data-i18n-nav="nav_vehicles">Vehicles</a>
+    <a href="#/gallery" data-nav="gallery" data-i18n-nav="nav_gallery">Gallery</a>
+    <a href="#/videos" data-nav="videos" data-i18n-nav="nav_videos">Videos</a>
+    <a href="#/reviews" data-nav="reviews" data-i18n-nav="nav_reviews">Reviews</a>
+    <a href="#/contact" data-nav="contact" data-i18n-nav="nav_contact">Contact</a>
+  </div>
+</div>
+
+<!-- SPA content mount point -->
+<main id="app"></main>
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <h4>Hazi Dada Travels</h4>
+      <p class="muted" style="color:#cfe3f5;">[Editable placeholder] Your trusted travel partner.</p>
+    </div>
+    <div class="footer-links">
+      <h4 data-i18n-nav="footer_quick_links">Quick Links</h4>
+      <a href="#/" data-nav="home" data-i18n-nav="nav_home">Home</a>
+      <a href="#/trips" data-nav="trips" data-i18n-nav="nav_trips">Trips</a>
+      <a href="#/gallery" data-nav="gallery" data-i18n-nav="nav_gallery">Gallery</a>
+      <a href="#/reviews" data-nav="reviews" data-i18n-nav="nav_reviews">Reviews</a>
+    </div>
+    <div class="footer-links">
+      <h4 data-i18n-nav="footer_contact">Contact</h4>
+      <a href="#/contact" data-nav="contact">Call / WhatsApp</a>
+      <a href="admin/login.html">Admin Panel</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 Hazi Dada Travels. <span data-i18n-nav="footer_rights">All rights reserved.</span></div>
+</footer>
+
+<!-- Floating Call / WhatsApp buttons -->
+<div class="floating-actions">
+  <button class="floating-btn whatsapp" id="float-whatsapp-btn" aria-label="WhatsApp us">💬</button>
+  <button class="floating-btn call" id="float-call-btn" aria-label="Call us">📞</button>
+</div>
+
+<!-- Booking bottom sheet -->
+<div class="sheet-overlay" id="sheet-overlay">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title" id="sheet-title-text">Book / Enquire</h2>
+    <div class="sheet-actions">
+      <button class="sheet-action-btn call" id="sheet-call-btn"><span class="sa-icon">📞</span> Call</button>
+      <button class="sheet-action-btn whatsapp" id="sheet-whatsapp-btn"><span class="sa-icon">💬</span> WhatsApp</button>
+      <button class="sheet-action-btn copy" id="sheet-copy-btn"><span class="sa-icon">📋</span> Copy Number</button>
+    </div>
+    <button class="sheet-cancel" id="sheet-cancel-btn">Close</button>
+  </div>
+</div>
+
+<!-- Lightbox (gallery full-screen viewer) -->
+<div class="lightbox-overlay" id="lightbox-overlay">
+  <button class="lightbox-close" id="lightbox-close-btn" aria-label="Close">&times;</button>
+  <button class="lightbox-nav lightbox-prev" id="lightbox-prev-btn" aria-label="Previous">&#10094;</button>
+  <img id="lightbox-img" src="" alt="">
+  <button class="lightbox-nav lightbox-next" id="lightbox-next-btn" aria-label="Next">&#10095;</button>
+  <p class="lightbox-caption" id="lightbox-caption-text"></p>
+</div>
+
+<!-- Video modal -->
+<div class="video-overlay" id="video-overlay">
+  <button class="lightbox-close" id="video-close-btn" aria-label="Close" style="position:absolute;top:1.2rem;right:1.2rem;">&times;</button>
+  <div class="video-frame-wrap" id="video-frame-wrap"></div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
