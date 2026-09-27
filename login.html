@@ -6,13 +6,13 @@
 <title>Admin Login | Hazi Dada Travels</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="../images/logo/logo.png" type="image/png">
-<link rel="stylesheet" href="../css/admin.css">
+<link rel="stylesheet" href="admin.css">
 </head>
 <body class="admin-body">
 
 <div class="admin-login-wrap">
   <div class="admin-login-card">
-    <img src="../images/logo/logo.png" alt="Hazi Dada Travels logo">
+    <img src="logo.png" alt="Hazi Dada Travels logo">
     <h1>Admin Login</h1>
     <p class="sub">Hazi Dada Travels — Admin Panel</p>
     <div id="login-msg"></div>
@@ -32,14 +32,14 @@
     </form>
     <p class="sub" style="margin-top:1.2rem;">
       Prototype authentication for demonstration only.<br>
-      <a href="../index.html" style="color:var(--a-blue); font-weight:700;">← Back to website</a>
+<a href="index.html" style="color:var(--a-blue); font-weight:700;">← Back to website</a>
     </p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
-<script src="../js/data.js"></script>
-<script src="../js/admin.js"></script>
+<script src="data.js"></script>
+<script src="admin.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", async () => { 
   if (await isAdminLoggedIn()) { window.location.href = "dashboard.html"; return; }
