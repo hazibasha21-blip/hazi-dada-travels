@@ -258,7 +258,8 @@ window.addEventListener("error", function (event) {
 
     try {
       const trips = await getTrips();
-
+       
+alert("HOME GET TRIPS WORKED: " + JSON.stringify(trips));
       if (token !== renderToken) return;
 
       const list = Array.isArray(trips)
