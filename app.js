@@ -3,7 +3,14 @@
    APP.JS
    UI + ROUTING + INTERACTIONS
    ========================================================= */
-
+window.addEventListener("error", function (event) {
+  document.body.insertAdjacentHTML(
+    "afterbegin",
+    `<div style="background:#ff0000;color:#fff;padding:15px;font-size:16px;position:fixed;top:0;left:0;right:0;z-index:99999;">
+      ERROR: ${event.message}
+    </div>`
+  );
+});
 (function () {
   "use strict";
 
