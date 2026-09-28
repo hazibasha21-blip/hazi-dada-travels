@@ -2360,7 +2360,7 @@
             1500
           );
 
-        } catch (error) {
+                } catch (error) {
 
           window.prompt(
             "Copy this number:",
@@ -2372,50 +2372,52 @@
       }
     );
 
-  } //
+  }
 
+  }
 
-  /* =========================================================
-     MOBILE MENU
-  ========================================================= */
+/* =========================================================
+   MOBILE MENU
+========================================================= */
 
-  function openMobileMenu() {
-    const nav =
-      document.getElementById(
-        "mobile-nav"
-      );
+function openMobileMenu() {
+  const nav =
+    document.getElementById(
+      "mobile-nav"
+    );
 
-    if (nav) {
-      nav.classList.add(
-        "open"
-      );
-    }
-
-    document.body.classList.add(
-      "no-scroll"
+  if (nav) {
+    nav.classList.add(
+      "open"
     );
   }
 
-  function closeMobileMenu() {
-    const nav =
-      document.getElementById(
-        "mobile-nav"
-      );
+  document.body.classList.add(
+    "no-scroll"
+  );
+}
 
-    if (nav) {
-      nav.classList.remove(
-        "open"
-      );
-    }
+function closeMobileMenu() {
+  const nav =
+    document.getElementById(
+      "mobile-nav"
+    );
 
-    /*
-      Do not remove no-scroll here if
-      another modal is open.
-    */
-    const sheet =
-      document.getElementById(
-        "sheet-overlay"
-      );
+  if (nav) {
+    nav.classList.remove(
+      "open"
+    );
+  }
+
+  /*
+    Do not remove no-scroll here if
+    another modal is open.
+  */
+
+  const sheet =
+    document.getElementById(
+      "sheet-overlay"
+    );
 
     const lightbox =
       document.getElementById(
