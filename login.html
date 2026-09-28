@@ -14,7 +14,6 @@
     <img src="logo.png" alt="Hazi Dada Travels logo">
     <h1>Hazi Dada Travels</h1>
     <p class="sub"><strong>Admin Panel</strong></p>
-    <div class="a-banner">UI preview mode: any valid email and a password of 6+ characters opens the dashboard. Real Supabase Auth is connected in Phase 3.</div>
     <div id="login-msg"></div>
     <form id="login-form" novalidate>
       <div class="a-form-group"><label for="email">Email</label><input id="email" type="email" name="email" autocomplete="username"></div>
@@ -26,10 +25,11 @@
     <p class="sub" style="margin-top:1.2rem;"><a href="index.html" style="color:var(--a-blue);font-weight:700;">← Back to website</a></p>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
 <script src="admin.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  if (isAdminLoggedIn()) { location.replace("dashboard.html"); return; }
+document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("toggle-password").addEventListener("click", () => {
     const f = document.getElementById("password"); f.type = f.type === "password" ? "text" : "password";
   });
@@ -37,11 +37,14 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     const btn = document.getElementById("login-btn"), msg = document.getElementById("login-msg");
     msg.innerHTML = ""; btn.disabled = true; btn.textContent = "Logging in...";
-    const ok = await adminLogin(e.target.email.value.trim().toLowerCase(), e.target.password.value);
-    if (ok) { location.replace("dashboard.html"); return; }
-    msg.innerHTML = '<div class="a-msg error">Invalid login details.</div>';
+    const res = await adminLogin(e.target.email.value.trim().toLowerCase(), e.target.password.value);
+    if (res.ok) { location.replace("dashboard.html"); return; }
+    msg.innerHTML = '<div class="a-msg error"></div>';
+    msg.firstChild.textContent = res.message;
     btn.disabled = false; btn.textContent = "Login";
   });
+  // Already signed in? Go straight to the dashboard (handlers above are attached first).
+  if (await isAdminLoggedIn()) location.replace("dashboard.html");
 });
 </script>
 </body>
