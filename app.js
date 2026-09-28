@@ -3,6 +3,7 @@
    APP.JS
    UI + ROUTING + INTERACTIONS
    ========================================================= */
+alert("APP.JS IS RUNNING");
 window.addEventListener("error", function (event) {
   document.body.insertAdjacentHTML(
     "afterbegin",
