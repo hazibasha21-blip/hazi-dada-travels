@@ -350,8 +350,6 @@
     navigate(destination);
   });
 }
-    );
-  }
 
   function bindHistory() {
     window.addEventListener(
@@ -429,7 +427,7 @@
                   )
                 )}
 
-              </button>
+              </a>
 
               <button
                 class="btn btn-ghost"
@@ -2374,7 +2372,7 @@
       }
     );
 
-  }
+  } //
 
 
   /* =========================================================
