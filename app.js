@@ -1,3167 +1,515 @@
 /* =========================================================
-   HAZI DADA TRAVELS V1
-   APP.JS
-   Customer UI + Routing + Interactions
-   Compatible with current index.html + data.js
-========================================================= */
+   HAZI DADA TRAVELS — PUBLIC APP (app.js)   [Phase 1: UI]
+   SPA routing (History API), views, booking sheet, enquiry
+   form, lightbox, video modal, language switching.
+   Data comes ONLY from data.js functions (temporary local
+   data now; Supabase in Phase 3).
+   ========================================================= */
 
-(function () {
-  "use strict";
+let currentLang = localStorage.getItem("hdt_lang") || "en";
+let currentRoute = null;
+let booking = { kind: "general", name: "" };
+let lbList = [];
+let lbIndex = 0;
 
-  let currentLanguage = "en";
-  let renderToken = 0;
+function t(key) {
+  return (translations[currentLang] && translations[currentLang][key]) || translations.en[key] || key;
+}
+function esc(v) {
+  return String(v === undefined || v === null ? "" : v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+const $ = id => document.getElementById(id);
+const app = () => $("app");
+function onImgError(img) { img.onerror = null; img.src = PLACEHOLDER_FALLBACK; }
+function stars(n) { let s = ""; for (let i = 1; i <= 5; i++) s += i <= Math.round(n) ? "★" : "☆"; return s; }
+function loadingBlock(key) { return `<div class="state-msg"><div class="spinner"></div>${esc(t(key))}</div>`; }
+function emptyBlock(text) { return `<div class="state-msg">${esc(text)}</div>`; }
+function errorBlock() {
+  return `<div class="state-msg">${esc(t("err_load"))}<br><button class="btn btn-outline btn-small mt-1" data-action="retry">${esc(t("btn_retry"))}</button></div>`;
+}
+function hScroll(html, extra = "") { return `<div class="h-scroll-wrap"><div class="h-scroll ${extra}">${html}</div></div>`; }
+function sectionHead(titleKey, route) {
+  return `<div class="container section-head"><h2 class="section-title">${esc(t(titleKey))}</h2>
+    ${route ? `<button class="link-btn" data-action="nav" data-route="${route}">${esc(t("btn_see_all"))} →</button>` : ""}</div>`;
+}
+function catLabel(c) {
+  const key = "cat_" + String(c).toLowerCase().replace(/\s+/g, "");
+  return translations[currentLang][key] || translations.en[key] || c;
+}
+function isSample(name) { return String(name).includes("[Sample"); }
 
-  let lightboxImages = [];
-  let lightboxIndex = 0;
+/* ---------------------------------------------------------
+   ROUTER (History API, overlay-aware so Android Back closes
+   sheets/lightbox first, then steps back through pages)
+   --------------------------------------------------------- */
+const KNOWN_ROUTES = ["home", "trips", "vehicles", "gallery", "videos", "reviews", "contact"];
 
-  const app = document.getElementById("app");
+function parseRouteFromHash() {
+  const raw = location.hash.replace(/^#\/?/, "");
+  if (!raw) return { name: "home", params: {} };
+  const parts = raw.split("/");
+  if (parts[0] === "trip" && parts[1]) return { name: "trip-details", params: { id: parts[1] } };
+  if (KNOWN_ROUTES.includes(parts[0])) return { name: parts[0], params: {} };
+  return { name: "home", params: {} };
+}
+function routeToHash(name, params) {
+  if (name === "trip-details") return "#/trip/" + params.id;
+  return name === "home" ? "#/" : "#/" + name;
+}
+function sameRoute(a, b) {
+  return !!a && !!b && a.name === b.name && String((a.params || {}).id || "") === String((b.params || {}).id || "");
+}
+function navigate(name, params = {}, replace = false) {
+  const state = { name, params };
+  if (replace) history.replaceState(state, "", routeToHash(name, params));
+  else history.pushState(state, "", routeToHash(name, params));
+  render(state);
+}
+window.addEventListener("popstate", e => {
+  const s = e.state && e.state.name ? e.state : parseRouteFromHash();
+  const hadOverlay = anyOverlayOpen();
+  closeAllOverlays();
+  if (hadOverlay && sameRoute(s, currentRoute)) return; // only an overlay was closed
+  render(s);
+});
 
-  /* =========================================================
-     HELPERS
-  ========================================================= */
-
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
-
-  function safeUrl(url) {
-    if (!url) return "";
-
-    try {
-      const parsed = new URL(
-        String(url),
-        window.location.href
-      );
-
-      if (
-        parsed.protocol === "http:" ||
-        parsed.protocol === "https:"
-      ) {
-        return parsed.href;
-      }
-
-      return "";
-    } catch (error) {
-      return "";
+async function render(state) {
+  currentRoute = { name: state.name, params: state.params || {} };
+  closeAllOverlays();
+  closeMenu();
+  document.querySelectorAll("[data-route]").forEach(el => {
+    if (el.dataset.action === "nav") {
+      const active = el.dataset.route === (state.name === "trip-details" ? "trips" : state.name);
+      el.classList.toggle("active", active);
     }
-  }
-
-  function imageUrl(url, label) {
-    const valid = safeUrl(url);
-
-    if (valid) {
-      return valid;
-    }
-
-    const safeLabel = String(
-      label || "Hazi Dada Travels"
-    )
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
-    const svg = `
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="900"
-        height="600"
-        viewBox="0 0 900 600">
-
-        <defs>
-          <linearGradient
-            id="hdtGradient"
-            x1="0"
-            y1="0"
-            x2="1"
-            y2="1">
-
-            <stop
-              offset="0%"
-              stop-color="#0b3d66"/>
-
-            <stop
-              offset="100%"
-              stop-color="#2f9bff"/>
-          </linearGradient>
-        </defs>
-
-        <rect
-          width="900"
-          height="600"
-          fill="url(#hdtGradient)"/>
-
-        <text
-          x="450"
-          y="300"
-          text-anchor="middle"
-          dominant-baseline="middle"
-          fill="#ffffff"
-          font-size="42"
-          font-family="Arial, sans-serif">
-
-          ${safeLabel}
-
-        </text>
-
-      </svg>
-    `;
-
-    return (
-      "data:image/svg+xml;charset=UTF-8," +
-      encodeURIComponent(svg)
-    );
-  }
-
-  function getText(key, fallback) {
-    try {
-      if (
-        typeof translations !== "undefined" &&
-        translations[currentLanguage] &&
-        translations[currentLanguage][key]
-      ) {
-        return translations[currentLanguage][key];
-      }
-    } catch (error) {}
-
-    return fallback || key;
-  }
-
-  function normalizeTrip(trip) {
-    if (!trip) return null;
-
-    return {
-      ...trip,
-
-      id: trip.id,
-
-      name: trip.name || "Trip",
-
-      destination:
-        trip.destination || "",
-
-      description:
-        trip.description || "",
-
-      price:
-        trip.price || "",
-
-      duration:
-        trip.duration || "",
-
-      image_url:
-        trip.image_url ||
-        trip.image ||
-        "",
-
-      image:
-        trip.image_url ||
-        trip.image ||
-        ""
-    };
-  }
-
-  function normalizeVehicle(vehicle) {
-    if (!vehicle) return null;
-
-    return {
-      ...vehicle,
-
-      id: vehicle.id,
-
-      name:
-        vehicle.name || "Vehicle",
-
-      type:
-        vehicle.type || "",
-
-      capacity:
-        vehicle.capacity || "",
-
-      registration:
-        vehicle.registration || "",
-
-      image_url:
-        vehicle.image_url || "",
-
-      available:
-        vehicle.available !== false
-    };
-  }
-
-  function normalizeGallery(item) {
-    if (!item) return null;
-
-    return {
-      ...item,
-
-      id: item.id,
-
-      title:
-        item.title || "",
-
-      media_url:
-        item.media_url ||
-        item.image_url ||
-        "",
-
-      media_type:
-        item.media_type || "image",
-
-      description:
-        item.description || ""
-    };
-  }
-
-  function normalizeReview(review) {
-    if (!review) return null;
-
-    return {
-      ...review,
-
-      id: review.id,
-
-      name:
-        review.name || "Guest",
-
-      rating:
-        Number(review.rating || 5),
-
-      comment:
-        review.comment ||
-        review.review ||
-        ""
-    };
-  }
-
-  function setLoading() {
-    if (!app) return;
-
-    app.innerHTML = `
-      <section class="section">
-        <div class="state-msg">
-          <div class="spinner"></div>
-          <p>Loading...</p>
-        </div>
-      </section>
-    `;
-  }
-
-  function showError(message) {
-    if (!app) return;
-
-    app.innerHTML = `
-      <section class="section">
-        <div class="form-card center">
-
-          <h2>Something went wrong</h2>
-
-          <p class="muted">
-            ${escapeHtml(message)}
-          </p>
-
-          <button
-            class="btn btn-primary"
-            data-nav="home">
-
-            Go Home
-
-          </button>
-
-        </div>
-      </section>
-    `;
-  }
-
-  /* =========================================================
-     ROUTING
-  ========================================================= */
-
-  function getRoute() {
-    let hash =
-      window.location.hash || "#/";
-
-    hash = hash.replace(/^#/, "");
-
-    if (!hash || hash === "/") {
-      return {
-        page: "home"
-      };
-    }
-
-    const parts = hash
-      .replace(/^\/+/, "")
-      .split("/")
-      .filter(Boolean);
-
-    if (
-      parts[0] === "trip" &&
-      parts[1]
-    ) {
-      return {
-        page: "trip",
-        id: decodeURIComponent(parts[1])
-      };
-    }
-
-    return {
-      page:
-        parts[0] || "home"
-    };
-  }
-
-  function navigate(path) {
-    const target = path.startsWith("#")
-      ? path
-      : `#${path.startsWith("/") ? path : "/" + path}`;
-
-    if (
-      window.location.hash !== target
-    ) {
-      window.location.hash = target;
-    } else {
-      renderRoute();
-    }
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-
-    closeMobileMenu();
-  }
-
-  function bindNavigation() {
-  document.addEventListener("click", function (event) {
-    const element = event.target.closest("[data-nav]");
-
-    if (!element) return;
-
-    const destination = element.getAttribute("data-nav");
-
-    if (!destination) return;
-
-    event.preventDefault();
-
-    navigate(destination);
   });
+  window.scrollTo(0, 0);
+  try {
+    switch (state.name) {
+      case "trips": await renderTrips(); break;
+      case "trip-details": await renderTripDetails(state.params.id); break;
+      case "vehicles": await renderVehicles(); break;
+      case "gallery": await renderGallery(); break;
+      case "videos": await renderVideos(); break;
+      case "reviews": await renderReviews(); break;
+      case "contact": await renderContact(); break;
+      default: await renderHome();
+    }
+  } catch (err) {
+    console.error("[render]", err);
+    app().innerHTML = errorBlock();
+  }
+  renderFooter();
 }
 
-  function bindHistory() {
-    window.addEventListener(
-      "hashchange",
-      renderRoute
-    );
-
-    window.addEventListener(
-      "popstate",
-      renderRoute
-    );
+/* Load data into a container; a failure only affects that one block */
+async function fill(id, loader, build, emptyKey) {
+  const el = $(id);
+  if (!el) return;
+  try {
+    const data = await loader();
+    el.innerHTML = data && data.length ? build(data) : emptyBlock(t(emptyKey));
+  } catch (err) {
+    console.error("[fill " + id + "]", err);
+    el.innerHTML = errorBlock();
   }
-
-  /* =========================================================
-     HOME
-  ========================================================= */
-
-  async function renderHome(token) {
-    setLoading();
-
-    try {
-      const trips =
-        await getTrips();
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      const list =
-        Array.isArray(trips)
-          ? trips
-              .map(normalizeTrip)
-              .filter(Boolean)
-          : [];
-
-      const featured =
-        list.slice(0, 6);
-
-      app.innerHTML = `
-        <section class="hero">
-
-          <div class="hero-inner">
-
-            <h1>
-              ${escapeHtml(
-                getText(
-                  "hero_title",
-                  "Travel with comfort and confidence"
-                )
-              )}
-            </h1>
-
-            <p>
-              ${escapeHtml(
-                getText(
-                  "hero_subtitle",
-                  "Your trusted travel partner for memorable journeys."
-                )
-              )}
-            </p>
-
-            <div class="hero-actions">
-
-              <a
-  class="btn btn-primary"
-  href="#/trips"
-  data-nav="trips">
-
-                ${escapeHtml(
-                  getText(
-                    "view_trips",
-                    "View Trips"
-                  )
-                )}
-
-              </a>
-
-              <button
-                class="btn btn-ghost"
-                data-open-booking>
-
-                ${escapeHtml(
-                  getText(
-                    "book_now",
-                    "Book Now"
-                  )
-                )}
-
-              </button>
-
-            </div>
-
-          </div>
-
-        </section>
-
-        <section class="section">
-
-          <div class="container">
-
-            <div class="flex-between">
-
-              <div>
-
-                <p class="muted">
-                  EXPLORE
-                </p>
-
-                <h2 class="section-title">
-                  ${escapeHtml(
-                    getText(
-                      "nav_trips",
-                      "Trips"
-                    )
-                  )}
-                </h2>
-
-              </div>
-
-              <button
-                class="btn btn-outline btn-small"
-                data-nav="trips">
-
-                View All →
-
-              </button>
-
-            </div>
-
-            ${
-              featured.length
-                ? `
-                  <div class="h-scroll-wrap">
-
-                    <div class="h-scroll">
-
-                      ${featured
-                        .map(
-                          tripCardHtml
-                        )
-                        .join("")}
-
-                    </div>
-
-                  </div>
-                `
-                : `
-                  <div class="state-msg">
-
-                    <h3>
-                      No trips available yet
-                    </h3>
-
-                    <p>
-                      Trips added to your database
-                      will appear here.
-                    </p>
-
-                  </div>
-                `
-            }
-
-          </div>
-
-        </section>
-
-        <section class="quick-actions">
-
-          <div class="h-scroll-wrap">
-
-            <div class="h-scroll">
-
-              <button
-                class="quick-action-pill"
-                data-nav="vehicles">
-
-                <span class="qa-icon">
-                  🚌
-                </span>
-
-                <span class="qa-label">
-                  Vehicles
-                </span>
-
-              </button>
-
-              <button
-                class="quick-action-pill"
-                data-nav="gallery">
-
-                <span class="qa-icon">
-                  📸
-                </span>
-
-                <span class="qa-label">
-                  Gallery
-                </span>
-
-              </button>
-
-              <button
-                class="quick-action-pill"
-                data-nav="videos">
-
-                <span class="qa-icon">
-                  🎥
-                </span>
-
-                <span class="qa-label">
-                  Videos
-                </span>
-
-              </button>
-
-              <button
-                class="quick-action-pill"
-                data-nav="reviews">
-
-                <span class="qa-icon">
-                  ⭐
-                </span>
-
-                <span class="qa-label">
-                  Reviews
-                </span>
-
-              </button>
-
-              <button
-                class="quick-action-pill"
-                data-nav="contact">
-
-                <span class="qa-icon">
-                  📞
-                </span>
-
-                <span class="qa-label">
-                  Contact
-                </span>
-
-              </button>
-
-            </div>
-
-          </div>
-
-        </section>
-      `;
-    } catch (error) {
-      console.error(
-        "Home error:",
-        error
-      );
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      showError(
-        "Unable to load the website data."
-      );
-    }
-  }
-
-  /* =========================================================
-     TRIP CARD
-  ========================================================= */
-
-  function tripCardHtml(trip) {
-    return `
-      <article class="trip-card">
-
-        <img
-          src="${imageUrl(
-            trip.image,
-            trip.name
-          )}"
-          alt="${escapeHtml(
-            trip.name
-          )}"
-          loading="lazy">
-
-        <div class="trip-card-body">
-
-          ${
-            trip.destination
-              ? `
-                <span class="chip">
-                  ${escapeHtml(
-                    trip.destination
-                  )}
-                </span>
-              `
-              : ""
-          }
-
-          <h3>
-            ${escapeHtml(
-              trip.name
-            )}
-          </h3>
-
-          ${
-            trip.description
-              ? `
-                <p class="muted">
-                  ${escapeHtml(
-                    trip.description
-                  )}
-                </p>
-              `
-              : ""
-          }
-
-          <div class="trip-meta-row">
-
-            ${
-              trip.duration
-                ? `
-                  <span>
-                    ⏱ ${escapeHtml(
-                      trip.duration
-                    )}
-                  </span>
-                `
-                : ""
-            }
-
-            ${
-              trip.price
-                ? `
-                  <span class="price-tag">
-                    ${escapeHtml(
-                      trip.price
-                    )}
-                  </span>
-                `
-                : ""
-            }
-
-          </div>
-
-          <div class="flex-between mt-1">
-
-            <button
-              class="btn btn-outline btn-small"
-              data-nav="trip/${encodeURIComponent(
-                trip.id
-              )}">
-
-              Details
-
-            </button>
-
-            <button
-              class="btn btn-primary btn-small"
-              data-open-booking
-              data-trip-name="${escapeHtml(
-                trip.name
-              )}">
-
-              Book
-
-            </button>
-
-          </div>
-
-        </div>
-
-      </article>
-    `;
-  }
-
-  /* =========================================================
-     TRIPS
-  ========================================================= */
-
-  async function renderTrips(token) {
-    setLoading();
-
-    try {
-      const trips =
-        await getTrips();
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      const list =
-        Array.isArray(trips)
-          ? trips
-              .map(normalizeTrip)
-              .filter(Boolean)
-          : [];
-
-      app.innerHTML = `
-        <section class="section">
-
-          <div class="container">
-
-            <p class="muted">
-              JOURNEYS
-            </p>
-
-            <h1 class="section-title">
-              ${escapeHtml(
-                getText(
-                  "nav_trips",
-                  "Trips"
-                )
-              )}
-            </h1>
-
-            <p class="muted">
-              Explore our available travel packages.
-            </p>
-
-            ${
-              list.length
-                ? `
-                  <div class="h-scroll-wrap mt-2">
-
-                    <div class="h-scroll">
-
-                      ${list
-                        .map(
-                          tripCardHtml
-                        )
-                        .join("")}
-
-                    </div>
-
-                  </div>
-                `
-                : `
-                  <div class="state-msg">
-
-                    <h3>
-                      No trips available
-                    </h3>
-
-                    <p>
-                      Add trips to your
-                      Supabase
-                      <strong>trips</strong>
-                      table.
-                    </p>
-
-                  </div>
-                `
-            }
-
-          </div>
-
-        </section>
-      `;
-    } catch (error) {
-      console.error(
-        "Trips error:",
-        error
-      );
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      showError(
-        "Unable to load trips."
-      );
-    }
-  }
-
-  /* =========================================================
-     TRIP DETAILS
-  ========================================================= */
-
-  async function renderTripDetails(
-    id,
-    token
-  ) {
-    setLoading();
-
-    try {
-      const trip =
-        normalizeTrip(
-          await getTripById(id)
-        );
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      if (!trip) {
-        app.innerHTML = `
-          <section class="section">
-
-            <div class="container center">
-
-              <h2>
-                Trip not found
-              </h2>
-
-              <button
-                class="btn btn-primary"
-                data-nav="trips">
-
-                Back to Trips
-
-              </button>
-
-            </div>
-
-          </section>
-        `;
-
-        return;
-      }
-
-      app.innerHTML = `
-        <section class="section">
-
-          <div class="container">
-
-            <button
-              class="btn btn-outline btn-small"
-              data-nav="trips">
-
-              ← Back to Trips
-
-            </button>
-
-            <div class="trip-details-wrap mt-2">
-
-              <img
-                class="trip-hero-image"
-                src="${imageUrl(
-                  trip.image,
-                  trip.name
-                )}"
-                alt="${escapeHtml(
-                  trip.name
-                )}">
-
-              <div class="trip-details-header">
-
-                ${
-                  trip.destination
-                    ? `
-                      <span class="chip">
-                        ${escapeHtml(
-                          trip.destination
-                        )}
-                      </span>
-                    `
-                    : ""
-                }
-
-                <h1>
-                  ${escapeHtml(
-                    trip.name
-                  )}
-                </h1>
-
-                ${
-                  trip.description
-                    ? `
-                      <p class="muted">
-                        ${escapeHtml(
-                          trip.description
-                        )}
-                      </p>
-                    `
-                    : ""
-                }
-
-              </div>
-
-              <div class="h-scroll-wrap">
-
-                <div class="h-scroll">
-
-                  ${
-                    trip.duration
-                      ? `
-                        <div class="info-card">
-
-                          <span class="info-label">
-                            Duration
-                          </span>
-
-                          <span class="info-value">
-                            ${escapeHtml(
-                              trip.duration
-                            )}
-                          </span>
-
-                        </div>
-                      `
-                      : ""
-                  }
-
-                  ${
-                    trip.price
-                      ? `
-                        <div class="info-card">
-
-                          <span class="info-label">
-                            Price
-                          </span>
-
-                          <span class="info-value">
-                            ${escapeHtml(
-                              trip.price
-                            )}
-                          </span>
-
-                        </div>
-                      `
-                      : ""
-                  }
-
-                </div>
-
-              </div>
-
-              <button
-                class="btn btn-primary btn-block mt-2"
-                data-open-booking
-                data-trip-name="${escapeHtml(
-                  trip.name
-                )}">
-
-                Book This Trip
-
-              </button>
-
-            </div>
-
-          </div>
-
-        </section>
-      `;
-    } catch (error) {
-      console.error(
-        "Trip details error:",
-        error
-      );
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      showError(
-        "Unable to load this trip."
-      );
-    }
-  }
-
-  /* =========================================================
-     VEHICLES
-  ========================================================= */
-
-  async function renderVehicles(token) {
-    setLoading();
-
-    try {
-      const vehicles =
-        await getVehicles();
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      const list =
-        Array.isArray(vehicles)
-          ? vehicles
-              .map(
-                normalizeVehicle
-              )
-              .filter(Boolean)
-          : [];
-
-      app.innerHTML = `
-        <section class="section">
-
-          <div class="container">
-
-            <p class="muted">
-              OUR FLEET
-            </p>
-
-            <h1 class="section-title">
-              Vehicles
-            </h1>
-
-            <p class="muted">
-              Comfortable vehicles for your journey.
-            </p>
-
-            ${
-              list.length
-                ? `
-                  <div class="h-scroll-wrap mt-2">
-
-                    <div class="h-scroll">
-
-                      ${list
-                        .map(
-                          vehicleCardHtml
-                        )
-                        .join("")}
-
-                    </div>
-
-                  </div>
-                `
-                : `
-                  <div class="state-msg">
-
-                    <h3>
-                      No vehicles available
-                    </h3>
-
-                    <p>
-                      Vehicles added to Supabase
-                      will appear here.
-                    </p>
-
-                  </div>
-                `
-            }
-
-          </div>
-
-        </section>
-      `;
-    } catch (error) {
-      console.error(
-        "Vehicles error:",
-        error
-      );
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      showError(
-        "Unable to load vehicles."
-      );
-    }
-  }
-
-  function vehicleCardHtml(vehicle) {
-    return `
-      <article class="vehicle-card">
-
-        <img
-          src="${imageUrl(
-            vehicle.image_url,
-            vehicle.name
-          )}"
-          alt="${escapeHtml(
-            vehicle.name
-          )}"
-          loading="lazy">
-
-        <div class="vehicle-card-body">
-
-          <h3>
-            ${escapeHtml(
-              vehicle.name
-            )}
-          </h3>
-
-          ${
-            vehicle.type
-              ? `
-                <span class="muted">
-                  ${escapeHtml(
-                    vehicle.type
-                  )}
-                </span>
-              `
-              : ""
-          }
-
-          ${
-            vehicle.capacity
-              ? `
-                <span>
-                  👥 ${escapeHtml(
-                    vehicle.capacity
-                  )}
-                </span>
-              `
-              : ""
-          }
-
-          ${
-            vehicle.registration
-              ? `
-                <span class="muted">
-                  ${escapeHtml(
-                    vehicle.registration
-                  )}
-                </span>
-              `
-              : ""
-          }
-
-          <span
-            class="availability-badge ${
-              vehicle.available
-                ? "available"
-                : "unavailable"
-            }">
-
-            ${
-              vehicle.available
-                ? "Available"
-                : "Unavailable"
-            }
-
-          </span>
-
-        </div>
-
-      </article>
-    `;
-  }
-
-  /* =========================================================
-     GALLERY
-  ========================================================= */
-
-  async function renderGallery(token) {
-    setLoading();
-
-    try {
-      const gallery =
-        await getGallery();
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      const list =
-        Array.isArray(gallery)
-          ? gallery
-              .map(
-                normalizeGallery
-              )
-              .filter(Boolean)
-          : [];
-
-      lightboxImages = list;
-
-      app.innerHTML = `
-        <section class="section">
-
-          <div class="container">
-
-            <p class="muted">
-              MEMORIES
-            </p>
-
-            <h1 class="section-title">
-              Gallery
-            </h1>
-
-            <p class="muted">
-              Moments from Hazi Dada Travels.
-            </p>
-
-            ${
-              list.length
-                ? `
-                  <div class="h-scroll-wrap mt-2">
-
-                    <div class="h-scroll">
-
-                      ${list
-                        .map(
-                          (item, index) => `
-                            <button
-                              class="gallery-thumb"
-                              type="button"
-                              data-gallery-index="${index}">
-
-                              <img
-                                src="${imageUrl(
-                                  item.media_url,
-                                  item.title ||
-                                    "Gallery"
-                                )}"
-                                alt="${escapeHtml(
-                                  item.title ||
-                                    "Gallery"
-                                )}"
-                                loading="lazy">
-
-                            </button>
-                          `
-                        )
-                        .join("")}
-
-                    </div>
-
-                  </div>
-                `
-                : `
-                  <div class="state-msg">
-
-                    <h3>
-                      Gallery is empty
-                    </h3>
-
-                    <p>
-                      Approved gallery items
-                      will appear here.
-                    </p>
-
-                  </div>
-                `
-            }
-
-          </div>
-
-        </section>
-      `;
-    } catch (error) {
-      console.error(
-        "Gallery error:",
-        error
-      );
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      showError(
-        "Unable to load gallery."
-      );
-    }
-  }
-
-  /* =========================================================
-     VIDEOS
-  ========================================================= */
-
-  async function renderVideos(token) {
-    setLoading();
-
-    try {
-      const videos =
-        await getVideos();
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      const list =
-        Array.isArray(videos)
-          ? videos
-          : [];
-
-      app.innerHTML = `
-        <section class="section">
-
-          <div class="container">
-
-            <p class="muted">
-              WATCH
-            </p>
-
-            <h1 class="section-title">
-              Videos
-            </h1>
-
-            <p class="muted">
-              Travel videos from Hazi Dada Travels.
-            </p>
-
-            ${
-              list.length
-                ? `
-                  <div class="h-scroll-wrap mt-2">
-
-                    <div class="h-scroll">
-
-                      ${list
-                        .map(
-                          (video, index) => `
-                            <button
-                              class="video-card"
-                              type="button"
-                              data-video-index="${index}">
-
-                              <div class="video-thumb-wrap">
-
-                                <span class="play-icon">
-                                  ▶
-                                </span>
-
-                              </div>
-
-                              <div class="video-card-body">
-
-                                <h4>
-                                  ${escapeHtml(
-                                    video.title ||
-                                      `Video ${
-                                        index + 1
-                                      }`
-                                  )}
-                                </h4>
-
-                              </div>
-
-                            </button>
-                          `
-                        )
-                        .join("")}
-
-                    </div>
-
-                  </div>
-                `
-                : `
-                  <div class="state-msg">
-
-                    <h3>
-                      No videos available yet
-                    </h3>
-
-                    <p>
-                      Videos will appear here
-                      when added.
-                    </p>
-
-                  </div>
-                `
-            }
-
-          </div>
-
-        </section>
-      `;
-    } catch (error) {
-      console.error(
-        "Videos error:",
-        error
-      );
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      showError(
-        "Unable to load videos."
-      );
-    }
-  }
-
-  /* =========================================================
-     REVIEWS
-  ========================================================= */
-
-  async function renderReviews(token) {
-    setLoading();
-
-    try {
-      const reviews =
-        await getReviews();
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      const list =
-        Array.isArray(reviews)
-          ? reviews
-              .map(
-                normalizeReview
-              )
-              .filter(Boolean)
-          : [];
-
-      app.innerHTML = `
-        <section class="section">
-
-          <div class="container">
-
-            <p class="muted">
-              TRAVELLER FEEDBACK
-            </p>
-
-            <h1 class="section-title">
-              Reviews
-            </h1>
-
-            <p class="muted">
-              See what our travellers have to say.
-            </p>
-
-            ${
-              list.length
-                ? `
-                  <div class="h-scroll-wrap mt-2">
-
-                    <div class="h-scroll">
-
-                      ${list
-                        .map(
-                          reviewCardHtml
-                        )
-                        .join("")}
-
-                    </div>
-
-                  </div>
-                `
-                : `
-                  <div class="state-msg">
-
-                    <h3>
-                      No reviews yet
-                    </h3>
-
-                    <p>
-                      Be the first traveller
-                      to leave a review.
-                    </p>
-
-                  </div>
-                `
-            }
-
-            <div class="form-card mt-2">
-
-              <h2>
-                Leave a Review
-              </h2>
-
-              <p class="muted">
-                Your review will be checked
-                before appearing publicly.
-              </p>
-
-              <form id="reviewForm">
-
-                <div class="form-group">
-
-                  <label for="review-name">
-                    Your Name
-                  </label>
-
-                  <input
-                    id="review-name"
-                    type="text"
-                    name="name"
-                    required
-                    maxlength="100">
-
-                </div>
-
-                <div class="form-group">
-
-                  <label for="review-rating">
-                    Rating
-                  </label>
-
-                  <select
-                    id="review-rating"
-                    name="rating"
-                    required>
-
-                    <option value="5">
-                      ★★★★★ 5
-                    </option>
-
-                    <option value="4">
-                      ★★★★☆ 4
-                    </option>
-
-                    <option value="3">
-                      ★★★☆☆ 3
-                    </option>
-
-                    <option value="2">
-                      ★★☆☆☆ 2
-                    </option>
-
-                    <option value="1">
-                      ★☆☆☆☆ 1
-                    </option>
-
-                  </select>
-
-                </div>
-
-                <div class="form-group">
-
-                  <label for="review-comment">
-                    Your Review
-                  </label>
-
-                  <textarea
-                    id="review-comment"
-                    name="comment"
-                    required
-                    maxlength="1000"></textarea>
-
-                </div>
-
-                <button
-                  type="submit"
-                  class="btn btn-primary btn-block">
-
-                  Submit Review
-
-                </button>
-
-                <p
-                  id="reviewMessage"
-                  class="muted center mt-1">
-                </p>
-
-              </form>
-
-            </div>
-
-          </div>
-
-        </section>
-      `;
-
-      bindReviewForm();
-
-    } catch (error) {
-      console.error(
-        "Reviews error:",
-        error
-      );
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      showError(
-        "Unable to load reviews."
-      );
-    }
-  }
-
-  function reviewCardHtml(review) {
-    const rating =
-      Math.max(
-        1,
-        Math.min(
-          5,
-          Number(
-            review.rating || 5
-          )
-        )
-      );
-
-    return `
-      <article class="review-card">
-
-        <div class="review-stars">
-
-          ${"★".repeat(rating)}
-          ${"☆".repeat(5 - rating)}
-
-        </div>
-
-        <p>
-          “${escapeHtml(
-            review.comment
-          )}”
-        </p>
-
-        <p class="review-name">
-          ${escapeHtml(
-            review.name
-          )}
-        </p>
-
-      </article>
-    `;
-  }
-
-  function bindReviewForm() {
-    const form =
-      document.getElementById(
-        "reviewForm"
-      );
-
-    if (!form) return;
-
-    form.addEventListener(
-      "submit",
-      async function (event) {
-        event.preventDefault();
-
-        const message =
-          document.getElementById(
-            "reviewMessage"
-          );
-
-        const formData =
-          new FormData(form);
-
-        const data = {
-          name: String(
-            formData.get(
-              "name"
-            ) || ""
-          ).trim(),
-
-          rating: Number(
-            formData.get(
-              "rating"
-            ) || 5
-          ),
-
-          comment: String(
-            formData.get(
-              "comment"
-            ) || ""
-          ).trim()
-        };
-
-        if (
-          !data.name ||
-          !data.comment
-        ) {
-          if (message) {
-            message.textContent =
-              "Please complete all fields.";
-          }
-
-          return;
-        }
-
-        const button =
-          form.querySelector(
-            'button[type="submit"]'
-          );
-
-        if (button) {
-          button.disabled = true;
-          button.textContent =
-            "Submitting...";
-        }
-
-        try {
-          await saveReview(data);
-
-          form.reset();
-
-          if (message) {
-            message.textContent =
-              "Thank you! Your review has been submitted for approval.";
-          }
-
-        } catch (error) {
-          console.error(
-            "Review submit error:",
-            error
-          );
-
-          if (message) {
-            message.textContent =
-              "Unable to submit your review. Please try again.";
-          }
-
-        } finally {
-          if (button) {
-            button.disabled = false;
-            button.textContent =
-              "Submit Review";
-          }
-        }
-      }
-    );
-  }
-
-  /* =========================================================
-     CONTACT
-  ========================================================= */
-
-  async function renderContact(token) {
-    setLoading();
-
-    try {
-      const business =
-        await getBusinessSafe();
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      const phone =
-        business?.phone || "";
-
-      const whatsapp =
-        business?.whatsapp ||
-        phone;
-
-      const email =
-        business?.email ||
-        "hazidadatravels5786@gmail.com";
-
-      const address =
-        business?.address || "";
-
-      const cleanWhatsApp =
-        String(whatsapp)
-          .replace(
-            /[^0-9]/g,
-            ""
-          );
-
-      app.innerHTML = `
-        <section class="section">
-
-          <div class="container">
-
-            <p class="muted">
-              GET IN TOUCH
-            </p>
-
-            <h1 class="section-title">
-              Contact Us
-            </h1>
-
-            <p class="muted">
-              Contact us directly for bookings and enquiries.
-            </p>
-
-            <div class="h-scroll-wrap mt-2">
-
-              <div class="h-scroll">
-
-                <a
-                  class="contact-action-card"
-                  href="${
-                    phone
-                      ? `tel:${escapeHtml(
-                          phone
-                        )}`
-                      : "#"
-                  }">
-
-                  <span class="ca-icon">
-                    📞
-                  </span>
-
-                  <span class="ca-label">
-                    Call
-                  </span>
-
-                </a>
-
-                <a
-                  class="contact-action-card"
-                  href="${
-                    cleanWhatsApp
-                      ? `https://wa.me/${cleanWhatsApp}`
-                      : "#"
-                  }"
-                  target="_blank"
-                  rel="noopener">
-
-                  <span class="ca-icon">
-                    💬
-                  </span>
-
-                  <span class="ca-label">
-                    WhatsApp
-                  </span>
-
-                </a>
-
-                <a
-                  class="contact-action-card"
-                  href="mailto:${escapeHtml(
-                    email
-                  )}">
-
-                  <span class="ca-icon">
-                    ✉️
-                  </span>
-
-                  <span class="ca-label">
-                    Email
-                  </span>
-
-                </a>
-
-              </div>
-
-            </div>
-
-            ${
-              address
-                ? `
-                  <div class="state-msg">
-                    📍 ${escapeHtml(
-                      address
-                    )}
-                  </div>
-                `
-                : ""
-            }
-
-            <div class="form-card mt-2">
-
-              <h2>
-                Send an Enquiry
-              </h2>
-
-              <form id="enquiryForm">
-
-                <div class="form-group">
-
-                  <label for="enquiry-name">
-                    Name
-                  </label>
-
-                  <input
-                    id="enquiry-name"
-                    type="text"
-                    name="name"
-                    required
-                    maxlength="100">
-
-                </div>
-
-                <div class="form-group">
-
-                  <label for="enquiry-phone">
-                    Phone
-                  </label>
-
-                  <input
-                    id="enquiry-phone"
-                    type="tel"
-                    name="phone"
-                    required
-                    maxlength="20">
-
-                </div>
-
-                <div class="form-group">
-
-                  <label for="enquiry-trip">
-                    Trip
-                  </label>
-
-                  <input
-                    id="enquiry-trip"
-                    type="text"
-                    name="trip"
-                    maxlength="200">
-
-                </div>
-
-                <div class="form-group">
-
-                  <label for="enquiry-message">
-                    Message
-                  </label>
-
-                  <textarea
-                    id="enquiry-message"
-                    name="message"
-                    maxlength="1000"></textarea>
-
-                </div>
-
-                <button
-                  type="submit"
-                  class="btn btn-primary btn-block">
-
-                  Send Enquiry
-
-                </button>
-
-                <p
-                  id="enquiryMessage"
-                  class="muted center mt-1">
-                </p>
-
-              </form>
-
-            </div>
-
-          </div>
-
-        </section>
-      `;
-
-      bindEnquiryForm();
-
-    } catch (error) {
-      console.error(
-        "Contact error:",
-        error
-      );
-
-      if (
-        token !== renderToken
-      ) {
-        return;
-      }
-
-      showError(
-        "Unable to load contact information."
-      );
-    }
-  }
-
-  function bindEnquiryForm() {
-    const form =
-      document.getElementById(
-        "enquiryForm"
-      );
-
-    if (!form) return;
-
-    form.addEventListener(
-      "submit",
-      async function (event) {
-        event.preventDefault();
-
-        const message =
-          document.getElementById(
-            "enquiryMessage"
-          );
-
-        const formData =
-          new FormData(form);
-
-        const data = {
-          name: String(
-            formData.get(
-              "name"
-            ) || ""
-          ).trim(),
-
-          phone: String(
-            formData.get(
-              "phone"
-            ) || ""
-          ).trim(),
-
-          trip: String(
-            formData.get(
-              "trip"
-            ) || ""
-          ).trim(),
-
-          message: String(
-            formData.get(
-              "message"
-            ) || ""
-          ).trim()
-        };
-
-        if (
-          !data.name ||
-          !data.phone
-        ) {
-          if (message) {
-            message.textContent =
-              "Please enter your name and phone number.";
-          }
-
-          return;
-        }
-
-        const button =
-          form.querySelector(
-            'button[type="submit"]'
-          );
-
-        if (button) {
-          button.disabled = true;
-          button.textContent =
-            "Sending...";
-        }
-
-        try {
-          await saveEnquiry(data);
-
-          form.reset();
-
-          if (message) {
-            message.textContent =
-              "Your enquiry has been sent successfully.";
-          }
-
-        } catch (error) {
-          console.error(
-            "Enquiry submit error:",
-            error
-          );
-
-          if (message) {
-            message.textContent =
-              "Unable to send your enquiry. Please try again.";
-          }
-
-        } finally {
-          if (button) {
-            button.disabled = false;
-            button.textContent =
-              "Send Enquiry";
-          }
-        }
-      }
-    );
-  }
-
-  /* =========================================================
-     BUSINESS DATA
-  ========================================================= */
-
-  async function getBusinessSafe() {
-    try {
-      if (
-        typeof getBusiness ===
-        "function"
-      ) {
-        const result =
-          await Promise.resolve(
-            getBusiness()
-          );
-
-        return result || {};
-      }
-    } catch (error) {
-      console.error(
-        "Business data error:",
-        error
-      );
-    }
-
-    return {};
-  }
-
-  /* =========================================================
-     BOOKING SHEET
-  ========================================================= */
-
-  function openBooking(
-    tripName
-  ) {
-    const overlay =
-      document.getElementById(
-        "sheet-overlay"
-      );
-
-    const title =
-      document.getElementById(
-        "sheet-title-text"
-      );
-
-    if (!overlay) return;
-
-    if (title) {
-      title.textContent =
-        tripName
-          ? `Book: ${tripName}`
-          : "Book / Enquire";
-    }
-
-    overlay.classList.add(
-      "open"
-    );
-
-    document.body.classList.add(
-      "no-scroll"
-    );
-  }
-
-  function closeBooking() {
-    const overlay =
-      document.getElementById(
-        "sheet-overlay"
-      );
-
-    if (!overlay) return;
-
-    overlay.classList.remove(
-      "open"
-    );
-
-    document.body.classList.remove(
-      "no-scroll"
-    );
-  }
-
-  function bindBooking() {
-
-  document.addEventListener("click", function (event) {
-
-    const openButton =
-      event.target.closest("[data-open-booking]");
-
-    if (openButton) {
-      event.preventDefault();
-      event.stopPropagation();
-
-      const tripName =
-        openButton.getAttribute("data-trip-name") || "";
-
-      openBooking(tripName);
-
-      return;
-    }
-
-    const closeButton =
-      event.target.closest("#sheet-cancel-btn");
-
-    if (closeButton) {
-      event.preventDefault();
-      closeBooking();
-      return;
-    }
-
-    const overlay =
-      document.getElementById("sheet-overlay");
-
-    if (
-      overlay &&
-      event.target === overlay
-    ) {
-      closeBooking();
-      return;
-    }
-
-  });
-
-
-  const callButton =
-    document.getElementById("sheet-call-btn");
-
-  if (callButton) {
-
-    callButton.addEventListener(
-      "click",
-      async function () {
-
-        const business =
-          await getBusinessSafe();
-
-        const phone =
-          business?.phone || "";
-
-        const cleanPhone =
-          String(phone).replace(
-            /[^0-9+]/g,
-            ""
-          );
-
-        if (cleanPhone) {
-
-          window.location.href =
-            `tel:${cleanPhone}`;
-
-        } else {
-
-          alert(
-            "Phone number is not configured yet."
-          );
-
-        }
-
-      }
-    );
-
-  }
-
-
-  const whatsappButton =
-    document.getElementById(
-      "sheet-whatsapp-btn"
-    );
-
-  if (whatsappButton) {
-
-    whatsappButton.addEventListener(
-      "click",
-      async function () {
-
-        const business =
-          await getBusinessSafe();
-
-        const phone =
-          business?.whatsapp ||
-          business?.phone ||
-          "";
-
-        const clean =
-          String(phone).replace(
-            /[^0-9]/g,
-            ""
-          );
-
-        if (clean) {
-
-          window.open(
-            `https://wa.me/${clean}`,
-            "_blank",
-            "noopener"
-          );
-
-        } else {
-
-          alert(
-            "WhatsApp number is not configured yet."
-          );
-
-        }
-
-      }
-    );
-
-  }
-
-
-  const copyButton =
-    document.getElementById(
-      "sheet-copy-btn"
-    );
-
-  if (copyButton) {
-
-    copyButton.addEventListener(
-      "click",
-      async function () {
-
-        const business =
-          await getBusinessSafe();
-
-        const phone =
-          business?.phone || "";
-
-        if (!phone) {
-
-          alert(
-            "Phone number is not configured yet."
-          );
-
-          return;
-        }
-
-        try {
-
-          await navigator.clipboard.writeText(
-            String(phone)
-          );
-
-          copyButton.textContent =
-            "✓ Copied";
-
-          setTimeout(
-            function () {
-
-              copyButton.textContent =
-                "📋 Copy Number";
-
-            },
-            1500
-          );
-
-                } catch (error) {
-
-          window.prompt(
-            "Copy this number:",
-            phone
-          );
-
-        }
-
-      }
-    );
-
-  }
-
-  }
-
-/* =========================================================
-   MOBILE MENU
-========================================================= */
-
-function openMobileMenu() {
-  const nav =
-    document.getElementById(
-      "mobile-nav"
-    );
-
-  if (nav) {
-    nav.classList.add(
-      "open"
-    );
-  }
-
-  document.body.classList.add(
-    "no-scroll"
-  );
 }
 
-function closeMobileMenu() {
-  const nav =
-    document.getElementById(
-      "mobile-nav"
-    );
+/* ---------------------------------------------------------
+   CARDS
+   --------------------------------------------------------- */
+function tripCard(tr) {
+  return `<article class="trip-card">
+    <div class="tc-media" data-action="trip" data-id="${tr.id}">
+      <img src="${esc(tr.image)}" alt="${esc(tr.name)}" loading="lazy" onerror="onImgError(this)">
+      ${tr.category ? `<span class="tc-cat">${esc(catLabel(tr.category))}</span>` : ""}
+    </div>
+    <div class="trip-card-body">
+      <h3 data-action="trip" data-id="${tr.id}">${esc(tr.name)}</h3>
+      <div class="trip-meta-row"><span>📍 ${esc(tr.destination)}</span><span>📅 ${esc(tr.duration)}</span></div>
+      <p class="tc-desc">${esc(tr.description)}</p>
+      <div class="tc-price">${tr.price ? `<span class="price-tag">${esc(tr.price)}</span>` : ""}</div>
+      <div class="tc-actions">
+        <button class="btn btn-outline btn-small" data-action="trip" data-id="${tr.id}">${esc(t("btn_view_details"))}</button>
+        <button class="btn btn-primary btn-small" data-action="book" data-kind="trip" data-name="${esc(tr.name)}">${esc(t("btn_book_now"))}</button>
+      </div>
+    </div>
+  </article>`;
+}
+function vehicleCard(v) {
+  const ok = v.available !== false;
+  return `<article class="vehicle-card">
+    <img src="${esc(v.image_url)}" alt="${esc(v.name)}" loading="lazy" onerror="onImgError(this)">
+    <div class="vehicle-card-body">
+      <h3>${esc(v.name)}</h3>
+      <div class="trip-meta-row"><span>🚐 ${esc(v.type)}</span><span>💺 ${esc(v.capacity)}</span></div>
+      <p class="tc-desc">${esc(v.description)}</p>
+      <span class="availability-badge ${ok ? "available" : "unavailable"}">${esc(t(ok ? "label_available" : "label_unavailable"))}</span>
+      <button class="btn btn-primary btn-small" data-action="book" data-kind="vehicle" data-name="${esc(v.name)}">${esc(t("btn_book_vehicle"))}</button>
+    </div>
+  </article>`;
+}
+function reviewCard(r) {
+  return `<article class="review-card">
+    <div class="rc-top">
+      ${r.image_url ? `<img class="rc-avatar" src="${esc(r.image_url)}" alt="${esc(r.name)}" loading="lazy" onerror="onImgError(this)">` : `<span class="rc-avatar rc-initial">${esc((r.name || "?").replace("[", "").charAt(0).toUpperCase())}</span>`}
+      <div><p class="review-name">${esc(r.name)}</p><div class="review-stars">${stars(r.rating)}</div></div>
+    </div>
+    <p class="rc-text">"${esc(r.review)}"</p>
+    ${isSample(r.name) ? `<span class="badge-demo">${esc(t("sample_badge"))}</span>` : ""}
+  </article>`;
+}
+function videoThumbUrl(v) { return v.youtubeId ? `https://img.youtube.com/vi/${encodeURIComponent(v.youtubeId)}/hqdefault.jpg` : ""; }
+function videoCard(v) {
+  const thumb = videoThumbUrl(v);
+  return `<article class="video-card" data-action="video" data-yt="${esc(v.youtubeId || "")}" data-title="${esc(v.title)}" role="button" tabindex="0">
+    <div class="video-thumb-wrap">
+      ${thumb ? `<img src="${esc(thumb)}" alt="${esc(v.title)}" loading="lazy" onerror="this.style.display='none'">` : ""}
+      <span class="play-icon">▶</span>
+    </div>
+    <div class="video-card-body"><h4>${esc(v.title)}</h4><p class="muted tc-desc">${esc(v.description)}</p></div>
+  </article>`;
+}
+function galleryThumb(g, i, cls = "") {
+  return `<button class="gallery-thumb ${cls}" data-action="lightbox" data-index="${i}" aria-label="${esc(g.caption || "Photo")}">
+    <img src="${esc(g.image_url)}" alt="${esc(g.caption || "Gallery photo")}" loading="lazy" onerror="onImgError(this)"></button>`;
+}
 
-  if (nav) {
-    nav.classList.remove(
-      "open"
-    );
+/* ---------------------------------------------------------
+   HOME
+   --------------------------------------------------------- */
+async function renderHome() {
+  app().innerHTML = `
+    <section class="hero"><div class="hero-inner">
+      <h1>${esc(t("hero_title"))}</h1>
+      <p>${esc(t("hero_subtitle"))}</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" data-action="nav" data-route="trips">${esc(t("btn_explore_trips"))}</button>
+        <button class="btn btn-ghost" data-action="book" data-kind="general">${esc(t("btn_book_now"))}</button>
+      </div>
+    </div></section>
+    <section class="section">${sectionHead("section_featured", "trips")}<div id="h-trips">${loadingBlock("loading_trips")}</div></section>
+    <section class="section">${sectionHead("section_vehicles", "vehicles")}<div id="h-vehicles">${loadingBlock("loading_vehicles")}</div></section>
+    <section class="section section-tint"><div class="container">
+      <h2 class="section-title">${esc(t("why_title"))}</h2>
+      <div class="why-grid">
+        ${[1, 2, 3, 4].map(n => `<div class="why-card"><span class="why-icon">${["🧾", "🚌", "🗺️", "🤝"][n - 1]}</span><h3>${esc(t("why_" + n + "_t"))}</h3><p class="muted">${esc(t("why_" + n + "_d"))}</p></div>`).join("")}
+      </div></div></section>
+    <section class="section">${sectionHead("section_gallery", "gallery")}<div id="h-gallery">${loadingBlock("loading_gallery")}</div></section>
+    <section class="section">${sectionHead("section_video_preview", "videos")}<div id="h-videos">${loadingBlock("loading_videos")}</div></section>
+    <section class="section">${sectionHead("section_reviews", "reviews")}<div id="h-reviews">${loadingBlock("loading_reviews")}</div></section>
+    <section class="cta"><div class="container center">
+      <h2>${esc(t("cta_title"))}</h2><p>${esc(t("cta_sub"))}</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" data-action="book" data-kind="general">${esc(t("btn_book_now"))}</button>
+        <button class="btn btn-ghost" data-action="nav" data-route="contact">${esc(t("btn_contact_us"))}</button>
+      </div></div></section>`;
+  fill("h-trips", getTrips, d => hScroll(d.slice(0, 6).map(tripCard).join("")), "empty_trips");
+  fill("h-vehicles", getVehicles, d => hScroll(d.map(vehicleCard).join("")), "empty_vehicles");
+  fill("h-gallery", async () => { lbList = await getGallery(); return lbList; },
+    d => hScroll(d.slice(0, 8).map((g, i) => galleryThumb(g, i)).join("")), "empty_gallery");
+  fill("h-videos", getVideos, d => hScroll(d.slice(0, 4).map(videoCard).join("")), "empty_videos");
+  fill("h-reviews", getReviews, d => hScroll(d.map(reviewCard).join("")), "empty_reviews");
+}
+
+/* ---------------------------------------------------------
+   TRIPS (dynamic category filters)
+   --------------------------------------------------------- */
+let tripsFilter = "All";
+async function renderTrips() {
+  app().innerHTML = `<section class="section"><div class="container"><h1 class="section-title">${esc(t("section_trips"))}</h1></div>
+    <div id="cat-bar"></div><div id="trips-list">${loadingBlock("loading_trips")}</div></section>`;
+  let trips = [];
+  try { trips = await getTrips(); } catch (e) { $("trips-list").innerHTML = errorBlock(); return; }
+  const cats = ["All", ...new Set(trips.map(x => x.category).filter(Boolean))];
+  if (!cats.includes(tripsFilter)) tripsFilter = "All";
+  const draw = () => {
+    $("cat-bar").innerHTML = hScroll(cats.map(c =>
+      `<button class="category-pill ${c === tripsFilter ? "active" : ""}" data-action="cat" data-cat="${esc(c)}">${esc(c === "All" ? t("cat_all") : catLabel(c))}</button>`).join(""), "cat-scroll");
+    const list = tripsFilter === "All" ? trips : trips.filter(x => x.category === tripsFilter);
+    $("trips-list").innerHTML = list.length ? hScroll(list.map(tripCard).join(""), "wrap-desktop") : emptyBlock(t("empty_trips"));
+  };
+  window.__drawTrips = draw; // used by the category pill handler
+  draw();
+}
+
+/* ---------------------------------------------------------
+   TRIP DETAILS
+   --------------------------------------------------------- */
+async function renderTripDetails(id) {
+  app().innerHTML = loadingBlock("loading_trips");
+  const trip = await getTripById(id);
+  if (!trip) { app().innerHTML = emptyBlock(t("error_trip_not_found")); return; }
+  let vehicles = [];
+  try { vehicles = (await getVehiclesByIds(trip.vehicleIds)).filter(v => v.available !== false); } catch (e) { vehicles = []; }
+  lbList = (trip.gallery || []).map((src, i) => ({ image_url: src, caption: `${trip.name} — ${i + 1}` }));
+  const biz = getBusiness();
+  app().innerHTML = `
+    <div class="td-hero">
+      <img src="${esc(trip.image)}" alt="${esc(trip.name)}" onerror="onImgError(this)">
+      <button class="back-btn" data-action="back">← ${esc(t("btn_back"))}</button>
+    </div>
+    <div class="container td-head">
+      ${trip.category ? `<span class="chip">${esc(catLabel(trip.category))}</span>` : ""}
+      <h1>${esc(trip.name)}</h1>
+    </div>
+    ${hScroll(`
+      <div class="info-card"><span class="info-label">📍 ${esc(t("label_destination"))}</span><span class="info-value">${esc(trip.destination)}</span></div>
+      <div class="info-card"><span class="info-label">📅 ${esc(t("label_duration"))}</span><span class="info-value">${esc(trip.duration)}</span></div>
+      <div class="info-card"><span class="info-label">💰 ${esc(t("label_price"))}</span><span class="info-value">${esc(trip.price || "—")}</span></div>`)}
+    <div class="container mt-2"><p class="td-desc">${esc(trip.description)}</p></div>
+    ${(trip.highlights || []).length ? `<div class="container mt-1"><h2 class="section-title sm">${esc(t("label_highlights"))}</h2></div>${hScroll(trip.highlights.map(h => `<span class="chip">${esc(h)}</span>`).join(""))}` : ""}
+    ${(trip.gallery || []).length ? `<div class="container mt-2"><h2 class="section-title sm">${esc(t("label_trip_gallery"))}</h2></div>${hScroll(lbList.map((g, i) => galleryThumb(g, i)).join(""))}` : ""}
+    <div class="container mt-2"><h2 class="section-title sm">${esc(t("label_available_vehicles"))}</h2></div>
+    ${vehicles.length ? hScroll(vehicles.map(vehicleCard).join("")) : `<div class="container">${emptyBlock(t("empty_vehicles"))}</div>`}
+    <div class="container td-actions">
+      <button class="btn btn-primary" data-action="book" data-kind="trip" data-name="${esc(trip.name)}">${esc(t("btn_book_now"))}</button>
+      <button class="btn btn-outline" data-action="call">📞 ${esc(t("btn_call"))}</button>
+      <button class="btn btn-whatsapp" data-action="whatsapp-trip" data-name="${esc(trip.name)}">💬 ${esc(t("btn_whatsapp"))}</button>
+    </div>`;
+  void biz;
+}
+
+/* ---------------------------------------------------------
+   VEHICLES / GALLERY / VIDEOS / REVIEWS / CONTACT
+   --------------------------------------------------------- */
+async function renderVehicles() {
+  app().innerHTML = `<section class="section"><div class="container"><h1 class="section-title">${esc(t("section_vehicles"))}</h1></div><div id="v-list">${loadingBlock("loading_vehicles")}</div></section>`;
+  fill("v-list", getVehicles, d => hScroll(d.map(vehicleCard).join(""), "wrap-desktop"), "empty_vehicles");
+}
+async function renderGallery() {
+  app().innerHTML = `<section class="section"><div class="container"><h1 class="section-title">${esc(t("section_gallery"))}</h1><div id="g-list">${loadingBlock("loading_gallery")}</div></div></section>`;
+  fill("g-list", async () => { lbList = await getGallery(); return lbList; },
+    d => `<div class="gallery-grid">${d.map((g, i) => galleryThumb(g, i, "grid-item")).join("")}</div>`, "empty_gallery");
+}
+async function renderVideos() {
+  app().innerHTML = `<section class="section"><div class="container"><h1 class="section-title">${esc(t("section_videos"))}</h1></div><div id="vd-list">${loadingBlock("loading_videos")}</div></section>`;
+  fill("vd-list", getVideos, d => hScroll(d.map(videoCard).join(""), "wrap-desktop"), "empty_videos");
+}
+async function renderReviews() {
+  app().innerHTML = `<section class="section"><div class="container"><h1 class="section-title">${esc(t("section_reviews"))}</h1></div><div id="r-list">${loadingBlock("loading_reviews")}</div></section>
+    <section class="section"><div class="form-card"><h2 class="section-title sm">${esc(t("write_review"))}</h2>
+    <form id="review-form" novalidate>
+      <div class="form-group"><label for="rv-name">${esc(t("form_your_name"))}</label><input id="rv-name" name="name" type="text"></div>
+      <div class="form-group"><label for="rv-rating">${esc(t("form_rating"))}</label><select id="rv-rating" name="rating"><option value="5">★★★★★</option><option value="4">★★★★☆</option><option value="3">★★★☆☆</option><option value="2">★★☆☆☆</option><option value="1">★☆☆☆☆</option></select></div>
+      <div class="form-group"><label for="rv-text">${esc(t("form_review_text"))}</label><textarea id="rv-text" name="review"></textarea></div>
+      <p class="form-error" id="rv-error"></p>
+      <button class="btn btn-primary btn-block" type="submit">${esc(t("btn_submit"))}</button>
+    </form></div></section>`;
+  fill("r-list", getReviews, d => hScroll(d.map(reviewCard).join(""), "wrap-desktop"), "empty_reviews");
+}
+async function renderContact() {
+  const b = getBusiness();
+  const social = [["Facebook", b.facebook], ["Instagram", b.instagram], ["YouTube", b.youtube]].filter(s => s[1] && s[1] !== "#");
+  app().innerHTML = `<section class="section"><div class="container"><h1 class="section-title">${esc(t("section_contact"))}</h1>
+    ${hScroll(`
+      <button class="contact-action-card" data-action="call"><span class="ca-icon">📞</span><span class="ca-label">${esc(t("btn_call"))}</span></button>
+      <button class="contact-action-card" data-action="float-whatsapp"><span class="ca-icon">💬</span><span class="ca-label">${esc(t("btn_whatsapp"))}</span></button>
+      <a class="contact-action-card" href="mailto:${esc(b.email)}"><span class="ca-icon">✉️</span><span class="ca-label">${esc(t("btn_email"))}</span></a>
+      <a class="contact-action-card" href="${esc(b.mapUrl)}" target="_blank" rel="noopener"><span class="ca-icon">📍</span><span class="ca-label">${esc(t("btn_open_map"))}</span></a>`)}
+    <div class="info-panel mt-2">
+      <p><strong>📞 ${esc(t("contact_phone") || "Phone")}:</strong> ${esc(b.phone)}</p>
+      <p><strong>💬 ${esc(t("btn_whatsapp"))}:</strong> ${esc(b.whatsapp)}</p>
+      <p><strong>✉️ ${esc(t("contact_email"))}:</strong> ${esc(b.email)}</p>
+      <p><strong>📍 ${esc(t("contact_address"))}:</strong> ${esc(b.address)}</p>
+      <p><strong>🕘 ${esc(t("contact_hours"))}:</strong> ${esc(b.hours)}</p>
+      ${social.length ? `<p><strong>${esc(t("contact_social"))}:</strong> ${social.map(s => `<a class="inline-link" href="${esc(s[1])}" target="_blank" rel="noopener">${s[0]}</a>`).join(" · ")}</p>` : ""}
+    </div>
+    <div class="center mt-2"><button class="btn btn-primary" data-action="book" data-kind="general">${esc(t("btn_enquire"))}</button></div>
+  </div></section>`;
+}
+
+function renderFooter() {
+  const b = getBusiness();
+  $("site-footer").innerHTML = `<div class="container footer-grid">
+    <div><div class="footer-brand"><img src="logo.png" alt="Hazi Dada Travels logo"><h4>Hazi Dada Travels</h4></div>
+      <p>${esc(b.footerText && !b.footerText.startsWith("[") ? b.footerText : t("footer_about"))}</p></div>
+    <div class="footer-links"><h4>${esc(t("footer_quick_links"))}</h4>
+      ${KNOWN_ROUTES.map(r => `<a href="#/${r === "home" ? "" : r}" data-action="nav" data-route="${r}">${esc(t("nav_" + r))}</a>`).join("")}</div>
+    <div class="footer-links"><h4>${esc(t("footer_contact"))}</h4>
+      <span>📞 ${esc(b.phone)}</span><span>✉️ ${esc(b.email)}</span>
+      ${["facebook", "instagram", "youtube"].filter(k => b[k] && b[k] !== "#").map(k => `<a href="${esc(b[k])}" target="_blank" rel="noopener">${k[0].toUpperCase() + k.slice(1)}</a>`).join("")}
+      <a href="login.html" class="admin-link">Admin</a></div>
+  </div><div class="footer-bottom">© ${new Date().getFullYear()} Hazi Dada Travels. ${esc(t("footer_rights"))}</div>`;
+}
+
+/* ---------------------------------------------------------
+   OVERLAYS (booking sheet, enquiry form, lightbox, video)
+   Each open pushes ONE history entry so Android Back closes it.
+   --------------------------------------------------------- */
+const OVERLAYS = ["sheet-overlay", "enquiry-overlay", "lightbox-overlay", "video-overlay"];
+function anyOverlayOpen() { return OVERLAYS.some(id => $(id) && $(id).classList.contains("open")); }
+function closeAllOverlays() {
+  OVERLAYS.forEach(id => $(id) && $(id).classList.remove("open"));
+  const w = $("video-frame-wrap"); if (w) w.innerHTML = "";
+  document.body.classList.remove("no-scroll");
+}
+function openOverlay(id) {
+  const s = { ...(currentRoute || { name: "home", params: {} }), overlay: true };
+  if (history.state && history.state.overlay) history.replaceState(s, "", location.hash);
+  else history.pushState(s, "", location.hash);
+  OVERLAYS.forEach(o => $(o).classList.toggle("open", o === id));
+  document.body.classList.add("no-scroll");
+}
+function dismissOverlay() {
+  if (history.state && history.state.overlay) history.back();
+  else closeAllOverlays();
+}
+function openMenu() { $("mobile-nav").classList.add("open"); }
+function closeMenu() { $("mobile-nav").classList.remove("open"); }
+
+function openBooking(kind, name) {
+  booking = { kind, name: name || "" };
+  $("sheet-context").textContent = name || "";
+  openOverlay("sheet-overlay");
+}
+function waMessage() {
+  const n = getBusiness().name;
+  if (booking.kind === "trip") return `Hello ${n}, I am interested in the ${booking.name} trip. Please provide more details.`;
+  if (booking.kind === "vehicle") return `Hello ${n}, I would like to enquire about the ${booking.name} vehicle. Please provide more details.`;
+  return `Hello ${n}, I would like to know more about your trips and vehicles.`;
+}
+function openWhatsApp(message) {
+  window.location.href = `https://wa.me/${getBusiness().whatsapp}?text=${encodeURIComponent(message)}`;
+}
+function callNow() { window.location.href = `tel:${getBusiness().phone}`; }
+
+async function openEnquiry() {
+  const f = $("enquiry-form");
+  f.reset();
+  $("enq-error").textContent = "";
+  f.trip.value = booking.name || "";
+  try { $("enq-trip-list").innerHTML = (await getTrips()).map(x => `<option value="${esc(x.name)}"></option>`).join(""); } catch (e) { /* optional */ }
+  openOverlay("enquiry-overlay");
+}
+async function submitEnquiry(e) {
+  e.preventDefault();
+  const f = e.target;
+  const name = f.name.value.trim(), phone = f.phone.value.trim();
+  if (!name || !/^[0-9+\-\s()]{7,15}$/.test(phone)) { $("enq-error").textContent = t("err_required"); return; }
+  const btn = $("enq-submit"); btn.disabled = true;
+  try {
+    // Temporary: stored locally. Phase 3 inserts into the existing `enquiries` table.
+    await saveEnquiry({ name, phone, trip: f.trip.value.trim(), travel_date: f.travel_date.value, people: f.people.value, message: f.message.value.trim() });
+    toast(t("toast_enquiry_sent"), "success");
+    dismissOverlay();
+  } catch (err) {
+    $("enq-error").textContent = t("error_generic");
+  } finally { btn.disabled = false; }
+}
+
+/* Lightbox */
+function openLightbox(i) { lbIndex = i; drawLightbox(); openOverlay("lightbox-overlay"); }
+function drawLightbox() {
+  const it = lbList[lbIndex]; if (!it) return;
+  $("lightbox-img").src = it.image_url; $("lightbox-img").alt = it.caption || "";
+  $("lightbox-caption").textContent = it.caption || "";
+}
+function lbStep(d) { if (!lbList.length) return; lbIndex = (lbIndex + d + lbList.length) % lbList.length; drawLightbox(); }
+
+/* Video */
+function openVideo(yt, title) {
+  const wrap = $("video-frame-wrap"), ext = $("video-external");
+  if (!yt) { wrap.innerHTML = `<div class="state-msg light">${esc(t("no_video_link"))}</div>`; ext.classList.add("hidden"); }
+  else {
+    wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(yt)}?autoplay=1&rel=0" title="${esc(title)}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+    ext.href = `https://www.youtube.com/watch?v=${encodeURIComponent(yt)}`; ext.classList.remove("hidden");
   }
+  openOverlay("video-overlay");
+}
 
-  /*
-    Do not remove no-scroll here if
-    another modal is open.
-  */
+/* Toast */
+function toast(msg, type = "info") {
+  let c = document.querySelector(".toast-container");
+  if (!c) { c = document.createElement("div"); c.className = "toast-container"; document.body.appendChild(c); }
+  const el = document.createElement("div"); el.className = "toast toast-" + type; el.textContent = msg; c.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+  setTimeout(() => { el.classList.remove("show"); setTimeout(() => el.remove(), 300); }, 3200);
+}
 
-  const sheet =
-    document.getElementById(
-      "sheet-overlay"
-    );
+/* ---------------------------------------------------------
+   LANGUAGE
+   --------------------------------------------------------- */
+function applyStaticI18n() {
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.documentElement.lang = currentLang;
+  $("lang-select").value = currentLang;
+}
+function setLang(l) {
+  currentLang = l; localStorage.setItem("hdt_lang", l);
+  applyStaticI18n();
+  render(currentRoute || parseRouteFromHash());
+}
 
-    const lightbox =
-      document.getElementById(
-        "lightbox-overlay"
-      );
-
-    const video =
-      document.getElementById(
-        "video-overlay"
-      );
-
-    const anotherOverlayOpen =
-      (
-        sheet &&
-        sheet.classList.contains(
-          "open"
-        )
-      ) ||
-      (
-        lightbox &&
-        lightbox.classList.contains(
-          "open"
-        )
-      ) ||
-      (
-        video &&
-        video.classList.contains(
-          "open"
-        )
-      );
-
-    if (!anotherOverlayOpen) {
-      document.body.classList.remove(
-        "no-scroll"
-      );
-    }
+/* ---------------------------------------------------------
+   EVENT DELEGATION (one listener for every button)
+   --------------------------------------------------------- */
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-action]");
+  if (!el) return;
+  const a = el.dataset.action;
+  if (el.tagName === "A" && a === "nav") e.preventDefault();
+  switch (a) {
+    case "nav": if (sameRoute({ name: el.dataset.route, params: {} }, currentRoute)) { closeMenu(); window.scrollTo(0, 0); } else navigate(el.dataset.route); break;
+    case "trip": navigate("trip-details", { id: el.dataset.id }); break;
+    case "back": if (history.length > 1 && currentRoute && currentRoute.name !== "home") history.back(); else navigate("trips", {}, true); break;
+    case "book": openBooking(el.dataset.kind, el.dataset.name); break;
+    case "cat": tripsFilter = el.dataset.cat; window.__drawTrips && window.__drawTrips(); break;
+    case "lightbox": openLightbox(parseInt(el.dataset.index, 10)); break;
+    case "lb-prev": lbStep(-1); break;
+    case "lb-next": lbStep(1); break;
+    case "video": openVideo(el.dataset.yt, el.dataset.title); break;
+    case "dismiss": dismissOverlay(); break;
+    case "sheet-call": callNow(); break;
+    case "sheet-whatsapp": openWhatsApp(waMessage()); break;
+    case "sheet-enquire": openEnquiry(); break;
+    case "call": callNow(); break;
+    case "whatsapp-trip": booking = { kind: "trip", name: el.dataset.name }; openWhatsApp(waMessage()); break;
+    case "float-call": callNow(); break;
+    case "float-whatsapp": booking = { kind: "general", name: "" }; openWhatsApp(waMessage()); break;
+    case "open-menu": openMenu(); break;
+    case "close-menu": closeMenu(); break;
+    case "retry": render(currentRoute || parseRouteFromHash()); break;
   }
-
-  function bindMobileMenu() {
-    const openButton =
-      document.getElementById(
-        "nav-toggle-btn"
-      );
-
-    const closeButton =
-      document.getElementById(
-        "mobile-nav-close-btn"
-      );
-
-    const mobileNav =
-      document.getElementById(
-        "mobile-nav"
-      );
-
-    if (openButton) {
-      openButton.addEventListener(
-        "click",
-        openMobileMenu
-      );
-    }
-
-    if (closeButton) {
-      closeButton.addEventListener(
-        "click",
-        closeMobileMenu
-      );
-    }
-
-    if (mobileNav) {
-      mobileNav.addEventListener(
-        "click",
-        function (event) {
-          if (
-            event.target ===
-            mobileNav
-          ) {
-            closeMobileMenu();
-          }
-
-          const link =
-            event.target.closest(
-              "[data-nav]"
-            );
-
-          if (link) {
-            closeMobileMenu();
-          }
-        }
-      );
-    }
+});
+document.addEventListener("submit", e => {
+  if (e.target.id === "enquiry-form") submitEnquiry(e);
+  if (e.target.id === "review-form") submitReview(e);
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && anyOverlayOpen()) dismissOverlay();
+  if (anyOverlayOpen() && $("lightbox-overlay").classList.contains("open")) {
+    if (e.key === "ArrowLeft") lbStep(-1);
+    if (e.key === "ArrowRight") lbStep(1);
   }
-
-  /* =========================================================
-     LANGUAGE
-  ========================================================= */
-
-  function loadLanguage() {
-    const saved =
-      localStorage.getItem(
-        "hdt_language"
-      );
-
-    if (
-      saved === "en" ||
-      saved === "te" ||
-      saved === "hi"
-    ) {
-      currentLanguage =
-        saved;
-    }
-  }
-
-  function bindLanguage() {
-    document.addEventListener(
-      "click",
-      function (event) {
-        const button =
-          event.target.closest(
-            "[data-lang]"
-          );
-
-        if (!button) return;
-
-        const language =
-          button.getAttribute(
-            "data-lang"
-          );
-
-        if (
-          language !== "en" &&
-          language !== "te" &&
-          language !== "hi"
-        ) {
-          return;
-        }
-
-        currentLanguage =
-          language;
-
-        localStorage.setItem(
-          "hdt_language",
-          language
-        );
-
-        applyStaticTranslations();
-
-        renderRoute();
-      }
-    );
-  }
-
-  function applyStaticTranslations() {
-    document
-      .querySelectorAll(
-        "[data-i18n], [data-i18n-nav]"
-      )
-      .forEach(function (element) {
-        const key =
-          element.getAttribute(
-            "data-i18n"
-          ) ||
-          element.getAttribute(
-            "data-i18n-nav"
-          );
-
-        if (!key) return;
-
-        element.textContent =
-          getText(
-            key,
-            element.textContent
-          );
-      });
-
-    document
-      .querySelectorAll(
-        "[data-lang]"
-      )
-      .forEach(function (button) {
-        button.classList.toggle(
-          "active",
-          button.getAttribute(
-            "data-lang"
-          ) === currentLanguage
-        );
-      });
-  }
-
-  /* =========================================================
-     LIGHTBOX
-  ========================================================= */
-
-  function openLightbox(index) {
-    const item =
-      lightboxImages[index];
-
-    if (!item) return;
-
-    lightboxIndex =
-      index;
-
-    const overlay =
-      document.getElementById(
-        "lightbox-overlay"
-      );
-
-    const image =
-      document.getElementById(
-        "lightbox-img"
-      );
-
-    const caption =
-      document.getElementById(
-        "lightbox-caption-text"
-      );
-
-    if (!overlay || !image) {
-      return;
-    }
-
-    image.src =
-      imageUrl(
-        item.media_url,
-        item.title ||
-          "Gallery"
-      );
-
-    image.alt =
-      item.title ||
-      "Gallery";
-
-    if (caption) {
-      caption.textContent =
-        item.title || "";
-    }
-
-    overlay.classList.add(
-      "open"
-    );
-
-    document.body.classList.add(
-      "no-scroll"
-    );
-  }
-
-  function closeLightbox() {
-    const overlay =
-      document.getElementById(
-        "lightbox-overlay"
-      );
-
-    if (overlay) {
-      overlay.classList.remove(
-        "open"
-      );
-    }
-
-    closeMobileMenu();
-  }
-
-  function moveLightbox(
-    direction
-  ) {
-    if (
-      !lightboxImages.length
-    ) {
-      return;
-    }
-
-    lightboxIndex =
-      (
-        lightboxIndex +
-        direction +
-        lightboxImages.length
-      ) %
-      lightboxImages.length;
-
-    openLightbox(
-      lightboxIndex
-    );
-  }
-
-  function bindLightbox() {
-    document.addEventListener(
-      "click",
-      function (event) {
-        const item =
-          event.target.closest(
-            "[data-gallery-index]"
-          );
-
-        if (item) {
-          openLightbox(
-            Number(
-              item.getAttribute(
-                "data-gallery-index"
-              )
-            )
-          );
-
-          return;
-        }
-
-        if (
-          event.target.closest(
-            "#lightbox-close-btn"
-          )
-        ) {
-          closeLightbox();
-          return;
-        }
-
-        if (
-          event.target.closest(
-            "#lightbox-prev-btn"
-          )
-        ) {
-          moveLightbox(-1);
-          return;
-        }
-
-        if (
-          event.target.closest(
-            "#lightbox-next-btn"
-          )
-        ) {
-          moveLightbox(1);
-          return;
-        }
-
-        const overlay =
-          document.getElementById(
-            "lightbox-overlay"
-          );
-
-        if (
-          overlay &&
-          event.target === overlay
-        ) {
-          closeLightbox();
-        }
-      }
-    );
-
-    document.addEventListener(
-      "keydown",
-      function (event) {
-        const overlay =
-          document.getElementById(
-            "lightbox-overlay"
-          );
-
-        if (
-          !overlay ||
-          !overlay.classList.contains(
-            "open"
-          )
-        ) {
-          return;
-        }
-
-        if (
-          event.key ===
-          "Escape"
-        ) {
-          closeLightbox();
-        }
-
-        if (
-          event.key ===
-          "ArrowLeft"
-        ) {
-          moveLightbox(-1);
-        }
-
-        if (
-          event.key ===
-          "ArrowRight"
-        ) {
-          moveLightbox(1);
-        }
-      }
-    );
-  }
-
-  /* =========================================================
-     VIDEO OVERLAY
-     ========================================================= */
-
-  function closeVideoOverlay() {
-    const overlay =
-      document.getElementById(
-        "video-overlay"
-      );
-
-    const frame =
-      document.getElementById(
-        "video-frame-wrap"
-      );
-
-    if (frame) {
-      frame.innerHTML = "";
-    }
-
-    if (overlay) {
-      overlay.classList.remove(
-        "open"
-      );
-    }
-
-    closeMobileMenu();
-  }
-
-  function bindVideoOverlay() {
-    document.addEventListener(
-      "click",
-      function (event) {
-        const card =
-          event.target.closest(
-            "[data-video-index]"
-          );
-
-        if (card) {
-          const overlay =
-            document.getElementById(
-              "video-overlay"
-            );
-
-          const frame =
-            document.getElementById(
-              "video-frame-wrap"
-            );
-
-          if (!overlay) {
-            return;
-          }
-
-          /*
-            The current data layer does not
-            have a confirmed videos table.
-            This keeps the modal safe instead
-            of displaying a broken iframe.
-          */
-
-          if (frame) {
-            frame.innerHTML = `
-              <div class="state-msg">
-                <h3>
-                  Video
-                </h3>
-
-                <p>
-                  Video playback will be available
-                  when videos are connected to the
-                  website data.
-                </p>
-              </div>
-            `;
-          }
-
-          overlay.classList.add(
-            "open"
-          );
-
-          document.body.classList.add(
-            "no-scroll"
-          );
-
-          return;
-        }
-
-        if (
-          event.target.closest(
-            "#video-close-btn"
-          )
-        ) {
-          closeVideoOverlay();
-        }
-      }
-    );
-
-    const overlay =
-      document.getElementById(
-        "video-overlay"
-      );
-
-    if (overlay) {
-      overlay.addEventListener(
-        "click",
-        function (event) {
-          if (
-            event.target ===
-            overlay
-          ) {
-            closeVideoOverlay();
-          }
-        }
-      );
-    }
-
-    document.addEventListener(
-      "keydown",
-      function (event) {
-        if (
-          event.key !==
-          "Escape"
-        ) {
-          return;
-        }
-
-        const overlay =
-          document.getElementById(
-            "video-overlay"
-          );
-
-        if (
-          overlay &&
-          overlay.classList.contains(
-            "open"
-          )
-        ) {
-          closeVideoOverlay();
-        }
-      }
-    );
-  }
-
-  /* =========================================================
-     FLOATING CALL / WHATSAPP
-  ========================================================= */
-
-  function bindFloatingButtons() {
-    const call =
-      document.getElementById(
-        "float-call-btn"
-      );
-
-    if (call) {
-      call.addEventListener(
-        "click",
-        async function () {
-          const business =
-            await getBusinessSafe();
-
-          const phone =
-            business?.phone || "";
-
-          const clean =
-            String(phone).replace(
-              /[^0-9+]/g,
-              ""
-            );
-
-          if (clean) {
-            window.location.href =
-              `tel:${clean}`;
-          }
-        }
-      );
-    }
-
-    const whatsapp =
-      document.getElementById(
-        "float-whatsapp-btn"
-      );
-
-    if (whatsapp) {
-      whatsapp.addEventListener(
-        "click",
-        async function () {
-          const business =
-            await getBusinessSafe();
-
-          const phone =
-            business?.whatsapp ||
-            business?.phone ||
-            "";
-
-          const clean =
-            String(phone).replace(
-              /[^0-9]/g,
-              ""
-            );
-
-          if (clean) {
-            window.open(
-              `https://wa.me/${clean}`,
-              "_blank",
-              "noopener"
-            );
-          }
-        }
-      );
-    }
-  }
-
-  /* =========================================================
-     ROUTE RENDERER
-  ========================================================= */
-
-  async function renderRoute() {
-    if (!app) return;
-
-    const token =
-      ++renderToken;
-
-    const route =
-      getRoute();
-
-    closeMobileMenu();
-
-    try {
-      switch (route.page) {
-
-        case "home":
-          await renderHome(
-            token
-          );
-          break;
-
-        case "trips":
-          await renderTrips(
-            token
-          );
-          break;
-
-        case "trip":
-          await renderTripDetails(
-            route.id,
-            token
-          );
-          break;
-
-        case "vehicles":
-          await renderVehicles(
-            token
-          );
-          break;
-
-        case "gallery":
-          await renderGallery(
-            token
-          );
-          break;
-
-        case "videos":
-          await renderVideos(
-            token
-          );
-          break;
-
-        case "reviews":
-          await renderReviews(
-            token
-          );
-          break;
-
-        case "contact":
-          await renderContact(
-            token
-          );
-          break;
-
-        default:
-          navigate("/");
-          return;
-      }
-
-      if (
-        token === renderToken
-      ) {
-        applyStaticTranslations();
-      }
-
-    } catch (error) {
-      console.error(
-        "Route render error:",
-        error
-      );
-
-      if (
-        token === renderToken
-      ) {
-        showError(
-          "Unable to load this page."
-        );
-      }
-    }
-  }
-
-  /* =========================================================
-     INITIALIZATION
-  ========================================================= */
-
-  async function init() {
-    try {
-      loadLanguage();
-
-      if (
-        typeof initDataLayer ===
-        "function"
-      ) {
-        await initDataLayer();
-      }
-
-      bindNavigation();
-      bindHistory();
-      bindBooking();
-      bindMobileMenu();
-      bindLanguage();
-      bindLightbox();
-      bindVideoOverlay();
-      bindFloatingButtons();
-
-      applyStaticTranslations();
-
-      await renderRoute();
-
-    } catch (error) {
-      console.error(
-        "Hazi Dada Travels initialization error:",
-        error
-      );
-
-      showError(
-        "Website initialization failed."
-      );
-    }
-  }
-
-  /* =========================================================
-     START
-  ========================================================= */
-
-  if (
-    document.readyState ===
-    "loading"
-  ) {
-    document.addEventListener(
-      "DOMContentLoaded",
-      init
-    );
-  } else {
-    init();
-  }
-
-})();
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("[role=button][data-action]")) { e.preventDefault(); e.target.click(); }
+});
+$("mobile-nav").addEventListener("click", e => { if (e.target.id === "mobile-nav") closeMenu(); });
+["sheet-overlay", "enquiry-overlay", "lightbox-overlay", "video-overlay"].forEach(id =>
+  $(id).addEventListener("click", e => { if (e.target.id === id) dismissOverlay(); }));
+$("lang-select").addEventListener("change", e => setLang(e.target.value));
+
+async function submitReview(e) {
+  e.preventDefault();
+  const f = e.target;
+  const name = f.name.value.trim(), review = f.review.value.trim();
+  if (!name || !review) { $("rv-error").textContent = t("err_required").replace(/ and a valid phone number/, ""); return; }
+  try {
+    // Temporary: stored locally. Phase 3 inserts into the existing `reviews` table.
+    await saveReview({ name, rating: parseInt(f.rating.value, 10), review, image_url: "" });
+    toast(t("toast_review_submitted"), "success");
+    f.reset();
+    renderReviews();
+  } catch (err) { $("rv-error").textContent = t("error_generic"); }
+}
+
+/* ---------------------------------------------------------
+   INIT
+   --------------------------------------------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  applyStaticI18n();
+  const initial = parseRouteFromHash();
+  history.replaceState(initial, "", routeToHash(initial.name, initial.params));
+  render(initial);
+});

@@ -1,526 +1,363 @@
 /* =========================================================
-   HAZI DADA TRAVELS — ADMIN (admin.js)
+   HAZI DADA TRAVELS — ADMIN (admin.js)   [Phase 2: UI]
    =========================================================
-   ⚠️ PROTOTYPE AUTHENTICATION ⚠️
-   This is a client-only demo login so the Admin Panel is
-   usable immediately, with no backend required. It is NOT
-   secure enough for a public production deployment — anyone
-   with browser DevTools can inspect client-side JavaScript.
-   The project is structured so this can be swapped for real
-   authentication (Supabase Auth, or any backend) later:
-   just replace adminLogin()/isAdminLoggedIn()/adminLogout()
-   below with real API calls — nothing else in this file
-   needs to change, since the rest of the CRUD UI only calls
-   the data-layer functions from js/data.js.
+   AUTH: UI PREVIEW ONLY. It checks that the email looks valid
+   and the password has 6+ characters, then sets a session flag.
+   It does NOT verify credentials and stores NO password anywhere.
+   Phase 3 replaces adminLogin / isAdminLoggedIn / adminLogout
+   / requireAdminAuth with Supabase Auth (signInWithPassword,
+   getSession, signOut) — nothing else here needs to change.
 
-   The password is hashed with SHA-256 (Web Crypto, built into
-   every modern browser) before being stored, so it is at
-   least not sitting in localStorage in plain text — but this
-   is still a client-side check, not a substitute for real
-   server-side authentication.
+   DATA: all reads/writes go through data.js functions only
+   (temporary browser storage now; existing Supabase tables in
+   Phase 3, after the real columns are verified).
    ========================================================= */
 
+/* ---------------- AUTH (preview) ---------------- */
+function isAdminLoggedIn() { return sessionStorage.getItem("hdtui_admin") === "1"; }
 async function adminLogin(email, password) {
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email: email,
-    password: password
-  });
-
-  if (error || !data.session) {
-    return false;
-  }
-
+  await new Promise(r => setTimeout(r, 400)); // simulate a network call (loading state)
+  if (!/^\S+@\S+\.\S+$/.test(email) || String(password).length < 6) return false;
+  sessionStorage.setItem("hdtui_admin", "1");
   return true;
 }
+function adminLogout() { sessionStorage.removeItem("hdtui_admin"); }
+function requireAdminAuth() { if (!isAdminLoggedIn()) location.replace("login.html"); }
 
-async function isAdminLoggedIn() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  return !!session;
+/* ---------------- HELPERS ---------------- */
+const $a = id => document.getElementById(id);
+function ea(v) {
+  return String(v === undefined || v === null ? "" : v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
+function starsA(n) { let s = ""; for (let i = 1; i <= 5; i++) s += i <= n ? "★" : "☆"; return s; }
+function fmtDate(iso) { try { return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return ""; } }
+function imgFallback(src) { return src || PLACEHOLDER_FALLBACK; }
 
-async function adminLogout() {
-  await supabaseClient.auth.signOut();
+function adminToast(message, type = "info") {
+  let c = document.querySelector(".a-toast-container");
+  if (!c) { c = document.createElement("div"); c.className = "a-toast-container"; document.body.appendChild(c); }
+  const el = document.createElement("div"); el.className = "a-toast " + type; el.textContent = message; c.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+  setTimeout(() => { el.classList.remove("show"); setTimeout(() => el.remove(), 300); }, 3000);
 }
-
-async function requireAdminAuth() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-
-  if (!session) {
-    window.location.href = "login.html";
-    return false;
-  }
-
-  return true;
+/* Run an action; show a friendly message on failure */
+async function guard(fn, fallbackMsg = "Something went wrong. Please try again.") {
+  try { return await fn(); } catch (err) { console.error(err); adminToast(err && err.message && err.message.length < 90 ? err.message : fallbackMsg, "error"); }
 }
+function showError(id, msg) { const el = $a(id); el.textContent = msg; el.style.display = msg ? "block" : "none"; }
 
-/* ---------------------------------------------------------
-   FILE → BASE64 HELPER (used by every image upload field)
-   --------------------------------------------------------- */
-function fileToDataUrl(file) {
+/* Resize + compress an uploaded image (keeps temporary storage small) */
+function readImage(file, maxSize = 1000) {
   return new Promise((resolve, reject) => {
     if (!file) return resolve(null);
-    if (!file.type.startsWith("image/")) return reject(new Error("Only image files are allowed."));
-    if (file.size > 5 * 1024 * 1024) return reject(new Error("Image is too large (max 5MB)."));
+    if (!/^image\/(png|jpe?g|webp|gif)$/.test(file.type)) return reject(new Error("Please choose a PNG, JPG, WEBP or GIF image."));
+    if (file.size > 8 * 1024 * 1024) return reject(new Error("Image is too large (max 8MB)."));
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Could not read the selected file."));
+    reader.onerror = () => reject(new Error("Could not read the image."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Could not read the image."));
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL("image/jpeg", 0.8));
+      };
+      img.src = reader.result;
+    };
     reader.readAsDataURL(file);
   });
 }
 
-/* ---------------------------------------------------------
-   TOAST
-   --------------------------------------------------------- */
-function adminToast(message, type = "info") {
-  let container = document.querySelector(".a-toast-container");
-  if (!container) { container = document.createElement("div"); container.className = "a-toast-container"; document.body.appendChild(container); }
-  const el = document.createElement("div");
-  el.className = `a-toast ${type}`;
-  el.textContent = message;
-  container.appendChild(el);
-  requestAnimationFrame(() => el.classList.add("show"));
-  setTimeout(() => { el.classList.remove("show"); setTimeout(() => el.remove(), 300); }, 3000);
-}
-function escapeHtmlA(s) { return String(s === undefined || s === null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c])); }
-function renderStarsA(rating) { let out = ""; for (let i = 1; i <= 5; i++) out += i <= rating ? "★" : "☆"; return out; }
-function confirmA(msg) { return window.confirm(msg); }
+function openModal(id) { $a(id).classList.add("open"); }
+function closeModal(id) { $a(id).classList.remove("open"); }
 
-/* =========================================================
-   DASHBOARD SHELL (panel switching)
-   ========================================================= */
-function showAdminPanel(name) {
+/* ---------------- PANELS ---------------- */
+const PANEL_LOADERS = {};
+function showPanel(name) {
   document.querySelectorAll(".admin-panel").forEach(p => p.classList.toggle("active", p.id === "panel-" + name));
   document.querySelectorAll("[data-panel]").forEach(a => a.classList.toggle("active", a.dataset.panel === name));
-  if (name === "dashboard") renderDashboardStats();
-  if (name === "trips") renderTripsPanel();
-  if (name === "vehicles") renderVehiclesPanel();
-  if (name === "gallery") renderGalleryPanel();
-  if (name === "videos") renderVideosPanel();
-  if (name === "reviews") renderReviewsPanel();
-  if (name === "settings") renderSettingsPanel();
+  if (PANEL_LOADERS[name]) guard(PANEL_LOADERS[name]);
+  window.scrollTo(0, 0);
 }
-function initAdminNav() {
-  document.querySelectorAll("[data-panel]").forEach(a => {
-    a.addEventListener("click", e => { e.preventDefault(); showAdminPanel(a.dataset.panel); });
-  });
-  document.querySelectorAll(".a-logout-btn").forEach(b => b.addEventListener("click", () => { adminLogout(); window.location.href = "login.html"; }));
+function empty(msg) { return `<div class="a-empty">${ea(msg)}</div>`; }
+function itemCard(img, title, lines, actionsHtml, extraHtml = "") {
+  return `<div class="a-item-card">
+    ${img === null ? "" : `<img src="${ea(imgFallback(img))}" alt="" onerror="this.onerror=null;this.src=PLACEHOLDER_FALLBACK">`}
+    <div class="a-item-info"><h3>${title}</h3>${lines}${extraHtml}<div class="a-item-actions">${actionsHtml}</div></div></div>`;
 }
+function btn(label, attr, cls = "a-btn-outline") { return `<button class="a-btn ${cls} a-btn-small" ${attr}>${label}</button>`; }
 
-async function renderDashboardStats() {
-  const [trips, vehicles, gallery, videos, reviews] = await Promise.all([getTrips(), getVehicles(), getGallery(), getVideos(), getReviews()]);
-  document.getElementById("stat-trips").textContent = trips.length;
-  document.getElementById("stat-vehicles").textContent = vehicles.length;
-  document.getElementById("stat-vehicles-available").textContent = vehicles.filter(v => v.available).length;
-  document.getElementById("stat-gallery").textContent = gallery.length;
-  document.getElementById("stat-videos").textContent = videos.length;
-  document.getElementById("stat-reviews").textContent = reviews.length;
-}
+/* ---------- Dashboard ---------- */
+PANEL_LOADERS.dashboard = async () => {
+  const [trips, vehicles, gallery, videos, reviews, enquiries] =
+    await Promise.all([getTrips(), getVehicles(), getGallery(), getVideos(), getReviews(), getEnquiries()]);
+  $a("stat-trips").textContent = trips.length; $a("stat-vehicles").textContent = vehicles.length;
+  $a("stat-gallery").textContent = gallery.length; $a("stat-videos").textContent = videos.length;
+  $a("stat-reviews").textContent = reviews.length; $a("stat-enquiries").textContent = enquiries.length;
+  const latest = arr => [...arr].sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))).slice(0, 5);
+  const rows = (arr, fn, none) => arr.length ? arr.map(x => `<div class="a-recent-row">${fn(x)}</div>`).join("") : `<div class="a-recent-row">${none}</div>`;
+  $a("recent-enquiries").innerHTML = rows(latest(enquiries), e => `<strong>${ea(e.name)}</strong> — ${ea(e.trip || "General")} <span class="a-badge ${ea(String(e.status).toLowerCase())}">${ea(e.status)}</span>`, "No enquiries found.");
+  $a("recent-reviews").innerHTML = rows(latest(reviews), r => `<strong>${ea(r.name)}</strong> ${starsA(r.rating)}<br>${ea(r.review)}`, "No reviews available.");
+  $a("recent-trips").innerHTML = rows(latest(trips), t => `<strong>${ea(t.name)}</strong><br>${ea(t.destination)}`, "No trips available yet.");
+};
 
-/* =========================================================
-   TRIPS PANEL
-   ========================================================= */
-async function renderTripsPanel() {
-  const list = document.getElementById("trips-list");
-  list.innerHTML = `<div class="a-empty">Loading...</div>`;
+/* ---------- Trips ---------- */
+PANEL_LOADERS.trips = async () => {
+  const list = $a("trips-list");
   const trips = await getTrips();
-  list.innerHTML = trips.length ? trips.map(tripRowHtml).join("") : `<div class="a-empty">No trips yet. Click "+ Add Trip" to create one.</div>`;
-  list.querySelectorAll("[data-edit-trip]").forEach(b => b.addEventListener("click", () => openTripModal(parseInt(b.dataset.editTrip, 10))));
-  list.querySelectorAll("[data-delete-trip]").forEach(b => b.addEventListener("click", async () => {
-    if (!confirmA("Delete this trip? This cannot be undone.")) return;
-    await deleteTrip(parseInt(b.dataset.deleteTrip, 10));
-    adminToast("Trip deleted successfully.", "success");
-    renderTripsPanel(); renderDashboardStats();
-  }));
-}
-function tripRowHtml(trip) {
-  return `
-    <div class="a-item-card">
-      <img src="${trip.image}" alt="${escapeHtmlA(trip.name)}">
-      <div class="a-item-info">
-        <h3>${escapeHtmlA(trip.name)}</h3>
-        <p>${escapeHtmlA(trip.destination)} · ${escapeHtmlA(trip.category)} · ${escapeHtmlA(trip.duration)} · ${escapeHtmlA(trip.price)}</p>
-        <div class="a-item-actions">
-          <button class="a-btn a-btn-outline a-btn-small" data-edit-trip="${trip.id}">Edit</button>
-          <button class="a-btn a-btn-danger a-btn-small" data-delete-trip="${trip.id}">Delete</button>
-        </div>
-      </div>
-    </div>
-  `;
-}
+  const sel = $a("trip-filter"), cur = sel.value;
+  const cats = [...new Set(trips.map(t => t.category).filter(Boolean))];
+  sel.innerHTML = `<option value="">All categories</option>` + cats.map(c => `<option>${ea(c)}</option>`).join("");
+  sel.value = cats.includes(cur) ? cur : "";
+  const q = $a("trip-search").value.trim().toLowerCase();
+  const rows = trips.filter(t => (!sel.value || t.category === sel.value) &&
+    (!q || [t.name, t.destination, t.category].some(v => String(v || "").toLowerCase().includes(q))));
+  list.innerHTML = rows.length ? rows.map(t => itemCard(t.image, ea(t.name),
+    `<p>${ea(t.destination)} · ${ea(t.category)} · ${ea(t.duration)} · ${ea(t.price)}</p>`,
+    btn("Edit", `data-edit-trip="${t.id}"`) + btn("Delete", `data-delete-trip="${t.id}"`, "a-btn-danger"))).join("")
+    : empty(trips.length ? "No trips match your search." : "No trips available yet.");
+};
+
+let tripGalleryDraft = [], tripImageDraft = "";
 async function openTripModal(id) {
-  const trips = id ? await getTrips() : [];
-  const trip = id ? trips.find(t => t.id === id) : null;
+  const trip = id ? await getTripById(id) : null;
   const vehicles = await getVehicles();
-
-  const modal = document.getElementById("trip-modal");
-  document.getElementById("trip-modal-title").textContent = trip ? "Edit Trip" : "Add Trip";
-  const f = document.getElementById("trip-form");
-  f.reset();
+  const f = $a("trip-form"); f.reset(); showError("trip-error", "");
   f.dataset.id = trip ? trip.id : "";
-  f.name.value = trip ? trip.name : "";
-  f.destination.value = trip ? trip.destination : "";
-  f.category.value = trip ? trip.category : "One Day";
-  f.duration.value = trip ? trip.duration : "";
-  f.price.value = trip ? trip.price : "";
-  f.description.value = trip ? trip.description : "";
+  $a("trip-modal-title").textContent = trip ? "Edit Trip" : "Add Trip";
+  f.name.value = trip ? trip.name : ""; f.destination.value = trip ? trip.destination : "";
+  f.category.value = trip ? trip.category : ""; f.duration.value = trip ? trip.duration : "";
+  f.price.value = trip ? trip.price : ""; f.description.value = trip ? trip.description : "";
   f.highlights.value = trip ? (trip.highlights || []).join("\n") : "";
-  document.getElementById("trip-image-preview").src = trip ? trip.image : PLACEHOLDER_FALLBACK;
-  f.dataset.existingImage = trip ? trip.image : "";
-  f.dataset.existingGallery = trip ? JSON.stringify(trip.gallery || []) : "[]";
-  renderTripGalleryPreview(JSON.parse(f.dataset.existingGallery));
-
-  const vehicleList = document.getElementById("trip-vehicle-checkboxes");
-  vehicleList.innerHTML = vehicles.length ? vehicles.map(v => `
-    <label><input type="checkbox" value="${v.id}" ${trip && trip.vehicleIds && trip.vehicleIds.includes(v.id) ? "checked" : ""}> ${escapeHtmlA(v.name)} — ${escapeHtmlA(v.capacity)}</label>
-  `).join("") : `<p class="muted" style="margin:0;font-size:.85rem;">No vehicles yet — add one in the Vehicles tab first.</p>`;
-
-  modal.classList.add("open");
+  tripImageDraft = trip ? trip.image : ""; tripGalleryDraft = trip ? [...(trip.gallery || [])] : [];
+  $a("trip-image-preview").src = imgFallback(tripImageDraft);
+  drawTripGalleryDraft();
+  $a("trip-vehicle-checkboxes").innerHTML = vehicles.length ? vehicles.map(v =>
+    `<label><input type="checkbox" value="${v.id}" ${trip && (trip.vehicleIds || []).includes(v.id) ? "checked" : ""}> ${ea(v.name)} — ${ea(v.capacity)}${v.available === false ? " (unavailable)" : ""}</label>`).join("")
+    : `<span class="a-item-meta">No vehicles yet. Add one in Vehicles first.</span>`;
+  openModal("trip-modal");
 }
-function renderTripGalleryPreview(images) {
-  const wrap = document.getElementById("trip-gallery-preview");
-  wrap.innerHTML = images.map((src, i) => `
-    <div style="position:relative;display:inline-block;margin:0 .4rem .4rem 0;">
-      <img src="${src}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">
-      <button type="button" data-remove-gallery-img="${i}" style="position:absolute;top:-6px;right:-6px;background:#c0392b;color:#fff;border:none;width:20px;height:20px;border-radius:50%;font-size:.7rem;line-height:1;">×</button>
-    </div>
-  `).join("");
-  wrap.querySelectorAll("[data-remove-gallery-img]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const f = document.getElementById("trip-form");
-      const imgs = JSON.parse(f.dataset.existingGallery);
-      imgs.splice(parseInt(btn.dataset.removeGalleryImg, 10), 1);
-      f.dataset.existingGallery = JSON.stringify(imgs);
-      renderTripGalleryPreview(imgs);
-    });
-  });
+function drawTripGalleryDraft() {
+  $a("trip-gallery-preview").innerHTML = tripGalleryDraft.map((src, i) =>
+    `<span style="position:relative;display:inline-block;margin:0 .4rem .4rem 0;"><img src="${ea(src)}" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">
+     <button type="button" data-remove-tg="${i}" aria-label="Remove image" style="position:absolute;top:-6px;right:-6px;background:#c0392b;color:#fff;border:none;width:22px;height:22px;border-radius:50%;">×</button></span>`).join("");
 }
-function closeTripModal() { document.getElementById("trip-modal").classList.remove("open"); }
-
-function initTripForm() {
-  document.getElementById("add-trip-btn").addEventListener("click", () => openTripModal(null));
-  document.getElementById("trip-modal-close").addEventListener("click", closeTripModal);
-  document.getElementById("trip-image-input").addEventListener("change", async e => {
-    try {
-      const dataUrl = await fileToDataUrl(e.target.files[0]);
-      if (dataUrl) { document.getElementById("trip-image-preview").src = dataUrl; document.getElementById("trip-form").dataset.newImage = dataUrl; }
-    } catch (err) { adminToast(err.message, "error"); }
-  });
-  document.getElementById("trip-gallery-input").addEventListener("change", async e => {
-    const f = document.getElementById("trip-form");
-    const imgs = JSON.parse(f.dataset.existingGallery || "[]");
-    for (const file of e.target.files) {
-      try { const dataUrl = await fileToDataUrl(file); if (dataUrl) imgs.push(dataUrl); }
-      catch (err) { adminToast(err.message, "error"); }
-    }
-    f.dataset.existingGallery = JSON.stringify(imgs);
-    renderTripGalleryPreview(imgs);
-    e.target.value = "";
-  });
-
-  document.getElementById("trip-form").addEventListener("submit", async e => {
-    e.preventDefault();
-    const f = e.target;
-    if (!f.name.value.trim() || !f.destination.value.trim()) { adminToast("Please fill in the required fields.", "error"); return; }
-    const vehicleIds = [...document.querySelectorAll("#trip-vehicle-checkboxes input:checked")].map(cb => parseInt(cb.value, 10));
-    const payload = {
-      name: f.name.value.trim(),
-      destination: f.destination.value.trim(),
-      category: f.category.value,
-      duration: f.duration.value.trim(),
-      price: f.price.value.trim(),
-      description: f.description.value.trim(),
-      highlights: f.highlights.value.split("\n").map(s => s.trim()).filter(Boolean),
-      gallery: JSON.parse(f.dataset.existingGallery || "[]"),
-      image: f.dataset.newImage || f.dataset.existingImage || PLACEHOLDER_FALLBACK,
-      vehicleIds
-    };
-    if (f.dataset.id) await updateTrip(parseInt(f.dataset.id, 10), payload);
-    else await saveTrip(payload);
+async function saveTripForm(e) {
+  e.preventDefault();
+  const f = e.target;
+  if (!f.name.value.trim() || !f.destination.value.trim()) return showError("trip-error", "Trip name and destination are required.");
+  const payload = {
+    name: f.name.value.trim(), destination: f.destination.value.trim(), category: f.category.value.trim(),
+    duration: f.duration.value.trim(), price: f.price.value.trim(), description: f.description.value.trim(),
+    highlights: f.highlights.value.split("\n").map(s => s.trim()).filter(Boolean),
+    gallery: tripGalleryDraft, image: tripImageDraft || PLACEHOLDER_FALLBACK,
+    vehicleIds: [...document.querySelectorAll("#trip-vehicle-checkboxes input:checked")].map(c => parseInt(c.value, 10))
+  };
+  await guard(async () => {
+    if (f.dataset.id) await updateTrip(f.dataset.id, payload); else await saveTrip(payload);
     adminToast(f.dataset.id ? "Trip updated successfully." : "Trip added successfully.", "success");
-    closeTripModal();
-    renderTripsPanel(); renderDashboardStats();
-    delete f.dataset.newImage;
+    closeModal("trip-modal"); PANEL_LOADERS.trips();
   });
 }
 
-/* =========================================================
-   VEHICLES PANEL
-   ========================================================= */
-async function renderVehiclesPanel() {
-  const list = document.getElementById("vehicles-list");
-  list.innerHTML = `<div class="a-empty">Loading...</div>`;
-  const vehicles = await getVehicles();
-  list.innerHTML = vehicles.length ? vehicles.map(vehicleRowHtml).join("") : `<div class="a-empty">No vehicles yet. Click "+ Add Vehicle" to create one.</div>`;
-  list.querySelectorAll("[data-edit-vehicle]").forEach(b => b.addEventListener("click", () => openVehicleModal(parseInt(b.dataset.editVehicle, 10))));
-  list.querySelectorAll("[data-delete-vehicle]").forEach(b => b.addEventListener("click", async () => {
-    if (!confirmA("Delete this vehicle? It will also be removed from any trips using it.")) return;
-    await deleteVehicle(parseInt(b.dataset.deleteVehicle, 10));
-    const trips = await getTrips();
-    for (const trip of trips) {
-      if (trip.vehicleIds && trip.vehicleIds.includes(parseInt(b.dataset.deleteVehicle, 10))) {
-        await updateTrip(trip.id, { vehicleIds: trip.vehicleIds.filter(id => id !== parseInt(b.dataset.deleteVehicle, 10)) });
-      }
-    }
-    adminToast("Vehicle deleted successfully.", "success");
-    renderVehiclesPanel(); renderDashboardStats();
-  }));
-  list.querySelectorAll("[data-toggle-available]").forEach(b => b.addEventListener("click", async () => {
-    const v = vehicles.find(v => v.id === parseInt(b.dataset.toggleAvailable, 10));
-    await updateVehicle(v.id, { available: !v.available });
-    adminToast("Vehicle updated successfully.", "success");
-    renderVehiclesPanel(); renderDashboardStats();
-  }));
-}
-function vehicleRowHtml(v) {
-  return `
-    <div class="a-item-card">
-      <img src="${v.image_url}" alt="${escapeHtmlA(v.name)}">
-      <div class="a-item-info">
-        <h3>${escapeHtmlA(v.name)}</h3>
-        <p>${escapeHtmlA(v.type)} · ${escapeHtmlA(v.capacity)}</p>
-        <span class="a-msg ${v.available ? "success" : "error"}" style="display:inline-block;padding:.15rem .5rem;margin:.3rem 0 0;">${v.available ? "Available" : "Unavailable"}</span>
-        <div class="a-item-actions">
-          <button class="a-btn a-btn-outline a-btn-small" data-edit-vehicle="${v.id}">Edit</button>
-          <button class="a-btn a-btn-outline a-btn-small" data-toggle-available="${v.id}">${v.available ? "Mark Unavailable" : "Mark Available"}</button>
-          <button class="a-btn a-btn-danger a-btn-small" data-delete-vehicle="${v.id}">Delete</button>
-        </div>
-      </div>
-    </div>
-  `;
-}
+/* ---------- Vehicles ---------- */
+PANEL_LOADERS.vehicles = async () => {
+  const vs = await getVehicles();
+  $a("vehicles-list").innerHTML = vs.length ? vs.map(v => itemCard(v.image_url, ea(v.name),
+    `<p>${ea(v.type)} · ${ea(v.capacity)}</p><p>${ea(v.description)}</p>`,
+    btn("Edit", `data-edit-vehicle="${v.id}"`) + btn(v.available === false ? "Mark Available" : "Mark Unavailable", `data-toggle-vehicle="${v.id}"`) + btn("Delete", `data-delete-vehicle="${v.id}"`, "a-btn-danger"),
+    `<span class="a-badge ${v.available === false ? "off" : "ok"}">${v.available === false ? "Unavailable" : "Available"}</span>`)).join("")
+    : empty("No vehicles available yet.");
+};
+let vehicleImageDraft = "";
 async function openVehicleModal(id) {
-  const vehicles = await getVehicles();
-  const vehicle = id ? vehicles.find(v => v.id === id) : null;
-  document.getElementById("vehicle-modal-title").textContent = vehicle ? "Edit Vehicle" : "Add New Vehicle";
-  const f = document.getElementById("vehicle-form");
-  f.reset();
-  f.dataset.id = vehicle ? vehicle.id : "";
-  f.name.value = vehicle ? vehicle.name : "";
-  f.type.value = vehicle ? vehicle.type : "";
-  f.capacity.value = vehicle ? vehicle.capacity : "";
-  f.description.value = vehicle ? vehicle.description : "";
-  f.available.value = vehicle ? String(vehicle.available) : "true";
-  document.getElementById("vehicle-image-preview").src = vehicle ? vehicle.image_url : PLACEHOLDER_FALLBACK;
-  f.dataset.existingImage = vehicle ? vehicle.image_url : "";
-  document.getElementById("vehicle-modal").classList.add("open");
+  const v = id ? (await getVehicles()).find(x => x.id === Number(id)) : null;
+  const f = $a("vehicle-form"); f.reset(); showError("vehicle-error", "");
+  f.dataset.id = v ? v.id : ""; $a("vehicle-modal-title").textContent = v ? "Edit Vehicle" : "Add Vehicle";
+  f.name.value = v ? v.name : ""; f.type.value = v ? v.type : ""; f.capacity.value = v ? v.capacity : "";
+  f.description.value = v ? v.description : ""; f.available.value = v && v.available === false ? "false" : "true";
+  vehicleImageDraft = v ? v.image_url : ""; $a("vehicle-image-preview").src = imgFallback(vehicleImageDraft);
+  openModal("vehicle-modal");
 }
-function closeVehicleModal() { document.getElementById("vehicle-modal").classList.remove("open"); }
-function initVehicleForm() {
-  document.getElementById("add-vehicle-btn").addEventListener("click", () => openVehicleModal(null));
-  document.getElementById("vehicle-modal-close").addEventListener("click", closeVehicleModal);
-  document.getElementById("vehicle-image-input").addEventListener("change", async e => {
-    try {
-      const dataUrl = await fileToDataUrl(e.target.files[0]);
-      if (dataUrl) { document.getElementById("vehicle-image-preview").src = dataUrl; document.getElementById("vehicle-form").dataset.newImage = dataUrl; }
-    } catch (err) { adminToast(err.message, "error"); }
-  });
-  document.getElementById("vehicle-form").addEventListener("submit", async e => {
-    e.preventDefault();
-    const f = e.target;
-    if (!f.name.value.trim()) { adminToast("Vehicle name is required.", "error"); return; }
-    const payload = {
-      name: f.name.value.trim(), type: f.type.value.trim(), capacity: f.capacity.value.trim(),
-      description: f.description.value.trim(), available: f.available.value === "true",
-      image_url: f.dataset.newImage || f.dataset.existingImage || PLACEHOLDER_FALLBACK
-    };
-    if (f.dataset.id) await updateVehicle(parseInt(f.dataset.id, 10), payload);
-    else await saveVehicle(payload);
+async function saveVehicleForm(e) {
+  e.preventDefault();
+  const f = e.target;
+  if (!f.name.value.trim()) return showError("vehicle-error", "Vehicle name is required.");
+  const payload = { name: f.name.value.trim(), type: f.type.value.trim(), capacity: f.capacity.value.trim(),
+    description: f.description.value.trim(), available: f.available.value === "true", image_url: vehicleImageDraft || PLACEHOLDER_FALLBACK };
+  await guard(async () => {
+    if (f.dataset.id) await updateVehicle(f.dataset.id, payload); else await saveVehicle(payload);
     adminToast(f.dataset.id ? "Vehicle updated successfully." : "Vehicle added successfully.", "success");
-    closeVehicleModal();
-    renderVehiclesPanel(); renderDashboardStats();
-    delete f.dataset.newImage;
+    closeModal("vehicle-modal"); PANEL_LOADERS.vehicles();
   });
 }
 
-/* =========================================================
-   GALLERY PANEL (Add / Delete only, per spec)
-   ========================================================= */
-async function renderGalleryPanel() {
-  const list = document.getElementById("gallery-list");
-  list.innerHTML = `<div class="a-empty">Loading...</div>`;
+/* ---------- Gallery ---------- */
+PANEL_LOADERS.gallery = async () => {
   const items = await getGallery();
-  list.innerHTML = items.length ? items.map(g => `
-    <div class="a-item-card">
-      <img src="${g.image_url}" alt="${escapeHtmlA(g.caption)}">
-      <div class="a-item-info">
-        <h3>${escapeHtmlA(g.caption || "Untitled")}</h3>
-        <div class="a-item-actions"><button class="a-btn a-btn-danger a-btn-small" data-delete-photo="${g.id}">Delete</button></div>
-      </div>
-    </div>
-  `).join("") : `<div class="a-empty">No photos yet. Add one below.</div>`;
-  list.querySelectorAll("[data-delete-photo]").forEach(b => b.addEventListener("click", async () => {
-    if (!confirmA("Delete this photo?")) return;
-    await deleteGalleryItem(parseInt(b.dataset.deletePhoto, 10));
-    adminToast("Photo deleted successfully.", "success");
-    renderGalleryPanel(); renderDashboardStats();
-  }));
-}
-function initGalleryForm() {
-  document.getElementById("gallery-add-form").addEventListener("submit", async e => {
-    e.preventDefault();
-    const f = e.target;
-    const file = f.image.files[0];
-    if (!file) { adminToast("Please choose an image.", "error"); return; }
-    try {
-      const dataUrl = await fileToDataUrl(file);
-      await saveGalleryItem({ image_url: dataUrl, caption: f.caption.value.trim() });
-      adminToast("Photo added successfully.", "success");
-      f.reset();
-      renderGalleryPanel(); renderDashboardStats();
-    } catch (err) { adminToast(err.message, "error"); }
-  });
-}
+  $a("gallery-list").innerHTML = items.length ? items.map(g => itemCard(g.image_url, ea(g.caption || "No caption"),
+    `<div class="a-inline-edit"><input type="text" value="${ea(g.caption)}" data-caption-input="${g.id}" aria-label="Caption">${btn("Save caption", `data-save-caption="${g.id}"`)}</div>`,
+    btn("Delete", `data-delete-photo="${g.id}"`, "a-btn-danger"))).join("") : empty("No gallery images available.");
+};
 
-/* =========================================================
-   VIDEOS PANEL
-   ========================================================= */
-async function renderVideosPanel() {
-  const list = document.getElementById("videos-list");
-  list.innerHTML = `<div class="a-empty">Loading...</div>`;
-  const items = await getVideos();
-  list.innerHTML = items.length ? items.map(v => `
-    <div class="a-item-card">
-      <div style="width:60px;height:60px;border-radius:10px;background:linear-gradient(135deg,#1450a3,#2f9bff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.4rem;flex-shrink:0;">▶</div>
-      <div class="a-item-info">
-        <h3>${escapeHtmlA(v.title)}</h3>
-        <p>${escapeHtmlA(v.youtubeId || "No YouTube ID set")}</p>
-        <div class="a-item-actions">
-          <button class="a-btn a-btn-outline a-btn-small" data-edit-video="${v.id}">Edit</button>
-          <button class="a-btn a-btn-danger a-btn-small" data-delete-video="${v.id}">Delete</button>
-        </div>
-      </div>
-    </div>
-  `).join("") : `<div class="a-empty">No videos yet. Click "+ Add Video" to create one.</div>`;
-  list.querySelectorAll("[data-edit-video]").forEach(b => b.addEventListener("click", () => openVideoModal(parseInt(b.dataset.editVideo, 10))));
-  list.querySelectorAll("[data-delete-video]").forEach(b => b.addEventListener("click", async () => {
-    if (!confirmA("Delete this video?")) return;
-    await deleteVideo(parseInt(b.dataset.deleteVideo, 10));
-    adminToast("Video deleted successfully.", "success");
-    renderVideosPanel(); renderDashboardStats();
-  }));
-}
+/* ---------- Videos ---------- */
+PANEL_LOADERS.videos = async () => {
+  const vs = await getVideos();
+  $a("videos-list").innerHTML = vs.length ? vs.map(v => itemCard(v.youtubeId ? `https://img.youtube.com/vi/${encodeURIComponent(v.youtubeId)}/default.jpg` : "",
+    ea(v.title), `<p>${ea(v.description)}</p><p class="a-item-meta">YouTube ID: ${ea(v.youtubeId || "not set")}</p>`,
+    btn("Edit", `data-edit-video="${v.id}"`) + btn("Delete", `data-delete-video="${v.id}"`, "a-btn-danger"))).join("") : empty("No videos available yet.");
+};
 async function openVideoModal(id) {
-  const videos = await getVideos();
-  const video = id ? videos.find(v => v.id === id) : null;
-  document.getElementById("video-modal-title").textContent = video ? "Edit Video" : "Add Video";
-  const f = document.getElementById("video-form");
-  f.reset();
-  f.dataset.id = video ? video.id : "";
-  f.title.value = video ? video.title : "";
-  f.description.value = video ? video.description : "";
-  f.youtubeId.value = video ? video.youtubeId : "";
-  document.getElementById("video-modal").classList.add("open");
+  const v = id ? (await getVideos()).find(x => x.id === Number(id)) : null;
+  const f = $a("video-form"); f.reset(); showError("video-error", "");
+  f.dataset.id = v ? v.id : ""; $a("video-modal-title").textContent = v ? "Edit Video" : "Add Video";
+  f.title.value = v ? v.title : ""; f.description.value = v ? v.description : ""; f.youtube.value = v ? v.youtubeId : "";
+  openModal("video-modal");
 }
-function closeVideoAdminModal() { document.getElementById("video-modal").classList.remove("open"); }
-function initVideoForm() {
-  document.getElementById("add-video-btn").addEventListener("click", () => openVideoModal(null));
-  document.getElementById("video-modal-close").addEventListener("click", closeVideoAdminModal);
-  document.getElementById("video-form").addEventListener("submit", async e => {
-    e.preventDefault();
-    const f = e.target;
-    if (!f.title.value.trim()) { adminToast("Video title is required.", "error"); return; }
-    const payload = { title: f.title.value.trim(), description: f.description.value.trim(), youtubeId: f.youtubeId.value.trim() };
-    if (f.dataset.id) await updateVideo(parseInt(f.dataset.id, 10), payload);
-    else await saveVideo(payload);
+async function saveVideoForm(e) {
+  e.preventDefault();
+  const f = e.target;
+  if (!f.title.value.trim()) return showError("video-error", "Video title is required.");
+  const raw = f.youtube.value.trim(), id = extractYouTubeId(raw);
+  if (raw && !id) return showError("video-error", "Please enter a valid YouTube link or 11-character ID.");
+  const payload = { title: f.title.value.trim(), description: f.description.value.trim(), youtubeId: id };
+  await guard(async () => {
+    if (f.dataset.id) await updateVideo(f.dataset.id, payload); else await saveVideo(payload);
     adminToast(f.dataset.id ? "Video updated successfully." : "Video added successfully.", "success");
-    closeVideoAdminModal();
-    renderVideosPanel(); renderDashboardStats();
+    closeModal("video-modal"); PANEL_LOADERS.videos();
   });
 }
 
-/* =========================================================
-   REVIEWS PANEL
-   ========================================================= */
-async function renderReviewsPanel() {
-  const list = document.getElementById("reviews-list");
-  list.innerHTML = `<div class="a-empty">Loading...</div>`;
-  const items = await getReviews();
-  list.innerHTML = items.length ? items.map(r => `
-    <div class="a-item-card">
-      <div style="width:60px;height:60px;border-radius:10px;background:#eaf2fc;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;">👤</div>
-      <div class="a-item-info">
-        <h3>${escapeHtmlA(r.name)} <span style="color:#ffb020;font-size:.85rem;">${renderStarsA(r.rating)}</span></h3>
-        <p>${escapeHtmlA(r.review)}</p>
-        <div class="a-item-actions">
-          <button class="a-btn a-btn-outline a-btn-small" data-edit-review="${r.id}">Edit</button>
-          <button class="a-btn a-btn-danger a-btn-small" data-delete-review="${r.id}">Delete</button>
-        </div>
-      </div>
-    </div>
-  `).join("") : `<div class="a-empty">No reviews yet.</div>`;
-  list.querySelectorAll("[data-edit-review]").forEach(b => b.addEventListener("click", () => openReviewModal(parseInt(b.dataset.editReview, 10))));
-  list.querySelectorAll("[data-delete-review]").forEach(b => b.addEventListener("click", async () => {
-    if (!confirmA("Delete this review?")) return;
-    await deleteReview(parseInt(b.dataset.deleteReview, 10));
-    adminToast("Review deleted successfully.", "success");
-    renderReviewsPanel(); renderDashboardStats();
-  }));
-}
+/* ---------- Reviews ---------- */
+PANEL_LOADERS.reviews = async () => {
+  const rs = await getReviews();
+  $a("reviews-list").innerHTML = rs.length ? rs.map(r => itemCard(r.image_url || null, `${ea(r.name)} <span style="color:#ffb020;font-size:.85rem;">${starsA(r.rating)}</span>`,
+    `<p>${ea(r.review)}</p>`, btn("Edit", `data-edit-review="${r.id}"`) + btn("Delete", `data-delete-review="${r.id}"`, "a-btn-danger"))).join("") : empty("No reviews available.");
+};
+let reviewImageDraft = "";
 async function openReviewModal(id) {
-  const reviews = await getReviews();
-  const review = id ? reviews.find(r => r.id === id) : null;
-  document.getElementById("review-modal-title").textContent = review ? "Edit Review" : "Add Review";
-  const f = document.getElementById("review-form-admin");
-  f.reset();
-  f.dataset.id = review ? review.id : "";
-  f.name.value = review ? review.name : "";
-  f.rating.value = review ? review.rating : "5";
-  f.review.value = review ? review.review : "";
-  document.getElementById("review-modal").classList.add("open");
+  const r = id ? (await getReviews()).find(x => x.id === Number(id)) : null;
+  const f = $a("review-form-admin"); f.reset(); showError("review-error", "");
+  f.dataset.id = r ? r.id : ""; $a("review-modal-title").textContent = r ? "Edit Review" : "Add Review";
+  f.name.value = r ? r.name : ""; f.rating.value = r ? r.rating : "5"; f.review.value = r ? r.review : "";
+  reviewImageDraft = r ? r.image_url || "" : "";
+  const p = $a("review-image-preview"); p.src = reviewImageDraft; p.style.display = reviewImageDraft ? "block" : "none";
+  openModal("review-modal");
 }
-function closeReviewModal() { document.getElementById("review-modal").classList.remove("open"); }
-function initReviewAdminForm() {
-  document.getElementById("add-review-btn").addEventListener("click", () => openReviewModal(null));
-  document.getElementById("review-modal-close").addEventListener("click", closeReviewModal);
-  document.getElementById("review-form-admin").addEventListener("submit", async e => {
-    e.preventDefault();
-    const f = e.target;
-    if (!f.name.value.trim() || !f.review.value.trim()) { adminToast("Name and review text are required.", "error"); return; }
-    const payload = { name: f.name.value.trim(), rating: parseInt(f.rating.value, 10), review: f.review.value.trim(), image_url: "" };
-    if (f.dataset.id) await updateReview(parseInt(f.dataset.id, 10), payload);
-    else await saveReview(payload);
+async function saveReviewForm(e) {
+  e.preventDefault();
+  const f = e.target;
+  if (!f.name.value.trim() || !f.review.value.trim()) return showError("review-error", "Name and review text are required.");
+  const payload = { name: f.name.value.trim(), rating: parseInt(f.rating.value, 10), review: f.review.value.trim(), image_url: reviewImageDraft };
+  await guard(async () => {
+    if (f.dataset.id) await updateReview(f.dataset.id, payload); else await saveReview(payload);
     adminToast(f.dataset.id ? "Review updated successfully." : "Review added successfully.", "success");
-    closeReviewModal();
-    renderReviewsPanel(); renderDashboardStats();
+    closeModal("review-modal"); PANEL_LOADERS.reviews();
   });
 }
 
-/* =========================================================
-   SETTINGS PANEL (Business configuration)
-   ========================================================= */
-function renderSettingsPanel() {
-  const biz = getBusiness();
-  const f = document.getElementById("settings-form");
-  f.phone.value = biz.phone; f.whatsapp.value = biz.whatsapp; f.email.value = biz.email;
-  f.address.value = biz.address; f.hours.value = biz.hours; f.mapUrl.value = biz.mapUrl;
-  f.facebook.value = biz.facebook; f.instagram.value = biz.instagram; f.youtube.value = biz.youtube;
-  f.aboutText.value = biz.aboutText; f.footerText.value = biz.footerText;
+/* ---------- Enquiries ---------- */
+const ENQUIRY_STATUSES = ["New", "Contacted", "Confirmed", "Closed"];
+PANEL_LOADERS.enquiries = async () => {
+  const filter = $a("enquiry-filter").value;
+  const all = await getEnquiries();
+  const rows = all.filter(e => !filter || e.status === filter).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  $a("enquiries-list").innerHTML = rows.length ? rows.map(e => itemCard(null, ea(e.name),
+    `<p>📞 <a href="tel:${ea(e.phone)}">${ea(e.phone)}</a> · 🧳 ${ea(e.trip || "General enquiry")}</p>
+     <p>📅 ${ea(e.travel_date || "—")} · 👥 ${ea(e.people || "—")}</p>${e.message ? `<p>${ea(e.message)}</p>` : ""}
+     <p class="a-item-meta">${ea(fmtDate(e.created_at))}</p>`,
+    `<select data-enquiry-status="${e.id}" aria-label="Status">${ENQUIRY_STATUSES.map(s => `<option ${s === e.status ? "selected" : ""}>${s}</option>`).join("")}</select>` +
+    btn("Delete", `data-delete-enquiry="${e.id}"`, "a-btn-danger"),
+    `<span class="a-badge ${ea(String(e.status).toLowerCase())}">${ea(e.status)}</span>`)).join("") : empty("No enquiries found.");
+};
+
+/* ---------- Settings ---------- */
+PANEL_LOADERS.settings = async () => {
+  const b = getBusiness(), f = $a("settings-form");
+  ["phone", "whatsapp", "email", "address", "hours", "mapUrl", "facebook", "instagram", "youtube", "aboutText", "footerText"].forEach(k => { f[k].value = b[k] || ""; });
+};
+async function saveSettingsForm(e) {
+  e.preventDefault();
+  const f = e.target, data = {};
+  ["phone", "whatsapp", "email", "address", "hours", "mapUrl", "facebook", "instagram", "youtube", "aboutText", "footerText"].forEach(k => { data[k] = f[k].value.trim(); });
+  if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) return adminToast("Please enter a valid email address.", "error");
+  await guard(async () => { await saveSettings(data); adminToast("Settings updated successfully.", "success"); });
 }
-function initSettingsForm() {
-  document.getElementById("settings-form").addEventListener("submit", async e => {
-    e.preventDefault();
-    const f = e.target;
-    await saveSettings({
-      phone: f.phone.value.trim(), whatsapp: f.whatsapp.value.trim(), email: f.email.value.trim(),
-      address: f.address.value.trim(), hours: f.hours.value.trim(), mapUrl: f.mapUrl.value.trim(),
-      facebook: f.facebook.value.trim(), instagram: f.instagram.value.trim(), youtube: f.youtube.value.trim(),
-      aboutText: f.aboutText.value.trim(), footerText: f.footerText.value.trim()
-    });
-    adminToast("Settings updated successfully. Changes apply site-wide.", "success");
+
+/* ---------------- INIT / EVENTS ---------------- */
+function initAdmin() {
+  document.addEventListener("click", async e => {
+    const el = e.target.closest("button, a"); if (!el) return;
+    const d = el.dataset;
+    if (d.panel) { e.preventDefault(); showPanel(d.panel); return; }
+    if (d.close) { closeModal(d.close); return; }
+    if (d.quick) {
+      const map = { trip: ["trips", () => openTripModal(null)], vehicle: ["vehicles", () => openVehicleModal(null)], gallery: ["gallery", null], video: ["videos", () => openVideoModal(null)], review: ["reviews", () => openReviewModal(null)] };
+      const [panel, open] = map[d.quick]; showPanel(panel); if (open) guard(open); return;
+    }
+    if (el.classList.contains("a-logout-btn")) { adminLogout(); location.replace("login.html"); return; }
+    if (d.editTrip) return guard(() => openTripModal(d.editTrip));
+    if (d.deleteTrip) { if (!confirm("Delete this trip? This cannot be undone.")) return;
+      return guard(async () => { await deleteTrip(d.deleteTrip); adminToast("Trip deleted successfully.", "success"); PANEL_LOADERS.trips(); }); }
+    if (d.removeTg) { tripGalleryDraft.splice(parseInt(d.removeTg, 10), 1); drawTripGalleryDraft(); return; }
+    if (d.editVehicle) return guard(() => openVehicleModal(d.editVehicle));
+    if (d.toggleVehicle) return guard(async () => {
+      const v = (await getVehicles()).find(x => x.id === Number(d.toggleVehicle));
+      await updateVehicle(v.id, { available: v.available === false }); adminToast("Vehicle updated successfully.", "success"); PANEL_LOADERS.vehicles(); });
+    if (d.deleteVehicle) { if (!confirm("Delete this vehicle? It will also be removed from trips using it.")) return;
+      return guard(async () => {
+        const vid = Number(d.deleteVehicle); await deleteVehicle(vid);
+        for (const t of await getTrips()) if ((t.vehicleIds || []).includes(vid)) await updateTrip(t.id, { vehicleIds: t.vehicleIds.filter(x => x !== vid) });
+        adminToast("Vehicle deleted successfully.", "success"); PANEL_LOADERS.vehicles(); }); }
+    if (d.saveCaption) return guard(async () => {
+      const v = document.querySelector(`[data-caption-input="${d.saveCaption}"]`).value.trim();
+      await updateGalleryItem(d.saveCaption, { caption: v }); adminToast("Caption updated successfully.", "success"); PANEL_LOADERS.gallery(); });
+    if (d.deletePhoto) { if (!confirm("Delete this image?")) return;
+      return guard(async () => { await deleteGalleryItem(d.deletePhoto); adminToast("Image deleted successfully.", "success"); PANEL_LOADERS.gallery(); }); }
+    if (d.editVideo) return guard(() => openVideoModal(d.editVideo));
+    if (d.deleteVideo) { if (!confirm("Delete this video?")) return;
+      return guard(async () => { await deleteVideo(d.deleteVideo); adminToast("Video deleted successfully.", "success"); PANEL_LOADERS.videos(); }); }
+    if (d.editReview) return guard(() => openReviewModal(d.editReview));
+    if (d.deleteReview) { if (!confirm("Delete this review?")) return;
+      return guard(async () => { await deleteReview(d.deleteReview); adminToast("Review deleted successfully.", "success"); PANEL_LOADERS.reviews(); }); }
+    if (d.deleteEnquiry) { if (!confirm("Delete this enquiry?")) return;
+      return guard(async () => { await deleteEnquiry(d.deleteEnquiry); adminToast("Enquiry deleted successfully.", "success"); PANEL_LOADERS.enquiries(); }); }
   });
-  document.getElementById("change-password-form").addEventListener("submit", async e => {
-    e.preventDefault();
-    const f = e.target;
-    const msgEl = document.getElementById("change-password-msg");
-    const admin = JSON.parse(localStorage.getItem("hdt_admin_auth"));
-    const currentHash = await sha256Hex(f.current.value);
-    if (currentHash !== admin.passwordHash) { msgEl.innerHTML = `<div class="a-msg error">Current password is incorrect.</div>`; return; }
-    const strong = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(f.next.value);
-    if (!strong) { msgEl.innerHTML = `<div class="a-msg error">New password must be 8+ characters with upper, lower, number & special character.</div>`; return; }
-    if (f.next.value !== f.confirm.value) { msgEl.innerHTML = `<div class="a-msg error">New passwords do not match.</div>`; return; }
-    admin.passwordHash = await sha256Hex(f.next.value);
-    localStorage.setItem("hdt_admin_auth", JSON.stringify(admin));
-    msgEl.innerHTML = `<div class="a-msg success">Password changed successfully.</div>`;
-    f.reset();
+  document.addEventListener("change", e => {
+    if (e.target.dataset.enquiryStatus) guard(async () => {
+      await updateEnquiry(e.target.dataset.enquiryStatus, { status: e.target.value }); adminToast("Enquiry status updated.", "success"); PANEL_LOADERS.enquiries(); });
+    if (e.target.id === "enquiry-filter") guard(PANEL_LOADERS.enquiries);
+    if (e.target.id === "trip-filter") guard(PANEL_LOADERS.trips);
   });
+  $a("trip-search").addEventListener("input", () => guard(PANEL_LOADERS.trips));
+
+  $a("add-trip-btn").addEventListener("click", () => guard(() => openTripModal(null)));
+  $a("add-vehicle-btn").addEventListener("click", () => guard(() => openVehicleModal(null)));
+  $a("add-video-btn").addEventListener("click", () => guard(() => openVideoModal(null)));
+  $a("add-review-btn").addEventListener("click", () => guard(() => openReviewModal(null)));
+
+  $a("trip-image-input").addEventListener("change", ev => guard(async () => { const s = await readImage(ev.target.files[0]); if (s) { tripImageDraft = s; $a("trip-image-preview").src = s; } }));
+  $a("trip-gallery-input").addEventListener("change", ev => guard(async () => {
+    for (const file of ev.target.files) { const s = await readImage(file, 900); if (s) tripGalleryDraft.push(s); }
+    drawTripGalleryDraft(); ev.target.value = ""; }));
+  $a("vehicle-image-input").addEventListener("change", ev => guard(async () => { const s = await readImage(ev.target.files[0]); if (s) { vehicleImageDraft = s; $a("vehicle-image-preview").src = s; } }));
+  $a("review-image-input").addEventListener("change", ev => guard(async () => {
+    const s = await readImage(ev.target.files[0], 300); if (s) { reviewImageDraft = s; const p = $a("review-image-preview"); p.src = s; p.style.display = "block"; } }));
+
+  $a("trip-form").addEventListener("submit", saveTripForm);
+  $a("vehicle-form").addEventListener("submit", saveVehicleForm);
+  $a("video-form").addEventListener("submit", saveVideoForm);
+  $a("review-form-admin").addEventListener("submit", saveReviewForm);
+  $a("settings-form").addEventListener("submit", saveSettingsForm);
+  $a("gallery-add-form").addEventListener("submit", ev => { ev.preventDefault(); guard(async () => {
+    const f = ev.target, file = f.image.files[0];
+    if (!file) return adminToast("Please choose an image.", "error");
+    const src = await readImage(file, 1200);
+    await saveGalleryItem({ image_url: src, caption: f.caption.value.trim() });
+    adminToast("Image added successfully.", "success"); f.reset(); PANEL_LOADERS.gallery(); }); });
+
+  showPanel("dashboard");
 }

@@ -9,61 +9,38 @@
 <link rel="stylesheet" href="admin.css">
 </head>
 <body class="admin-body">
-
 <div class="admin-login-wrap">
   <div class="admin-login-card">
     <img src="logo.png" alt="Hazi Dada Travels logo">
-    <h1>Admin Login</h1>
-    <p class="sub">Hazi Dada Travels — Admin Panel</p>
+    <h1>Hazi Dada Travels</h1>
+    <p class="sub"><strong>Admin Panel</strong></p>
+    <div class="a-banner">UI preview mode: any valid email and a password of 6+ characters opens the dashboard. Real Supabase Auth is connected in Phase 3.</div>
     <div id="login-msg"></div>
-    <form id="login-form">
-      <div class="a-form-group">
-        <label>Email</label>
-        <input type="email" name="email" required autocomplete="username">
-      </div>
-      <div class="a-form-group">
-        <label>Password</label>
-        <div class="password-field">
-          <input type="password" name="password" id="login-password" required autocomplete="current-password">
-          <button type="button" class="password-toggle" id="toggle-password">👁️</button>
-        </div>
-      </div>
-      <button type="submit" class="a-btn a-btn-primary a-btn-block">Login</button>
+    <form id="login-form" novalidate>
+      <div class="a-form-group"><label for="email">Email</label><input id="email" type="email" name="email" autocomplete="username"></div>
+      <div class="a-form-group"><label for="password">Password</label>
+        <div class="password-field"><input id="password" type="password" name="password" autocomplete="current-password">
+        <button type="button" class="password-toggle" id="toggle-password" aria-label="Show or hide password">👁️</button></div></div>
+      <button type="submit" class="a-btn a-btn-primary a-btn-block" id="login-btn">Login</button>
     </form>
-    <p class="sub" style="margin-top:1.2rem;">
-      Prototype authentication for demonstration only.<br>
-<a href="index.html" style="color:var(--a-blue); font-weight:700;">← Back to website</a>
-    </p>
+    <p class="sub" style="margin-top:1.2rem;"><a href="index.html" style="color:var(--a-blue);font-weight:700;">← Back to website</a></p>
+  </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase.js"></script>
-<script src="data.js"></script>
 <script src="admin.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", async () => { 
-  if (await isAdminLoggedIn()) { window.location.href = "dashboard.html"; return; }
-
+document.addEventListener("DOMContentLoaded", () => {
+  if (isAdminLoggedIn()) { location.replace("dashboard.html"); return; }
   document.getElementById("toggle-password").addEventListener("click", () => {
-    const field = document.getElementById("login-password");
-    const show = field.type === "password";
-    field.type = show ? "text" : "password";
+    const f = document.getElementById("password"); f.type = f.type === "password" ? "text" : "password";
   });
-
   document.getElementById("login-form").addEventListener("submit", async e => {
     e.preventDefault();
-    const f = e.target;
-    const email = f.email.value.trim().toLowerCase();
-    const password = f.password.value;
-    const msgEl = document.getElementById("login-msg");
-    msgEl.innerHTML = "";
-
-    const ok = await adminLogin(email, password);
-    if (ok) {
-      window.location.href = "dashboard.html";
-    } else {
-      msgEl.innerHTML = `<div class="a-msg error">Invalid login details.</div>`;
-    }
+    const btn = document.getElementById("login-btn"), msg = document.getElementById("login-msg");
+    msg.innerHTML = ""; btn.disabled = true; btn.textContent = "Logging in...";
+    const ok = await adminLogin(e.target.email.value.trim().toLowerCase(), e.target.password.value);
+    if (ok) { location.replace("dashboard.html"); return; }
+    msg.innerHTML = '<div class="a-msg error">Invalid login details.</div>';
+    btn.disabled = false; btn.textContent = "Login";
   });
 });
 </script>
