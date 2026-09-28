@@ -1,28 +1,70 @@
 /* =========================================================
-   HAZI DADA TRAVELS — ADMIN (admin.js)   [Phase 2: UI]
+   HAZI DADA TRAVELS — ADMIN (admin.js)
    =========================================================
-   AUTH: UI PREVIEW ONLY. It checks that the email looks valid
-   and the password has 6+ characters, then sets a session flag.
-   It does NOT verify credentials and stores NO password anywhere.
-   Phase 3 replaces adminLogin / isAdminLoggedIn / adminLogout
-   / requireAdminAuth with Supabase Auth (signInWithPassword,
-   getSession, signOut) — nothing else here needs to change.
+   AUTH: real Supabase Email + Password authentication using the
+   existing client from supabase.js (`supabaseClient`). Supabase
+   is the only source of truth: no localStorage/sessionStorage
+   flag, no password stored, no credentials in code. The admin
+   user is created in Supabase Dashboard -> Authentication -> Users.
+
+   Requires (in this order) on login.html and dashboard.html:
+     supabase-js library (CDN)  ->  supabase.js  ->  admin.js
 
    DATA: all reads/writes go through data.js functions only
-   (temporary browser storage now; existing Supabase tables in
-   Phase 3, after the real columns are verified).
+   (unchanged by the authentication work).
    ========================================================= */
 
-/* ---------------- AUTH (preview) ---------------- */
-function isAdminLoggedIn() { return sessionStorage.getItem("hdtui_admin") === "1"; }
-async function adminLogin(email, password) {
-  await new Promise(r => setTimeout(r, 400)); // simulate a network call (loading state)
-  if (!/^\S+@\S+\.\S+$/.test(email) || String(password).length < 6) return false;
-  sessionStorage.setItem("hdtui_admin", "1");
-  return true;
+/* ---------------- AUTH (Supabase Auth) ---------------- */
+function authClient() {
+  if (typeof supabaseClient === "undefined" || !supabaseClient || !supabaseClient.auth) throw new Error("Supabase client unavailable");
+  return supabaseClient;
 }
-function adminLogout() { sessionStorage.removeItem("hdtui_admin"); }
-function requireAdminAuth() { if (!isAdminLoggedIn()) location.replace("login.html"); }
+/* Friendly text only - raw Supabase errors are never shown to users */
+function authErrorMessage(err) {
+  const msg = String((err && err.message) || "").toLowerCase();
+  const status = err && err.status;
+  if (status === 429 || msg.includes("rate limit") || msg.includes("too many")) return "Too many attempts. Please wait a moment and try again.";
+  if (msg.includes("email not confirmed")) return "Your email is not confirmed yet. Please confirm it from your inbox.";
+  if (msg.includes("invalid login credentials") || status === 400 || status === 401) return "Invalid email or password.";
+  if (!status || msg.includes("fetch") || msg.includes("network")) return "Unable to connect right now. Please try again.";
+  return "Sign-in failed. Please try again.";
+}
+/* -> { ok: true } | { ok: false, message } */
+async function adminLogin(email, password) {
+  try {
+    const { data, error } = await authClient().auth.signInWithPassword({ email, password });
+    if (error) return { ok: false, message: authErrorMessage(error) };
+    if (!data || !data.session) return { ok: false, message: "Sign-in failed. Please try again." };
+    return { ok: true };
+  } catch (e) { return { ok: false, message: "Unable to connect right now. Please try again." }; }
+}
+/* true only when Supabase reports a real session (fails closed) */
+async function isAdminLoggedIn() {
+  try {
+    const { data, error } = await authClient().auth.getSession();
+    return !error && !!(data && data.session);
+  } catch (e) { return false; }
+}
+/* must be awaited: signOut() ends the Supabase session before the redirect */
+let _loggingOut = false;
+async function adminLogout() {
+  _loggingOut = true; // stop the SIGNED_OUT listener redirecting a second time
+  try { await authClient().auth.signOut(); } catch (e) { /* redirect anyway */ }
+}
+/* Dashboard guard. dashboard.html keeps the page hidden until this returns true. */
+async function requireAdminAuth() {
+  const goLogin = () => { location.replace("login.html"); return false; };
+  try {
+    const c = authClient();
+    const { data, error } = await c.auth.getSession();
+    if (error || !data || !data.session) return goLogin();
+    const u = await c.auth.getUser(); // server-side check that the user/token is still valid
+    if (u.error && u.error.status >= 400 && u.error.status < 500) { await c.auth.signOut(); return goLogin(); }
+    c.auth.onAuthStateChange(evt => { if (evt === "SIGNED_OUT" && !_loggingOut) location.replace("login.html"); });
+    document.documentElement.style.visibility = "";
+    return true;
+  } catch (e) { return goLogin(); }
+}
 
 /* ---------------- HELPERS ---------------- */
 const $a = id => document.getElementById(id);
@@ -298,7 +340,7 @@ function initAdmin() {
       const map = { trip: ["trips", () => openTripModal(null)], vehicle: ["vehicles", () => openVehicleModal(null)], gallery: ["gallery", null], video: ["videos", () => openVideoModal(null)], review: ["reviews", () => openReviewModal(null)] };
       const [panel, open] = map[d.quick]; showPanel(panel); if (open) guard(open); return;
     }
-    if (el.classList.contains("a-logout-btn")) { adminLogout(); location.replace("login.html"); return; }
+    if (el.classList.contains("a-logout-btn")) { await adminLogout(); location.replace("login.html"); return; }
     if (d.editTrip) return guard(() => openTripModal(d.editTrip));
     if (d.deleteTrip) { if (!confirm("Delete this trip? This cannot be undone.")) return;
       return guard(async () => { await deleteTrip(d.deleteTrip); adminToast("Trip deleted successfully.", "success"); PANEL_LOADERS.trips(); }); }
