@@ -336,27 +336,20 @@
   }
 
   function bindNavigation() {
-    document.addEventListener(
-      "click",
-      function (event) {
-        const element =
-          event.target.closest(
-            "[data-nav]"
-          );
+  document.addEventListener("click", function (event) {
+    const element = event.target.closest("[data-nav]");
 
-        if (!element) return;
+    if (!element) return;
 
-        event.preventDefault();
+    const destination = element.getAttribute("data-nav");
 
-        const destination =
-          element.getAttribute(
-            "data-nav"
-          );
+    if (!destination) return;
 
-        if (destination) {
-          navigate(destination);
-        }
-      }
+    event.preventDefault();
+
+    navigate(destination);
+  });
+}
     );
   }
 
@@ -424,9 +417,10 @@
 
             <div class="hero-actions">
 
-              <button
-                class="btn btn-primary"
-                data-nav="trips">
+              <a
+  class="btn btn-primary"
+  href="#/trips"
+  data-nav="trips">
 
                 ${escapeHtml(
                   getText(
@@ -2195,155 +2189,193 @@
   }
 
   function bindBooking() {
-    document.addEventListener(
+
+  document.addEventListener("click", function (event) {
+
+    const openButton =
+      event.target.closest("[data-open-booking]");
+
+    if (openButton) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const tripName =
+        openButton.getAttribute("data-trip-name") || "";
+
+      openBooking(tripName);
+
+      return;
+    }
+
+    const closeButton =
+      event.target.closest("#sheet-cancel-btn");
+
+    if (closeButton) {
+      event.preventDefault();
+      closeBooking();
+      return;
+    }
+
+    const overlay =
+      document.getElementById("sheet-overlay");
+
+    if (
+      overlay &&
+      event.target === overlay
+    ) {
+      closeBooking();
+      return;
+    }
+
+  });
+
+
+  const callButton =
+    document.getElementById("sheet-call-btn");
+
+  if (callButton) {
+
+    callButton.addEventListener(
       "click",
-      function (event) {
-        const openButton =
-          event.target.closest(
-            "[data-open-booking]"
+      async function () {
+
+        const business =
+          await getBusinessSafe();
+
+        const phone =
+          business?.phone || "";
+
+        const cleanPhone =
+          String(phone).replace(
+            /[^0-9+]/g,
+            ""
           );
 
-        if (openButton) {
-          openBooking(
-            openButton.getAttribute(
-              "data-trip-name"
-            ) || ""
+        if (cleanPhone) {
+
+          window.location.href =
+            `tel:${cleanPhone}`;
+
+        } else {
+
+          alert(
+            "Phone number is not configured yet."
           );
 
-          return;
         }
 
-        if (
-          event.target.closest(
-            "#sheet-cancel-btn"
-          )
-        ) {
-          closeBooking();
-          return;
-        }
-
-        const overlay =
-          document.getElementById(
-            "sheet-overlay"
-          );
-
-        if (
-          overlay &&
-          event.target === overlay
-        ) {
-          closeBooking();
-        }
       }
     );
 
-    const callButton =
-      document.getElementById(
-        "sheet-call-btn"
-      );
-
-    if (callButton) {
-      callButton.addEventListener(
-        "click",
-        async function () {
-          const business =
-            await getBusinessSafe();
-
-          const phone =
-            business?.phone || "";
-
-          const cleanPhone =
-            String(phone).replace(
-              /[^0-9+]/g,
-              ""
-            );
-
-          if (cleanPhone) {
-            window.location.href =
-              `tel:${cleanPhone}`;
-          }
-        }
-      );
-    }
-
-    const whatsappButton =
-      document.getElementById(
-        "sheet-whatsapp-btn"
-      );
-
-    if (whatsappButton) {
-      whatsappButton.addEventListener(
-        "click",
-        async function () {
-          const business =
-            await getBusinessSafe();
-
-          const phone =
-            business?.whatsapp ||
-            business?.phone ||
-            "";
-
-          const clean =
-            String(phone).replace(
-              /[^0-9]/g,
-              ""
-            );
-
-          if (clean) {
-            window.open(
-              `https://wa.me/${clean}`,
-              "_blank",
-              "noopener"
-            );
-          }
-        }
-      );
-    }
-
-    const copyButton =
-      document.getElementById(
-        "sheet-copy-btn"
-      );
-
-    if (copyButton) {
-      copyButton.addEventListener(
-        "click",
-        async function () {
-          const business =
-            await getBusinessSafe();
-
-          const phone =
-            business?.phone || "";
-
-          if (!phone) {
-            return;
-          }
-
-          try {
-            await navigator.clipboard.writeText(
-              String(phone)
-            );
-
-            copyButton.textContent =
-              "✓ Copied";
-
-            setTimeout(
-              function () {
-                copyButton.textContent =
-                  "📋 Copy Number";
-              },
-              1500
-            );
-
-          } catch (error) {
-            window.prompt(
-              "Copy this number:",
-              phone
-            );
-          }
-        }
-      );
-    }
   }
+
+
+  const whatsappButton =
+    document.getElementById(
+      "sheet-whatsapp-btn"
+    );
+
+  if (whatsappButton) {
+
+    whatsappButton.addEventListener(
+      "click",
+      async function () {
+
+        const business =
+          await getBusinessSafe();
+
+        const phone =
+          business?.whatsapp ||
+          business?.phone ||
+          "";
+
+        const clean =
+          String(phone).replace(
+            /[^0-9]/g,
+            ""
+          );
+
+        if (clean) {
+
+          window.open(
+            `https://wa.me/${clean}`,
+            "_blank",
+            "noopener"
+          );
+
+        } else {
+
+          alert(
+            "WhatsApp number is not configured yet."
+          );
+
+        }
+
+      }
+    );
+
+  }
+
+
+  const copyButton =
+    document.getElementById(
+      "sheet-copy-btn"
+    );
+
+  if (copyButton) {
+
+    copyButton.addEventListener(
+      "click",
+      async function () {
+
+        const business =
+          await getBusinessSafe();
+
+        const phone =
+          business?.phone || "";
+
+        if (!phone) {
+
+          alert(
+            "Phone number is not configured yet."
+          );
+
+          return;
+        }
+
+        try {
+
+          await navigator.clipboard.writeText(
+            String(phone)
+          );
+
+          copyButton.textContent =
+            "✓ Copied";
+
+          setTimeout(
+            function () {
+
+              copyButton.textContent =
+                "📋 Copy Number";
+
+            },
+            1500
+          );
+
+        } catch (error) {
+
+          window.prompt(
+            "Copy this number:",
+            phone
+          );
+
+        }
+
+      }
+    );
+
+  }
+
 
   /* =========================================================
      MOBILE MENU
