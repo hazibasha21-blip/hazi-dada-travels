@@ -6,6 +6,7 @@
 <title>Dashboard | Hazi Dada Travels Admin</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="logo.png" type="image/png">
+<script>document.documentElement.style.visibility="hidden";</script>
 <link rel="stylesheet" href="admin.css">
 </head>
 <body class="admin-body">
@@ -174,10 +175,12 @@
     <button type="submit" class="a-btn a-btn-primary a-btn-block">Save Review</button>
   </form></div></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
 <script src="data.js"></script>
 <script src="admin.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", () => { requireAdminAuth(); initAdmin(); });
+document.addEventListener("DOMContentLoaded", async () => { if (await requireAdminAuth()) initAdmin(); });
 </script>
 </body>
 </html>
