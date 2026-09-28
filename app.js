@@ -465,13 +465,15 @@ window.addEventListener("error", function (event) {
      TRIPS
      ========================================================= */
 
-  async function renderTrips(token) {
-    setLoading();
+  async function renderHome(token) {
+  setLoading();
 
-    try {
-      const trips = await getTrips();
+  try {
+    const trips = await getTrips();
 
-      if (token !== renderToken) return;
+    alert("HOME GET TRIPS WORKED: " + JSON.stringify(trips));
+
+    if (token !== renderToken) return;
 
       const list = Array.isArray(trips)
         ? trips.map(normalizeTrip).filter(Boolean)
