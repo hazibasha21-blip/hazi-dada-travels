@@ -34,7 +34,7 @@
       <a href="#" data-panel="enquiries">Enquiries</a><a href="#" data-panel="settings">Settings</a>
     </nav>
     <main class="admin-main">
-      <div class="a-banner">UI preview mode: data is temporary (browser only). Supabase Auth and the existing tables are connected in Phase 3.</div>
+      <div class="a-banner">Trips, Vehicles, Gallery, Reviews and Enquiries are now saved to Supabase. Videos and Settings are still browser-only until a database design for them is approved.</div>
 
       <section id="panel-dashboard" class="admin-panel active">
         <div class="a-panel-header"><h1>Dashboard</h1></div>
@@ -76,6 +76,7 @@
         <form id="gallery-add-form" class="a-panel-card">
           <div class="a-form-group"><label for="g-image">Image</label><input id="g-image" type="file" name="image" accept="image/*"></div>
           <div class="a-form-group"><label for="g-caption">Caption</label><input id="g-caption" type="text" name="caption"></div>
+          <div class="a-form-group"><label for="g-description">Description (optional)</label><textarea id="g-description" name="description"></textarea></div>
           <button type="submit" class="a-btn a-btn-primary a-btn-block">+ Add Image</button>
         </form>
         <div class="a-item-list" id="gallery-list"></div>
@@ -127,14 +128,13 @@
     <div class="a-form-group"><label>Main Image</label><img id="trip-image-preview" alt="" style="width:110px;height:76px;object-fit:cover;border-radius:8px;"><input type="file" id="trip-image-input" accept="image/*"></div>
     <div class="a-form-group"><label>Trip Name</label><input type="text" name="name"></div>
     <div class="a-form-group"><label>Destination</label><input type="text" name="destination"></div>
-    <div class="a-form-group"><label>Category</label><input type="text" name="category" list="category-options" placeholder="e.g. Family, Beach, Pilgrimage"><datalist id="category-options"><option value="Family"><option value="Adventure"><option value="Pilgrimage"><option value="Beach"><option value="Nature"><option value="Weekend"></datalist></div>
+    <div class="a-form-group"><label>Category <span class="a-item-meta">(not saved to the database yet)</span></label><input type="text" name="category" list="category-options" placeholder="e.g. Family, Beach, Pilgrimage"><datalist id="category-options"><option value="Family"><option value="Adventure"><option value="Pilgrimage"><option value="Beach"><option value="Nature"><option value="Weekend"></datalist></div>
     <div class="a-form-group"><label>Duration</label><input type="text" name="duration"></div>
     <div class="a-form-group"><label>Price</label><input type="text" name="price"></div>
     <div class="a-form-group"><label>Description</label><textarea name="description"></textarea></div>
-    <div class="a-form-group"><label>Highlights (one per line)</label><textarea name="highlights"></textarea></div>
-    <div class="a-form-group"><label>Gallery Images</label><div id="trip-gallery-preview"></div><input type="file" id="trip-gallery-input" accept="image/*" multiple></div>
-    <div class="a-form-group"><label>Available Vehicles</label><div class="a-checkbox-list" id="trip-vehicle-checkboxes"></div></div>
-    <p class="a-msg error" id="trip-error" style="display:none;"></p>
+    <div class="a-form-group"><label>Highlights (one per line) <span class="a-item-meta">(not saved to the database yet)</span></label><textarea name="highlights"></textarea></div>
+    <div class="a-form-group"><label>Gallery Images <span class="a-item-meta">(not saved to the database yet)</span></label><div id="trip-gallery-preview"></div><input type="file" id="trip-gallery-input" accept="image/*" multiple></div>
+    <div class="a-form-group"><label>Available Vehicles <span class="a-item-meta">(saved as a single text list on the trip)</span></label><div class="a-checkbox-list" id="trip-vehicle-checkboxes"></div></div>
     <button type="submit" class="a-btn a-btn-primary a-btn-block">Save Trip</button>
   </form></div></div>
 
@@ -145,10 +145,10 @@
     <div class="a-form-group"><label>Image</label><img id="vehicle-image-preview" alt="" style="width:110px;height:76px;object-fit:cover;border-radius:8px;"><input type="file" id="vehicle-image-input" accept="image/*"></div>
     <div class="a-form-group"><label>Vehicle Name</label><input type="text" name="name"></div>
     <div class="a-form-group"><label>Type</label><input type="text" name="type"></div>
-    <div class="a-form-group"><label>Capacity</label><input type="text" name="capacity" placeholder="e.g. 32 Seater"></div>
-    <div class="a-form-group"><label>Description</label><textarea name="description"></textarea></div>
+    <div class="a-form-group"><label>Capacity <span class="a-item-meta">(number of seats, e.g. 32)</span></label><input type="text" name="capacity" placeholder="e.g. 32" inputmode="numeric"></div>
+    <div class="a-form-group"><label>Registration Number</label><input type="text" name="registration" placeholder="e.g. AP 39 XX 1234"></div>
+    <div class="a-form-group"><label>Description <span class="a-item-meta">(not saved to the database yet)</span></label><textarea name="description"></textarea></div>
     <div class="a-form-group"><label>Availability</label><select name="available"><option value="true">Available</option><option value="false">Unavailable</option></select></div>
-    <p class="a-msg error" id="vehicle-error" style="display:none;"></p>
     <button type="submit" class="a-btn a-btn-primary a-btn-block">Save Vehicle</button>
   </form></div></div>
 
@@ -159,7 +159,6 @@
     <div class="a-form-group"><label>Title</label><input type="text" name="title"></div>
     <div class="a-form-group"><label>Description</label><textarea name="description"></textarea></div>
     <div class="a-form-group"><label>YouTube ID or URL</label><input type="text" name="youtube"></div>
-    <p class="a-msg error" id="video-error" style="display:none;"></p>
     <button type="submit" class="a-btn a-btn-primary a-btn-block">Save Video</button>
   </form></div></div>
 
@@ -170,8 +169,8 @@
     <div class="a-form-group"><label>Customer Name</label><input type="text" name="name"></div>
     <div class="a-form-group"><label>Rating</label><select name="rating"><option value="5">★★★★★ (5)</option><option value="4">★★★★☆ (4)</option><option value="3">★★★☆☆ (3)</option><option value="2">★★☆☆☆ (2)</option><option value="1">★☆☆☆☆ (1)</option></select></div>
     <div class="a-form-group"><label>Review</label><textarea name="review"></textarea></div>
-    <div class="a-form-group"><label>Photo (optional)</label><img id="review-image-preview" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:50%;display:none;"><input type="file" id="review-image-input" accept="image/*"></div>
-    <p class="a-msg error" id="review-error" style="display:none;"></p>
+    <div class="a-form-group"><label>Approved (visible on the public site)</label><select name="approved"><option value="true">Yes</option><option value="false">No — pending approval</option></select></div>
+    <div class="a-form-group"><label>Photo (optional) <span class="a-item-meta">(not saved to the database yet)</span></label><img id="review-image-preview" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:50%;display:none;"><input type="file" id="review-image-input" accept="image/*"></div>
     <button type="submit" class="a-btn a-btn-primary a-btn-block">Save Review</button>
   </form></div></div>
 
