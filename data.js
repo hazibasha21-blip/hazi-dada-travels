@@ -2,13 +2,14 @@
    HAZI DADA TRAVELS — DATA LAYER (data.js)
    =========================================================
    This file is the ONLY place that knows where data comes
-   from. Right now it reads/writes localStorage. Later, when
-   a real backend (e.g. Supabase) is connected, every function
-   below can be rewritten to call Supabase instead — nothing
-   in app.js or admin.js needs to change, because they only
-   ever call these functions (getTrips(), saveTrip(), etc.)
-   and already treat them as asynchronous (they return
-   Promises), exactly like a real network call would.
+   from. As of Phase 4, trips / vehicles / gallery / reviews /
+   enquiries are read from and written to the real Supabase
+   project via the existing `supabaseClient` (see supabase.js).
+   Videos and Settings have no confirmed Supabase table yet and
+   remain localStorage-backed exactly as before. app.js and
+   admin.js are unchanged: they only ever call these functions
+   (getTrips(), saveTrip(), etc.) and already treat them as
+   asynchronous, so swapping the internals here was enough.
    ========================================================= */
 
 /* ---------------------------------------------------------
@@ -150,67 +151,265 @@ function placeholderImage(emoji, label) {
 const PLACEHOLDER_FALLBACK = placeholderImage("🖼️", "Image coming soon");
 
 /* ---------------------------------------------------------
-   4. SAMPLE DATA (clearly separated from app logic — replace
-   or extend freely from the Admin Panel or right here).
-   Field names match the "Future Database Structure" so this
-   can be swapped for Supabase tables with minimal changes.
+   4. SUPABASE-BACKED DATABASE (Phase 4)
+   ---------------------------------------------------------
+   Supabase is now the source of truth for trips, vehicles,
+   gallery and reviews. Every function below calls the existing
+   `supabaseClient` from supabase.js — no second client, no
+   localStorage fallback. If a Supabase call fails, the error is
+   thrown (not swallowed), so app.js's `fill()` shows its retry
+   state and admin.js's `guard()` shows a toast — exactly the
+   existing error-handling paths, just now fed by a real backend.
+
+   COMPATIBILITY MAPPINGS (documented, not invented columns):
+   - trips.vehicle is a single free-text column, not a join
+     table. The Admin "Available Vehicles" checkboxes are joined
+     into one comma-separated string of vehicle NAMES on save,
+     and split + name-matched back into a `vehicleIds` array on
+     read, purely in this file, so app.js's
+     getVehiclesByIds(trip.vehicleIds) keeps working unchanged.
+   - enquiries has no travel_date/people columns. Those two
+     values are appended as extra lines inside `message` on
+     insert, so the information isn't silently dropped.
+   - gallery/reviews `approved` controls public visibility.
+     getGallery()/getReviews() return everything when called
+     from the authenticated Admin Panel (detected via the
+     presence of isAdminLoggedIn(), which only admin.js defines)
+     and only approved=true rows on the public site.
    --------------------------------------------------------- */
-const SAMPLE_TRIPS = [
-  { id: 1, name: "[Sample] Hyderabad City Tour", destination: "Hyderabad", category: "Family", duration: "1 Day", price: "₹[EDIT PRICE]",
-    image: placeholderImage("🏙️", "Hyderabad"), description: "[Editable placeholder] A one-day sightseeing tour covering Hyderabad's popular spots.",
-    highlights: ["Sightseeing", "Local Food", "Photography"], gallery: [placeholderImage("🏙️", "Hyderabad 1"), placeholderImage("🏛️", "Hyderabad 2"), placeholderImage("🌆", "Hyderabad 3")],
-    vehicleIds: [1, 2] },
-  { id: 2, name: "[Sample] Goa Beach Getaway", destination: "Goa", category: "Beach", duration: "3 Days / 2 Nights", price: "₹[EDIT PRICE]",
-    image: placeholderImage("🏖️", "Goa"), description: "[Editable placeholder] A relaxing weekend beach getaway to Goa.",
-    highlights: ["Beaches", "Sightseeing", "Photography"], gallery: [placeholderImage("🏖️", "Goa 1"), placeholderImage("🌊", "Goa 2"), placeholderImage("🌅", "Goa 3")],
-    vehicleIds: [1] },
-  { id: 3, name: "[Sample] Tirupati Pilgrimage", destination: "Tirupati", category: "Pilgrimage", duration: "2 Days / 1 Night", price: "₹[EDIT PRICE]",
-    image: placeholderImage("🛕", "Tirupati"), description: "[Editable placeholder] A guided pilgrimage trip to Tirupati.",
-    highlights: ["Temple", "Group Travel"], gallery: [placeholderImage("🛕", "Tirupati 1"), placeholderImage("🙏", "Tirupati 2")],
-    vehicleIds: [1, 2] },
-  { id: 4, name: "[Sample] Araku Valley Family Trip", destination: "Araku Valley", category: "Adventure", duration: "2 Days / 1 Night", price: "₹[EDIT PRICE]",
-    image: placeholderImage("🌄", "Araku Valley"), description: "[Editable placeholder] A scenic family-friendly trip through Araku Valley.",
-    highlights: ["Scenery", "Family Fun", "Photography"], gallery: [placeholderImage("🌄", "Araku 1"), placeholderImage("🚂", "Araku 2")],
-    vehicleIds: [2] },
-  { id: 5, name: "[Sample] Vizag Weekend Trip", destination: "Visakhapatnam", category: "Weekend", duration: "2 Days / 1 Night", price: "₹[EDIT PRICE]",
-    image: placeholderImage("🌊", "Vizag"), description: "[Editable placeholder] A weekend trip exploring Vizag's beaches and hills.",
-    highlights: ["Beaches", "Sightseeing"], gallery: [placeholderImage("🌊", "Vizag 1"), placeholderImage("⛰️", "Vizag 2")],
-    vehicleIds: [1] },
-  { id: 6, name: "[Sample] Kerala Backwaters", destination: "Kerala", category: "Nature", duration: "4 Days / 3 Nights", price: "₹[EDIT PRICE]",
-    image: placeholderImage("🚤", "Kerala"), description: "[Editable placeholder] Explore Kerala's backwaters and greenery.",
-    highlights: ["Backwaters", "Nature", "Food"], gallery: [placeholderImage("🚤", "Kerala 1"), placeholderImage("🌴", "Kerala 2")],
-    vehicleIds: [2] }
-];
 
-const SAMPLE_VEHICLES = [
-  { id: 1, name: "SML Bus", type: "Bus", capacity: "32 Seater", image_url: placeholderImage("🚌", "SML Bus"),
-    description: "[Editable placeholder] Comfortable vehicle suitable for group tours.", available: true },
-  { id: 2, name: "Force Toofan", type: "Passenger Vehicle", capacity: "12 Seater", image_url: placeholderImage("🚐", "Force Toofan"),
-    description: "[Editable placeholder] Suited for smaller groups and off-road routes.", available: true }
-];
+/* Never show a raw Supabase/PostgREST error to the user. Always log it. */
+function dbError(error, action) {
+  console.error(`[Supabase] ${action} failed:`, error);
+  if (error && error.code === "42501") {
+    return new Error(`Permission denied by Row Level Security while trying to ${action}. See the RLS notes provided with this code.`);
+  }
+  if (error && (error.message || "").toLowerCase().includes("failed to fetch")) {
+    return new Error("Unable to connect right now. Please try again.");
+  }
+  return new Error(`Unable to ${action}. Please try again.`);
+}
 
-const SAMPLE_GALLERY = [
-  { id: 1, image_url: placeholderImage("🏔️", "Hill Station"), caption: "[Sample] Hill Station View" },
-  { id: 2, image_url: placeholderImage("🛕", "Temple Visit"), caption: "[Sample] Temple Visit" },
-  { id: 3, image_url: placeholderImage("🚌", "Group Trip"), caption: "[Sample] Group Trip" },
-  { id: 4, image_url: placeholderImage("🏙️", "City Tour"), caption: "[Sample] City Tour" },
-  { id: 5, image_url: placeholderImage("🌅", "Sunset Point"), caption: "[Sample] Sunset Point" },
-  { id: 6, image_url: placeholderImage("🏖️", "Beach Trip"), caption: "[Sample] Beach Trip" }
-];
+/* ---------- TRIPS ---------- */
+function tripVehicleIdsFromText(vehicleText, allVehicles) {
+  if (!vehicleText) return [];
+  const names = String(vehicleText).split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+  return allVehicles.filter(v => names.includes(String(v.name || "").trim().toLowerCase())).map(v => v.id);
+}
+function vehicleTextFromIds(vehicleIds, allVehicles) {
+  if (!Array.isArray(vehicleIds) || !vehicleIds.length) return null;
+  const names = vehicleIds.map(id => { const v = allVehicles.find(x => x.id === Number(id)); return v ? v.name : null; }).filter(Boolean);
+  return names.length ? names.join(", ") : null;
+}
+function attachVehicleIds(trip, allVehicles) {
+  return { ...trip, image: trip.image_url, vehicleIds: tripVehicleIdsFromText(trip.vehicle, allVehicles) };
+}
 
-const SAMPLE_VIDEOS = [
-  { id: 1, title: "[Sample] Trip Highlights Reel", description: "[Editable placeholder description]", youtubeId: "" },
-  { id: 2, title: "[Sample] Customer Travel Story", description: "[Editable placeholder description]", youtubeId: "" }
-];
+async function getTrips() {
+  const [{ data, error }, allVehicles] = await Promise.all([
+    supabaseClient.from("trips").select("*").order("created_at", { ascending: false }),
+    getVehicles()
+  ]);
+  if (error) throw dbError(error, "load trips");
+  return (data || []).map(t => attachVehicleIds(t, allVehicles));
+}
+async function getTripById(id) {
+  const [{ data, error }, allVehicles] = await Promise.all([
+    supabaseClient.from("trips").select("*").eq("id", Number(id)).maybeSingle(),
+    getVehicles()
+  ]);
+  if (error) throw dbError(error, "load this trip");
+  return data ? attachVehicleIds(data, allVehicles) : null;
+}
+async function saveTrip(trip) {
+  const allVehicles = await getVehicles();
+  const row = {
+    name: trip.name || null, destination: trip.destination || null, description: trip.description || null,
+    price: trip.price || null, duration: trip.duration || null, image_url: trip.image || null,
+    vehicle: vehicleTextFromIds(trip.vehicleIds, allVehicles)
+  };
+  const { data, error } = await supabaseClient.from("trips").insert(row).select().single();
+  if (error) throw dbError(error, "add the trip");
+  return attachVehicleIds(data, allVehicles);
+}
+async function updateTrip(id, updates) {
+  const allVehicles = await getVehicles();
+  const row = {};
+  if (updates.name !== undefined) row.name = updates.name || null;
+  if (updates.destination !== undefined) row.destination = updates.destination || null;
+  if (updates.description !== undefined) row.description = updates.description || null;
+  if (updates.price !== undefined) row.price = updates.price || null;
+  if (updates.duration !== undefined) row.duration = updates.duration || null;
+  if (updates.image !== undefined) row.image_url = updates.image || null;
+  if (updates.vehicleIds !== undefined) row.vehicle = vehicleTextFromIds(updates.vehicleIds, allVehicles);
+  const { data, error } = await supabaseClient.from("trips").update(row).eq("id", Number(id)).select().maybeSingle();
+  if (error) throw dbError(error, "update the trip");
+  return data ? attachVehicleIds(data, allVehicles) : null;
+}
+async function deleteTrip(id) {
+  const { error } = await supabaseClient.from("trips").delete().eq("id", Number(id));
+  if (error) throw dbError(error, "delete the trip");
+  return true;
+}
 
-const SAMPLE_REVIEWS = [
-  { id: 1, name: "[Sample Customer]", rating: 5, review: "[Demo review placeholder] Great trip experience overall.", image_url: "" },
-  { id: 2, name: "[Sample Customer]", rating: 4, review: "[Demo review placeholder] Comfortable travel and helpful staff.", image_url: "" }
-];
+/* ---------- VEHICLES ---------- */
+function parseCapacity(v) {
+  if (v === undefined || v === null || v === "") return null;
+  const m = String(v).match(/\d+/);
+  return m ? parseInt(m[0], 10) : null;
+}
+async function getVehicles() {
+  const { data, error } = await supabaseClient.from("vehicles").select("*").order("created_at", { ascending: false });
+  if (error) throw dbError(error, "load vehicles");
+  return (data || []).map(v => ({ ...v, image_url: v.image_url || PLACEHOLDER_FALLBACK }));
+}
+async function getVehiclesByIds(ids) {
+  const all = await getVehicles();
+  return all.filter(v => (ids || []).includes(v.id));
+}
+async function saveVehicle(vehicle) {
+  const row = {
+    name: vehicle.name || null, type: vehicle.type || null, capacity: parseCapacity(vehicle.capacity),
+    registration: vehicle.registration || null, image_url: vehicle.image_url || null,
+    available: vehicle.available !== false
+  };
+  const { data, error } = await supabaseClient.from("vehicles").insert(row).select().single();
+  if (error) throw dbError(error, "add the vehicle");
+  return data;
+}
+async function updateVehicle(id, updates) {
+  const row = {};
+  if (updates.name !== undefined) row.name = updates.name || null;
+  if (updates.type !== undefined) row.type = updates.type || null;
+  if (updates.capacity !== undefined) row.capacity = parseCapacity(updates.capacity);
+  if (updates.registration !== undefined) row.registration = updates.registration || null;
+  if (updates.image_url !== undefined) row.image_url = updates.image_url || null;
+  if (updates.available !== undefined) row.available = !!updates.available;
+  const { data, error } = await supabaseClient.from("vehicles").update(row).eq("id", Number(id)).select().maybeSingle();
+  if (error) throw dbError(error, "update the vehicle");
+  return data;
+}
+async function deleteVehicle(id) {
+  const { error } = await supabaseClient.from("vehicles").delete().eq("id", Number(id));
+  if (error) throw dbError(error, "delete the vehicle");
+  return true;
+}
+
+/* ---------- GALLERY ---------- */
+async function getGallery() {
+  let q = supabaseClient.from("gallery").select("*").order("created_at", { ascending: false });
+  const admin = typeof isAdminLoggedIn === "function" && await isAdminLoggedIn();
+  if (!admin) q = q.eq("approved", true);
+  const { data, error } = await q;
+  if (error) throw dbError(error, "load the gallery");
+  return (data || []).map(g => ({ ...g, image_url: g.media_url, caption: g.title }));
+}
+async function saveGalleryItem(item) {
+  const row = {
+    title: item.caption || item.title || null, media_url: item.image_url || null,
+    media_type: "image", description: item.description || null, approved: true
+  };
+  const { data, error } = await supabaseClient.from("gallery").insert(row).select().single();
+  if (error) throw dbError(error, "add the photo");
+  return { ...data, image_url: data.media_url, caption: data.title };
+}
+async function updateGalleryItem(id, updates) {
+  const row = {};
+  if (updates.caption !== undefined) row.title = updates.caption || null;
+  if (updates.description !== undefined) row.description = updates.description || null;
+  if (updates.approved !== undefined) row.approved = !!updates.approved;
+  const { data, error } = await supabaseClient.from("gallery").update(row).eq("id", Number(id)).select().maybeSingle();
+  if (error) throw dbError(error, "update the photo");
+  return data ? { ...data, image_url: data.media_url, caption: data.title } : null;
+}
+async function deleteGalleryItem(id) {
+  const { error } = await supabaseClient.from("gallery").delete().eq("id", Number(id));
+  if (error) throw dbError(error, "delete the photo");
+  return true;
+}
+
+/* ---------- REVIEWS ---------- */
+/* NOTE: the verified schema reports `approved` as part of the primary
+   key on `reviews`, alongside `id`. That is an unusual design — if
+   update/delete by `id` alone behaves unexpectedly (e.g. an update
+   that changes `approved` is rejected, or two rows share an `id`),
+   that is a schema issue to fix in Supabase, not something this code
+   works around silently. See the write-up delivered with this code. */
+async function getReviews() {
+  let q = supabaseClient.from("reviews").select("*").order("created_at", { ascending: false });
+  const admin = typeof isAdminLoggedIn === "function" && await isAdminLoggedIn();
+  if (!admin) q = q.eq("approved", true);
+  const { data, error } = await q;
+  if (error) throw dbError(error, "load reviews");
+  return (data || []).map(r => ({ ...r, review: r.comment }));
+}
+async function saveReview(review) {
+  const row = {
+    name: review.name || null, rating: review.rating || null, comment: review.review || null,
+    approved: review.approved === true
+  };
+  const { data, error } = await supabaseClient.from("reviews").insert(row).select().single();
+  if (error) throw dbError(error, "submit the review");
+  return { ...data, review: data.comment };
+}
+async function updateReview(id, updates) {
+  const row = {};
+  if (updates.name !== undefined) row.name = updates.name || null;
+  if (updates.rating !== undefined) row.rating = updates.rating;
+  if (updates.review !== undefined) row.comment = updates.review || null;
+  if (updates.approved !== undefined) row.approved = !!updates.approved;
+  const { data, error } = await supabaseClient.from("reviews").update(row).eq("id", Number(id)).select().maybeSingle();
+  if (error) throw dbError(error, "update the review");
+  return data ? { ...data, review: data.comment } : null;
+}
+async function deleteReview(id) {
+  const { error } = await supabaseClient.from("reviews").delete().eq("id", Number(id));
+  if (error) throw dbError(error, "delete the review");
+  return true;
+}
+
+/* ---------- ENQUIRIES (Admin-only) ---------- */
+function enquiryMessageWithExtras(e) {
+  const extra = [];
+  if (e.travel_date) extra.push(`Travel Date: ${e.travel_date}`);
+  if (e.people) extra.push(`Number of People: ${e.people}`);
+  const base = e.message || "";
+  return extra.length ? `${base}${base ? "\n\n" : ""}${extra.join("\n")}` : base || null;
+}
+async function getEnquiries() {
+  const { data, error } = await supabaseClient.from("enquiries").select("*").order("created_at", { ascending: false });
+  if (error) throw dbError(error, "load enquiries");
+  return data || [];
+}
+async function saveEnquiry(e) {
+  const row = {
+    name: e.name || null, phone: e.phone || null, trip: e.trip || null,
+    message: enquiryMessageWithExtras(e), status: e.status || "New"
+  };
+  const { data, error } = await supabaseClient.from("enquiries").insert(row).select().single();
+  if (error) throw dbError(error, "send the enquiry");
+  return data;
+}
+async function updateEnquiry(id, updates) {
+  const row = {};
+  if (updates.status !== undefined) row.status = updates.status;
+  if (updates.name !== undefined) row.name = updates.name;
+  if (updates.phone !== undefined) row.phone = updates.phone;
+  if (updates.trip !== undefined) row.trip = updates.trip;
+  if (updates.message !== undefined) row.message = updates.message;
+  const { data, error } = await supabaseClient.from("enquiries").update(row).eq("id", Number(id)).select().maybeSingle();
+  if (error) throw dbError(error, "update the enquiry");
+  return data;
+}
+async function deleteEnquiry(id) {
+  const { error } = await supabaseClient.from("enquiries").delete().eq("id", Number(id));
+  if (error) throw dbError(error, "delete the enquiry");
+  return true;
+}
 
 /* ---------------------------------------------------------
-   5. LOCALSTORAGE-BACKED "DATABASE"
-   Seeds sample data once, then reads/writes localStorage.
+   5. VIDEOS — UNCHANGED (no confirmed Supabase table; still
+   localStorage-backed exactly as before, per Phase 4 scope).
    --------------------------------------------------------- */
 function seedIfEmpty(key, sample) {
   if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(sample));
@@ -221,91 +420,18 @@ function writeTable(key, rows) {
   catch (e) { throw new Error("Storage is full. Try smaller images."); }
 }
 function nextId(rows) { return rows.reduce((max, r) => Math.max(max, r.id), 0) + 1; }
+function resolved(value) { return Promise.resolve(value); }
 
+const SAMPLE_VIDEOS = [
+  { id: 1, title: "[Sample] Trip Highlights Reel", description: "[Editable placeholder description]", youtubeId: "" },
+  { id: 2, title: "[Sample] Customer Travel Story", description: "[Editable placeholder description]", youtubeId: "" }
+];
 function initDataLayer() {
-  seedIfEmpty("hdtui_trips", SAMPLE_TRIPS);
-  seedIfEmpty("hdtui_vehicles", SAMPLE_VEHICLES);
-  seedIfEmpty("hdtui_gallery", SAMPLE_GALLERY);
   seedIfEmpty("hdtui_videos", SAMPLE_VIDEOS);
-  seedIfEmpty("hdtui_reviews", SAMPLE_REVIEWS);
   if (!localStorage.getItem("hdtui_settings")) localStorage.setItem("hdtui_settings", JSON.stringify(BUSINESS_DEFAULTS));
 }
 initDataLayer();
 
-/* Small helper to make every data function feel like a real
-   network call (Promise-based), so swapping to Supabase later
-   requires no changes anywhere these functions are called. */
-function resolved(value) { return Promise.resolve(value); }
-
-/* ---------- SETTINGS / BUSINESS CONFIG ---------- */
-function getSettings() { return resolved(getBusiness()); }
-function getBusiness() { try { return JSON.parse(localStorage.getItem("hdtui_settings")) || BUSINESS_DEFAULTS; } catch (e) { return BUSINESS_DEFAULTS; } }
-function saveSettings(newSettings) {
-  localStorage.setItem("hdtui_settings", JSON.stringify({ ...getBusiness(), ...newSettings }));
-  return resolved(true);
-}
-
-/* ---------- TRIPS ---------- */
-function getTrips() { return resolved(readTable("hdtui_trips")); }
-function getTripById(id) { return resolved(readTable("hdtui_trips").find(t => t.id === Number(id)) || null); }
-function saveTrip(trip) {
-  const rows = readTable("hdtui_trips");
-  const record = { ...trip, id: nextId(rows), created_at: new Date().toISOString(), highlights: trip.highlights || [], gallery: trip.gallery || [], vehicleIds: trip.vehicleIds || [] };
-  rows.push(record);
-  writeTable("hdtui_trips", rows);
-  return resolved(record);
-}
-function updateTrip(id, updates) {
-  const rows = readTable("hdtui_trips");
-  const idx = rows.findIndex(t => t.id === Number(id));
-  if (idx === -1) return resolved(null);
-  rows[idx] = { ...rows[idx], ...updates };
-  writeTable("hdtui_trips", rows);
-  return resolved(rows[idx]);
-}
-function deleteTrip(id) {
-  writeTable("hdtui_trips", readTable("hdtui_trips").filter(t => t.id !== Number(id)));
-  return resolved(true);
-}
-
-/* ---------- VEHICLES ---------- */
-function getVehicles() { return resolved(readTable("hdtui_vehicles")); }
-function getVehiclesByIds(ids) { return resolved(readTable("hdtui_vehicles").filter(v => (ids || []).includes(v.id))); }
-function saveVehicle(vehicle) {
-  const rows = readTable("hdtui_vehicles");
-  const record = { ...vehicle, id: nextId(rows), created_at: new Date().toISOString() };
-  rows.push(record);
-  writeTable("hdtui_vehicles", rows);
-  return resolved(record);
-}
-function updateVehicle(id, updates) {
-  const rows = readTable("hdtui_vehicles");
-  const idx = rows.findIndex(v => v.id === Number(id));
-  if (idx === -1) return resolved(null);
-  rows[idx] = { ...rows[idx], ...updates };
-  writeTable("hdtui_vehicles", rows);
-  return resolved(rows[idx]);
-}
-function deleteVehicle(id) {
-  writeTable("hdtui_vehicles", readTable("hdtui_vehicles").filter(v => v.id !== Number(id)));
-  return resolved(true);
-}
-
-/* ---------- GALLERY ---------- */
-function getGallery() { return resolved(readTable("hdtui_gallery")); }
-function saveGalleryItem(item) {
-  const rows = readTable("hdtui_gallery");
-  const record = { ...item, id: nextId(rows), created_at: new Date().toISOString() };
-  rows.push(record);
-  writeTable("hdtui_gallery", rows);
-  return resolved(record);
-}
-function deleteGalleryItem(id) {
-  writeTable("hdtui_gallery", readTable("hdtui_gallery").filter(g => g.id !== Number(id)));
-  return resolved(true);
-}
-
-/* ---------- VIDEOS ---------- */
 function getVideos() { return resolved(readTable("hdtui_videos")); }
 function saveVideo(video) {
   const rows = readTable("hdtui_videos");
@@ -327,38 +453,21 @@ function deleteVideo(id) {
   return resolved(true);
 }
 
-/* ---------- REVIEWS ---------- */
-function getReviews() { return resolved(readTable("hdtui_reviews")); }
-function saveReview(review) {
-  const rows = readTable("hdtui_reviews");
-  const record = { ...review, id: nextId(rows), created_at: new Date().toISOString() };
-  rows.push(record);
-  writeTable("hdtui_reviews", rows);
-  return resolved(record);
-}
-function updateReview(id, updates) {
-  const rows = readTable("hdtui_reviews");
-  const idx = rows.findIndex(r => r.id === Number(id));
-  if (idx === -1) return resolved(null);
-  rows[idx] = { ...rows[idx], ...updates };
-  writeTable("hdtui_reviews", rows);
-  return resolved(rows[idx]);
-}
-function deleteReview(id) {
-  writeTable("hdtui_reviews", readTable("hdtui_reviews").filter(r => r.id !== Number(id)));
+/* ---------------------------------------------------------
+   6. SETTINGS — UNCHANGED (no confirmed Supabase table; still
+   localStorage-backed exactly as before, per Phase 4 scope).
+   --------------------------------------------------------- */
+function getSettings() { return resolved(getBusiness()); }
+function getBusiness() { try { return JSON.parse(localStorage.getItem("hdtui_settings")) || BUSINESS_DEFAULTS; } catch (e) { return BUSINESS_DEFAULTS; } }
+function saveSettings(newSettings) {
+  localStorage.setItem("hdtui_settings", JSON.stringify({ ...getBusiness(), ...newSettings }));
   return resolved(true);
 }
 
-/* =========================================================
-   PHASE 1/2 ADDITIONS
-   ---------------------------------------------------------
-   Everything below is TEMPORARY frontend data/behaviour used
-   only for UI testing. In Phase 3 these functions are rewired
-   to the EXISTING Supabase tables (enquiries, gallery, reviews,
-   trips, vehicles) after the real column names are verified.
-   No table or column is assumed or created here.
-   ========================================================= */
-
+/* ---------------------------------------------------------
+   PHASE 1/2 ADDITIONS (translations for the customer-facing
+   pages, plus small shared helpers still used by admin.js)
+   --------------------------------------------------------- */
 Object.assign(translations.en, {
   hero_title: "Explore. Travel. Create Memories.",
   hero_subtitle: "Discover memorable journeys with Hazi Dada Travels.",
@@ -428,12 +537,10 @@ Object.assign(translations.hi, {
   footer_about: "यात्रा और वाहन बुकिंग। फ़ोन, व्हाट्सएप या फ़ॉर्म से पूछताछ करें।",
   section_video_preview: "वीडियो", sample_badge: "नमूना"
 });
-// Category labels (admin can add any category; unknown ones show as typed)
 Object.assign(translations.en, { cat_beach: "Beach", cat_nature: "Nature", cat_adventure: "Adventure" });
 Object.assign(translations.te, { cat_beach: "బీచ్", cat_nature: "ప్రకృతి", cat_adventure: "సాహసం" });
 Object.assign(translations.hi, { cat_beach: "बीच", cat_nature: "प्रकृति", cat_adventure: "एडवेंचर" });
 
-/* ---------- YouTube helper: accepts a full URL or a bare ID ---------- */
 function extractYouTubeId(input) {
   const v = String(input || "").trim();
   if (!v) return "";
@@ -442,39 +549,6 @@ function extractYouTubeId(input) {
   return /^[A-Za-z0-9_-]{11}$/.test(v) ? v : "";
 }
 
-/* ---------- ENQUIRIES (temporary local store; Phase 3 → `enquiries` table) ---------- */
-const SAMPLE_ENQUIRIES = [
-  { id: 1, name: "[Sample] Customer", phone: "9XXXXXXXXX", trip: "[Sample] Goa Beach Getaway", travel_date: "", people: "4",
-    message: "[Sample enquiry for UI testing]", status: "New", created_at: new Date().toISOString() }
-];
-seedIfEmpty("hdtui_enquiries", SAMPLE_ENQUIRIES);
-function getEnquiries() { return resolved(readTable("hdtui_enquiries")); }
-function saveEnquiry(e) {
-  const rows = readTable("hdtui_enquiries");
-  const record = { status: "New", ...e, id: nextId(rows), created_at: new Date().toISOString() };
-  rows.push(record); writeTable("hdtui_enquiries", rows);
-  return resolved(record);
-}
-function updateEnquiry(id, updates) {
-  const rows = readTable("hdtui_enquiries");
-  const i = rows.findIndex(r => r.id === Number(id));
-  if (i === -1) return resolved(null);
-  rows[i] = { ...rows[i], ...updates }; writeTable("hdtui_enquiries", rows);
-  return resolved(rows[i]);
-}
-function deleteEnquiry(id) {
-  writeTable("hdtui_enquiries", readTable("hdtui_enquiries").filter(r => r.id !== Number(id)));
-  return resolved(true);
-}
-
-/* ---------- GALLERY / REVIEW updates (admin edit captions / edit reviews) ---------- */
-function updateGalleryItem(id, updates) {
-  const rows = readTable("hdtui_gallery");
-  const i = rows.findIndex(r => r.id === Number(id));
-  if (i === -1) return resolved(null);
-  rows[i] = { ...rows[i], ...updates }; writeTable("hdtui_gallery", rows);
-  return resolved(rows[i]);
-}
 Object.assign(translations.en, { contact_phone: "Phone" });
 Object.assign(translations.te, { contact_phone: "ఫోన్" });
 Object.assign(translations.hi, { contact_phone: "फ़ोन" });
