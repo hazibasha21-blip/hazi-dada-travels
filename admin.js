@@ -11,10 +11,11 @@
      supabase-js library (CDN)  ->  supabase.js  ->  admin.js
 
    DATA: all reads/writes go through data.js functions only
-   (unchanged by the authentication work).
+   (unchanged by the Phase 4 database work beyond the small
+   field additions noted inline below).
    ========================================================= */
 
-/* ---------------- AUTH (Supabase Auth) ---------------- */
+/* ---------------- AUTH (Supabase Auth) — unchanged from Phase 3 ---------------- */
 function authClient() {
   if (typeof supabaseClient === "undefined" || !supabaseClient || !supabaseClient.auth) throw new Error("Supabase client unavailable");
   return supabaseClient;
@@ -89,7 +90,8 @@ async function guard(fn, fallbackMsg = "Something went wrong. Please try again."
 }
 function showError(id, msg) { const el = $a(id); el.textContent = msg; el.style.display = msg ? "block" : "none"; }
 
-/* Resize + compress an uploaded image (keeps temporary storage small) */
+/* Resize + compress an uploaded image (keeps payloads small since they're
+   stored as text in Supabase - see the Image Handling note in the write-up) */
 function readImage(file, maxSize = 1000) {
   return new Promise((resolve, reject) => {
     if (!file) return resolve(null);
@@ -209,7 +211,7 @@ async function saveTripForm(e) {
 PANEL_LOADERS.vehicles = async () => {
   const vs = await getVehicles();
   $a("vehicles-list").innerHTML = vs.length ? vs.map(v => itemCard(v.image_url, ea(v.name),
-    `<p>${ea(v.type)} · ${ea(v.capacity)}</p><p>${ea(v.description)}</p>`,
+    `<p>${ea(v.type)} · ${ea(v.capacity ?? "—")} seats${v.registration ? " · " + ea(v.registration) : ""}</p><p>${ea(v.description)}</p>`,
     btn("Edit", `data-edit-vehicle="${v.id}"`) + btn(v.available === false ? "Mark Available" : "Mark Unavailable", `data-toggle-vehicle="${v.id}"`) + btn("Delete", `data-delete-vehicle="${v.id}"`, "a-btn-danger"),
     `<span class="a-badge ${v.available === false ? "off" : "ok"}">${v.available === false ? "Unavailable" : "Available"}</span>`)).join("")
     : empty("No vehicles available yet.");
@@ -220,7 +222,8 @@ async function openVehicleModal(id) {
   const f = $a("vehicle-form"); f.reset(); showError("vehicle-error", "");
   f.dataset.id = v ? v.id : ""; $a("vehicle-modal-title").textContent = v ? "Edit Vehicle" : "Add Vehicle";
   f.name.value = v ? v.name : ""; f.type.value = v ? v.type : ""; f.capacity.value = v ? v.capacity : "";
-  f.description.value = v ? v.description : ""; f.available.value = v && v.available === false ? "false" : "true";
+  f.description.value = v ? v.description : ""; f.registration.value = v ? (v.registration || "") : "";
+  f.available.value = v && v.available === false ? "false" : "true";
   vehicleImageDraft = v ? v.image_url : ""; $a("vehicle-image-preview").src = imgFallback(vehicleImageDraft);
   openModal("vehicle-modal");
 }
@@ -229,7 +232,8 @@ async function saveVehicleForm(e) {
   const f = e.target;
   if (!f.name.value.trim()) return showError("vehicle-error", "Vehicle name is required.");
   const payload = { name: f.name.value.trim(), type: f.type.value.trim(), capacity: f.capacity.value.trim(),
-    description: f.description.value.trim(), available: f.available.value === "true", image_url: vehicleImageDraft || PLACEHOLDER_FALLBACK };
+    registration: f.registration.value.trim(), description: f.description.value.trim(),
+    available: f.available.value === "true", image_url: vehicleImageDraft || PLACEHOLDER_FALLBACK };
   await guard(async () => {
     if (f.dataset.id) await updateVehicle(f.dataset.id, payload); else await saveVehicle(payload);
     adminToast(f.dataset.id ? "Vehicle updated successfully." : "Vehicle added successfully.", "success");
@@ -242,7 +246,8 @@ PANEL_LOADERS.gallery = async () => {
   const items = await getGallery();
   $a("gallery-list").innerHTML = items.length ? items.map(g => itemCard(g.image_url, ea(g.caption || "No caption"),
     `<div class="a-inline-edit"><input type="text" value="${ea(g.caption)}" data-caption-input="${g.id}" aria-label="Caption">${btn("Save caption", `data-save-caption="${g.id}"`)}</div>`,
-    btn("Delete", `data-delete-photo="${g.id}"`, "a-btn-danger"))).join("") : empty("No gallery images available.");
+    btn(g.approved === false ? "Show on site" : "Hide from site", `data-toggle-gallery="${g.id}"`) + btn("Delete", `data-delete-photo="${g.id}"`, "a-btn-danger"),
+    `<span class="a-badge ${g.approved === false ? "off" : "ok"}">${g.approved === false ? "Hidden" : "Visible on site"}</span>`)).join("") : empty("No gallery images available.");
 };
 
 /* ---------- Videos ---------- */
@@ -277,7 +282,9 @@ async function saveVideoForm(e) {
 PANEL_LOADERS.reviews = async () => {
   const rs = await getReviews();
   $a("reviews-list").innerHTML = rs.length ? rs.map(r => itemCard(r.image_url || null, `${ea(r.name)} <span style="color:#ffb020;font-size:.85rem;">${starsA(r.rating)}</span>`,
-    `<p>${ea(r.review)}</p>`, btn("Edit", `data-edit-review="${r.id}"`) + btn("Delete", `data-delete-review="${r.id}"`, "a-btn-danger"))).join("") : empty("No reviews available.");
+    `<p>${ea(r.review)}</p>`,
+    btn("Edit", `data-edit-review="${r.id}"`) + btn(r.approved ? "Hide from site" : "Approve", `data-toggle-review="${r.id}"`) + btn("Delete", `data-delete-review="${r.id}"`, "a-btn-danger"),
+    `<span class="a-badge ${r.approved ? "ok" : "off"}">${r.approved ? "Visible on site" : "Pending approval"}</span>`)).join("") : empty("No reviews available.");
 };
 let reviewImageDraft = "";
 async function openReviewModal(id) {
@@ -285,6 +292,7 @@ async function openReviewModal(id) {
   const f = $a("review-form-admin"); f.reset(); showError("review-error", "");
   f.dataset.id = r ? r.id : ""; $a("review-modal-title").textContent = r ? "Edit Review" : "Add Review";
   f.name.value = r ? r.name : ""; f.rating.value = r ? r.rating : "5"; f.review.value = r ? r.review : "";
+  f.approved.value = r ? String(!!r.approved) : "true";
   reviewImageDraft = r ? r.image_url || "" : "";
   const p = $a("review-image-preview"); p.src = reviewImageDraft; p.style.display = reviewImageDraft ? "block" : "none";
   openModal("review-modal");
@@ -293,7 +301,7 @@ async function saveReviewForm(e) {
   e.preventDefault();
   const f = e.target;
   if (!f.name.value.trim() || !f.review.value.trim()) return showError("review-error", "Name and review text are required.");
-  const payload = { name: f.name.value.trim(), rating: parseInt(f.rating.value, 10), review: f.review.value.trim(), image_url: reviewImageDraft };
+  const payload = { name: f.name.value.trim(), rating: parseInt(f.rating.value, 10), review: f.review.value.trim(), approved: f.approved.value === "true", image_url: reviewImageDraft };
   await guard(async () => {
     if (f.dataset.id) await updateReview(f.dataset.id, payload); else await saveReview(payload);
     adminToast(f.dataset.id ? "Review updated successfully." : "Review added successfully.", "success");
@@ -309,7 +317,7 @@ PANEL_LOADERS.enquiries = async () => {
   const rows = all.filter(e => !filter || e.status === filter).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
   $a("enquiries-list").innerHTML = rows.length ? rows.map(e => itemCard(null, ea(e.name),
     `<p>📞 <a href="tel:${ea(e.phone)}">${ea(e.phone)}</a> · 🧳 ${ea(e.trip || "General enquiry")}</p>
-     <p>📅 ${ea(e.travel_date || "—")} · 👥 ${ea(e.people || "—")}</p>${e.message ? `<p>${ea(e.message)}</p>` : ""}
+     <p>${ea(e.message || "—")}</p>
      <p class="a-item-meta">${ea(fmtDate(e.created_at))}</p>`,
     `<select data-enquiry-status="${e.id}" aria-label="Status">${ENQUIRY_STATUSES.map(s => `<option ${s === e.status ? "selected" : ""}>${s}</option>`).join("")}</select>` +
     btn("Delete", `data-delete-enquiry="${e.id}"`, "a-btn-danger"),
@@ -357,6 +365,11 @@ function initAdmin() {
     if (d.saveCaption) return guard(async () => {
       const v = document.querySelector(`[data-caption-input="${d.saveCaption}"]`).value.trim();
       await updateGalleryItem(d.saveCaption, { caption: v }); adminToast("Caption updated successfully.", "success"); PANEL_LOADERS.gallery(); });
+    if (d.toggleGallery) return guard(async () => {
+      const items = await getGallery();
+      const g = items.find(x => x.id === Number(d.toggleGallery));
+      await updateGalleryItem(d.toggleGallery, { approved: g.approved === false });
+      adminToast("Photo visibility updated.", "success"); PANEL_LOADERS.gallery(); });
     if (d.deletePhoto) { if (!confirm("Delete this image?")) return;
       return guard(async () => { await deleteGalleryItem(d.deletePhoto); adminToast("Image deleted successfully.", "success"); PANEL_LOADERS.gallery(); }); }
     if (d.editVideo) return guard(() => openVideoModal(d.editVideo));
@@ -365,6 +378,11 @@ function initAdmin() {
     if (d.editReview) return guard(() => openReviewModal(d.editReview));
     if (d.deleteReview) { if (!confirm("Delete this review?")) return;
       return guard(async () => { await deleteReview(d.deleteReview); adminToast("Review deleted successfully.", "success"); PANEL_LOADERS.reviews(); }); }
+    if (d.toggleReview) return guard(async () => {
+      const rs = await getReviews();
+      const r = rs.find(x => x.id === Number(d.toggleReview));
+      await updateReview(d.toggleReview, { approved: !r.approved });
+      adminToast("Review visibility updated.", "success"); PANEL_LOADERS.reviews(); });
     if (d.deleteEnquiry) { if (!confirm("Delete this enquiry?")) return;
       return guard(async () => { await deleteEnquiry(d.deleteEnquiry); adminToast("Enquiry deleted successfully.", "success"); PANEL_LOADERS.enquiries(); }); }
   });
@@ -398,7 +416,7 @@ function initAdmin() {
     const f = ev.target, file = f.image.files[0];
     if (!file) return adminToast("Please choose an image.", "error");
     const src = await readImage(file, 1200);
-    await saveGalleryItem({ image_url: src, caption: f.caption.value.trim() });
+    await saveGalleryItem({ image_url: src, caption: f.caption.value.trim(), description: f.description.value.trim() });
     adminToast("Image added successfully.", "success"); f.reset(); PANEL_LOADERS.gallery(); }); });
 
   showPanel("dashboard");
