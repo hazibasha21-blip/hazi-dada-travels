@@ -1,6 +1,6 @@
 /* =========================================================
-   HAZI DADA TRAVELS — ADMIN PANEL
-   Final corrected version
+   HAZI DADA TRAVELS
+   ADMIN.JS — FINAL SAFE VERSION
    ========================================================= */
 
 const ADMIN_USER_ID =
@@ -8,15 +8,60 @@ const ADMIN_USER_ID =
 
 
 /* =========================================================
-   BASIC HELPERS
+   HELPERS
    ========================================================= */
 
 const $a = id => document.getElementById(id);
 
 
+/* SAFE VALUE READER */
+function getFieldValue(id) {
+  const element = document.getElementById(id);
+
+  if (!element) {
+    console.warn("Admin Panel: missing field:", id);
+    return "";
+  }
+
+  return element.value || "";
+}
+
+
+/* SAFE VALUE SETTER */
+function setFieldValue(id, value) {
+  const element = document.getElementById(id);
+
+  if (!element) {
+    console.warn("Admin Panel: missing field:", id);
+    return;
+  }
+
+  element.value =
+    value === undefined || value === null
+      ? ""
+      : value;
+}
+
+
+/* SAFE CHECKED SETTER */
+function setFieldChecked(id, value) {
+  const element = document.getElementById(id);
+
+  if (!element) {
+    console.warn("Admin Panel: missing checkbox:", id);
+    return;
+  }
+
+  element.checked = !!value;
+}
+
+
+/* ESCAPE HTML */
 function ea(value) {
   return String(
-    value === undefined || value === null ? "" : value
+    value === undefined || value === null
+      ? ""
+      : value
   )
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -26,35 +71,13 @@ function ea(value) {
 }
 
 
-function starsA(number) {
-  const n = Number(number) || 0;
-  let result = "";
-
-  for (let i = 1; i <= 5; i++) {
-    result += i <= n ? "★" : "☆";
-  }
-
-  return result;
-}
-
-
-function fmtDate(iso) {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short"
-    });
-  } catch (e) {
-    return "";
-  }
-}
-
-
+/* IMAGE FALLBACK */
 function imgFallback(src) {
   return src || PLACEHOLDER_FALLBACK;
 }
 
 
+/* ERROR MESSAGE */
 function showError(id, message) {
   const element = $a(id);
 
@@ -64,26 +87,45 @@ function showError(id, message) {
   }
 
   element.textContent = message || "";
-  element.style.display = message ? "block" : "none";
+  element.style.display =
+    message ? "block" : "none";
 }
 
 
-function adminToast(message, type = "info") {
+/* TOAST */
+function adminToast(
+  message,
+  type = "info"
+) {
   let container =
-    document.querySelector(".a-toast-container");
+    document.querySelector(
+      ".a-toast-container"
+    );
 
   if (!container) {
-    container = document.createElement("div");
-    container.className = "a-toast-container";
-    document.body.appendChild(container);
+    container =
+      document.createElement("div");
+
+    container.className =
+      "a-toast-container";
+
+    document.body.appendChild(
+      container
+    );
   }
 
-  const toast = document.createElement("div");
+  const toast =
+    document.createElement("div");
 
-  toast.className = "a-toast " + type;
-  toast.textContent = message;
+  toast.className =
+    "a-toast " + type;
 
-  container.appendChild(toast);
+  toast.textContent =
+    message;
+
+  container.appendChild(
+    toast
+  );
 
   requestAnimationFrame(() => {
     toast.classList.add("show");
@@ -99,29 +141,32 @@ function adminToast(message, type = "info") {
 }
 
 
+/* SAFE ERROR HANDLER */
 async function guard(
   fn,
-  fallbackMsg = "Something went wrong. Please try again."
+  fallback =
+    "Something went wrong. Please try again."
 ) {
   try {
     return await fn();
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Admin operation failed:",
+      error
+    );
 
-    const message =
-      error &&
-      error.message &&
-      error.message.length < 180
-        ? error.message
-        : fallbackMsg;
-
-    adminToast(message, "error");
+    adminToast(
+      error?.message ||
+        fallback,
+      "error"
+    );
 
     return null;
   }
 }
 
 
+/* MODALS */
 function openModal(id) {
   const modal = $a(id);
 
@@ -140,6 +185,38 @@ function closeModal(id) {
 }
 
 
+/* DATE */
+function fmtDate(value) {
+  if (!value) return "";
+
+  try {
+    return new Date(value)
+      .toLocaleString();
+  } catch (e) {
+    return "";
+  }
+}
+
+
+/* STARS */
+function starsA(value) {
+  const rating =
+    Number(value) || 0;
+
+  let output = "";
+
+  for (let i = 1; i <= 5; i++) {
+    output +=
+      i <= rating
+        ? "★"
+        : "☆";
+  }
+
+  return output;
+}
+
+
+/* EMPTY */
 function empty(message) {
   return `
     <div class="a-empty">
@@ -149,59 +226,19 @@ function empty(message) {
 }
 
 
-function btn(
+/* BUTTON */
+function actionButton(
   label,
   attribute,
-  className = "a-btn-outline"
+  className = ""
 ) {
   return `
     <button
       type="button"
-      class="a-btn ${className} a-btn-small"
+      class="a-btn a-btn-small ${className}"
       ${attribute}>
-      ${label}
+      ${ea(label)}
     </button>
-  `;
-}
-
-
-function itemCard(
-  image,
-  title,
-  lines,
-  actionsHtml,
-  extraHtml = ""
-) {
-  const imageHtml =
-    image === null || image === undefined
-      ? ""
-      : `
-        <img
-          src="${ea(imgFallback(image))}"
-          alt=""
-          onerror="this.onerror=null;this.src=PLACEHOLDER_FALLBACK">
-      `;
-
-  return `
-    <div class="a-item-card">
-
-      ${imageHtml}
-
-      <div class="a-item-info">
-
-        <h3>${title}</h3>
-
-        ${lines}
-
-        ${extraHtml}
-
-        <div class="a-item-actions">
-          ${actionsHtml}
-        </div>
-
-      </div>
-
-    </div>
   `;
 }
 
@@ -210,105 +247,130 @@ function itemCard(
    IMAGE READER
    ========================================================= */
 
-function readImage(file, maxSize = 1000) {
-  return new Promise((resolve, reject) => {
+function readImage(
+  file,
+  maxDimension = 1200
+) {
+  return new Promise(
+    (resolve, reject) => {
 
-    if (!file) {
-      resolve(null);
-      return;
-    }
+      if (!file) {
+        resolve(null);
+        return;
+      }
 
-    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)) {
-      reject(
-        new Error(
-          "Please choose a PNG, JPG, WEBP or GIF image."
+      if (
+        !file.type.startsWith(
+          "image/"
         )
-      );
-      return;
-    }
-
-    if (file.size > 8 * 1024 * 1024) {
-      reject(
-        new Error(
-          "Image is too large. Maximum size is 8MB."
-        )
-      );
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onerror = () => {
-      reject(
-        new Error("Could not read the image.")
-      );
-    };
-
-    reader.onload = () => {
-
-      const image = new Image();
-
-      image.onerror = () => {
+      ) {
         reject(
-          new Error("Could not process the image.")
+          new Error(
+            "Please select an image file."
+          )
         );
-      };
+        return;
+      }
 
-      image.onload = () => {
-
-        const scale =
-          Math.min(
-            1,
-            maxSize /
-              Math.max(
-                image.width,
-                image.height
-              )
-          );
-
-        const canvas =
-          document.createElement("canvas");
-
-        canvas.width =
-          Math.max(
-            1,
-            Math.round(
-              image.width * scale
-            )
-          );
-
-        canvas.height =
-          Math.max(
-            1,
-            Math.round(
-              image.height * scale
-            )
-          );
-
-        const context =
-          canvas.getContext("2d");
-
-        context.drawImage(
-          image,
-          0,
-          0,
-          canvas.width,
-          canvas.height
+      if (
+        file.size >
+        8 * 1024 * 1024
+      ) {
+        reject(
+          new Error(
+            "Image must be smaller than 8MB."
+          )
         );
+        return;
+      }
 
-        resolve(
-          canvas.toDataURL(
-            "image/jpeg",
-            0.8
+      const reader =
+        new FileReader();
+
+      reader.onerror = () => {
+        reject(
+          new Error(
+            "Unable to read image."
           )
         );
       };
 
-      image.src = reader.result;
-    };
+      reader.onload = () => {
 
-    reader.readAsDataURL(file);
-  });
+        const image =
+          new Image();
+
+        image.onerror = () => {
+          reject(
+            new Error(
+              "Unable to process image."
+            )
+          );
+        };
+
+        image.onload = () => {
+
+          const scale =
+            Math.min(
+              1,
+              maxDimension /
+                Math.max(
+                  image.width,
+                  image.height
+                )
+            );
+
+          const canvas =
+            document.createElement(
+              "canvas"
+            );
+
+          canvas.width =
+            Math.max(
+              1,
+              Math.round(
+                image.width * scale
+              )
+            );
+
+          canvas.height =
+            Math.max(
+              1,
+              Math.round(
+                image.height * scale
+              )
+            );
+
+          const context =
+            canvas.getContext(
+              "2d"
+            );
+
+          context.drawImage(
+            image,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+
+          resolve(
+            canvas.toDataURL(
+              "image/jpeg",
+              0.82
+            )
+          );
+        };
+
+        image.src =
+          reader.result;
+      };
+
+      reader.readAsDataURL(
+        file
+      );
+    }
+  );
 }
 
 
@@ -319,12 +381,13 @@ function readImage(file, maxSize = 1000) {
 function authClient() {
 
   if (
-    typeof supabaseClient === "undefined" ||
+    typeof supabaseClient ===
+      "undefined" ||
     !supabaseClient ||
     !supabaseClient.auth
   ) {
     throw new Error(
-      "Supabase client unavailable"
+      "Supabase client unavailable."
     );
   }
 
@@ -332,20 +395,25 @@ function authClient() {
 }
 
 
-function authErrorMessage(error) {
-
+function authErrorMessage(
+  error
+) {
   const message =
     String(
-      (error && error.message) || ""
+      error?.message || ""
     ).toLowerCase();
 
   const status =
-    error && error.status;
+    error?.status;
 
   if (
     status === 429 ||
-    message.includes("rate limit") ||
-    message.includes("too many")
+    message.includes(
+      "rate limit"
+    ) ||
+    message.includes(
+      "too many"
+    )
   ) {
     return "Too many attempts. Please wait a moment and try again.";
   }
@@ -355,7 +423,7 @@ function authErrorMessage(error) {
       "email not confirmed"
     )
   ) {
-    return "Your email is not confirmed yet. Please confirm it from your inbox.";
+    return "Please confirm your email first.";
   }
 
   if (
@@ -368,15 +436,10 @@ function authErrorMessage(error) {
     return "Invalid email or password.";
   }
 
-  if (
-    !status ||
-    message.includes("fetch") ||
-    message.includes("network")
-  ) {
-    return "Unable to connect right now. Please try again.";
-  }
-
-  return "Sign-in failed. Please try again.";
+  return (
+    error?.message ||
+    "Sign-in failed."
+  );
 }
 
 
@@ -384,7 +447,6 @@ async function adminLogin(
   email,
   password
 ) {
-
   try {
 
     const {
@@ -402,25 +464,27 @@ async function adminLogin(
       return {
         ok: false,
         message:
-          authErrorMessage(error)
+          authErrorMessage(
+            error
+          )
       };
     }
 
     if (
       !data ||
-      !data.session
+      !data.session ||
+      !data.user
     ) {
       return {
         ok: false,
         message:
-          "Sign-in failed. Please try again."
+          "Sign-in failed."
       };
     }
 
     if (
-      !data.user ||
       String(data.user.id) !==
-        ADMIN_USER_ID
+      ADMIN_USER_ID
     ) {
 
       await authClient()
@@ -440,19 +504,18 @@ async function adminLogin(
 
   } catch (error) {
 
-    console.error(error);
-
     return {
       ok: false,
       message:
-        "Unable to connect right now. Please try again."
+        authErrorMessage(
+          error
+        )
     };
   }
 }
 
 
 async function isAdminLoggedIn() {
-
   try {
 
     const {
@@ -466,21 +529,19 @@ async function isAdminLoggedIn() {
     if (
       error ||
       !data ||
-      !data.session
+      !data.session ||
+      !data.session.user
     ) {
       return false;
     }
 
-    const user =
-      data.session.user;
-
-    return !!(
-      user &&
-      String(user.id) ===
-        ADMIN_USER_ID
+    return (
+      String(
+        data.session.user.id
+      ) === ADMIN_USER_ID
     );
 
-  } catch (error) {
+  } catch (e) {
 
     return false;
   }
@@ -495,31 +556,31 @@ async function adminLogout() {
   _loggingOut = true;
 
   try {
-
     await authClient()
       .auth
       .signOut();
-
-  } catch (error) {
-
-    console.error(error);
-
+  } catch (e) {
+    console.error(e);
   }
 }
 
 
 async function requireAdminAuth() {
 
-  const goLogin = () => {
+  const goLogin =
+    () => {
 
-    document.documentElement.style.visibility = "";
+      document.documentElement
+        .style
+        .visibility = "";
 
-    location.replace(
-      "login.html"
-    );
+      location.replace(
+        "login.html"
+      );
 
-    return false;
-  };
+      return false;
+    };
+
 
   try {
 
@@ -534,69 +595,51 @@ async function requireAdminAuth() {
         .auth
         .getSession();
 
+
     if (
       error ||
       !data ||
-      !data.session
+      !data.session ||
+      !data.session.user
     ) {
       return goLogin();
     }
 
-    const sessionUser =
-      data.session.user;
 
     if (
-      !sessionUser ||
-      String(sessionUser.id) !==
-        ADMIN_USER_ID
+      String(
+        data.session.user.id
+      ) !== ADMIN_USER_ID
     ) {
 
-      try {
-        await client.auth.signOut();
-      } catch (e) {}
+      await client.auth
+        .signOut();
 
       return goLogin();
     }
 
-    const {
-      data: userData,
-      error: userError
-    } =
-      await client
-        .auth
-        .getUser();
 
-    if (
-      userError ||
-      !userData ||
-      !userData.user ||
-      String(userData.user.id) !==
-        ADMIN_USER_ID
-    ) {
+    client.auth
+      .onAuthStateChange(
+        event => {
 
-      try {
-        await client.auth.signOut();
-      } catch (e) {}
-
-      return goLogin();
-    }
-
-    client.auth.onAuthStateChange(
-      event => {
-
-        if (
-          event === "SIGNED_OUT" &&
-          !_loggingOut
-        ) {
-          location.replace(
-            "login.html"
-          );
+          if (
+            event ===
+              "SIGNED_OUT" &&
+            !_loggingOut
+          ) {
+            location.replace(
+              "login.html"
+            );
+          }
         }
+      );
 
-      }
-    );
 
-    document.documentElement.style.visibility = "";
+    document.documentElement
+      .style
+      .visibility = "";
+
 
     return true;
 
@@ -610,53 +653,10 @@ async function requireAdminAuth() {
 
 
 /* =========================================================
-   PANEL SYSTEM
+   PANEL LOADERS
    ========================================================= */
 
 const PANEL_LOADERS = {};
-
-
-function showPanel(name) {
-
-  document
-    .querySelectorAll(".admin-panel")
-    .forEach(panel => {
-
-      panel.classList.toggle(
-        "active",
-        panel.id ===
-          "panel-" + name
-      );
-
-    });
-
-
-  document
-    .querySelectorAll("[data-panel]")
-    .forEach(link => {
-
-      link.classList.toggle(
-        "active",
-        link.dataset.panel === name
-      );
-
-    });
-
-
-  if (
-    PANEL_LOADERS[name]
-  ) {
-
-    guard(
-      PANEL_LOADERS[name]
-    );
-  }
-
-  window.scrollTo(
-    0,
-    0
-  );
-}
 
 
 /* =========================================================
@@ -666,219 +666,79 @@ function showPanel(name) {
 PANEL_LOADERS.dashboard =
   async function () {
 
-    const [
-      trips,
-      vehicles,
-      gallery,
-      videos,
-      reviews,
-      enquiries
-    ] =
-      await Promise.all([
-        getTrips(),
-        getVehicles(),
-        getGallery(),
-        getVideos(),
-        getReviews(),
-        getEnquiries()
-      ]);
+    try {
+
+      const [
+        trips,
+        vehicles,
+        gallery,
+        videos,
+        reviews,
+        enquiries
+      ] =
+        await Promise.all([
+          getTrips(),
+          getVehicles(),
+          getGallery(),
+          getVideos(),
+          getReviews(),
+          getEnquiries()
+        ]);
 
 
-    const setText =
-      (id, value) => {
+      const setText =
+        (
+          id,
+          value
+        ) => {
 
-        const element =
-          $a(id);
+          const element =
+            $a(id);
 
-        if (element) {
-          element.textContent =
-            value;
-        }
-      };
-
-
-    setText(
-      "stat-trips",
-      trips.length
-    );
-
-    setText(
-      "stat-vehicles",
-      vehicles.length
-    );
-
-    setText(
-      "stat-gallery",
-      gallery.length
-    );
-
-    setText(
-      "stat-videos",
-      videos.length
-    );
-
-    setText(
-      "stat-reviews",
-      reviews.length
-    );
-
-    setText(
-      "stat-enquiries",
-      enquiries.length
-    );
+          if (element) {
+            element.textContent =
+              value;
+          }
+        };
 
 
-    const latest =
-      array =>
-        [...array]
-          .sort(
-            (a, b) =>
-              String(
-                b.created_at || ""
-              ).localeCompare(
-                String(
-                  a.created_at || ""
-                )
-              )
-          )
-          .slice(0, 5);
-
-
-    const recentEnquiries =
-      $a(
-        "recent-enquiries"
+      setText(
+        "stat-trips",
+        trips.length
       );
 
-    if (recentEnquiries) {
-
-      const rows =
-        latest(enquiries);
-
-      recentEnquiries.innerHTML =
-        rows.length
-
-          ? rows.map(
-              enquiry => `
-                <div class="a-recent-row">
-
-                  <strong>
-                    ${ea(
-                      enquiry.name ||
-                      "Unnamed"
-                    )}
-                  </strong>
-
-                  —
-                  ${ea(
-                    enquiry.trip ||
-                    "General enquiry"
-                  )}
-
-                  <span class="a-badge">
-                    ${ea(
-                      enquiry.status ||
-                      "New"
-                    )}
-                  </span>
-
-                </div>
-              `
-            ).join("")
-
-          : `
-              <div class="a-recent-row">
-                No enquiries found.
-              </div>
-            `;
-    }
-
-
-    const recentReviews =
-      $a(
-        "recent-reviews"
+      setText(
+        "stat-vehicles",
+        vehicles.length
       );
 
-    if (recentReviews) {
-
-      const rows =
-        latest(reviews);
-
-      recentReviews.innerHTML =
-        rows.length
-
-          ? rows.map(
-              review => `
-                <div class="a-recent-row">
-
-                  <strong>
-                    ${ea(
-                      review.name ||
-                      "Anonymous"
-                    )}
-                  </strong>
-
-                  ${starsA(
-                    review.rating
-                  )}
-
-                  <br>
-
-                  ${ea(
-                    review.review ||
-                    review.comment ||
-                    ""
-                  )}
-
-                </div>
-              `
-            ).join("")
-
-          : `
-              <div class="a-recent-row">
-                No reviews available.
-              </div>
-            `;
-    }
-
-
-    const recentTrips =
-      $a(
-        "recent-trips"
+      setText(
+        "stat-gallery",
+        gallery.length
       );
 
-    if (recentTrips) {
+      setText(
+        "stat-videos",
+        videos.length
+      );
 
-      const rows =
-        latest(trips);
+      setText(
+        "stat-reviews",
+        reviews.length
+      );
 
-      recentTrips.innerHTML =
-        rows.length
+      setText(
+        "stat-enquiries",
+        enquiries.length
+      );
 
-          ? rows.map(
-              trip => `
-                <div class="a-recent-row">
 
-                  <strong>
-                    ${ea(
-                      trip.name
-                    )}
-                  </strong>
+    } catch (error) {
 
-                  <br>
-
-                  ${ea(
-                    trip.destination
-                  )}
-
-                </div>
-              `
-            ).join("")
-
-          : `
-              <div class="a-recent-row">
-                No trips available.
-              </div>
-            `;
+      console.error(
+        "Dashboard error:",
+        error
+      );
     }
   };
 
@@ -893,292 +753,429 @@ PANEL_LOADERS.trips =
     const list =
       $a("trips-list");
 
-    if (!list) return;
-
-    const trips =
-      await getTrips();
-
-
-    const search =
-      $a("trip-search");
-
-
-    const query =
-      search
-        ? search.value
-            .trim()
-            .toLowerCase()
-        : "";
-
-
-    const filtered =
-      trips.filter(
-        trip => {
-
-          if (!query) {
-            return true;
-          }
-
-          return [
-            trip.name,
-            trip.destination,
-            trip.duration,
-            trip.price,
-            trip.description
-          ].some(
-            value =>
-              String(
-                value || ""
-              )
-                .toLowerCase()
-                .includes(query)
-          );
-        }
+    if (!list) {
+      console.warn(
+        "trips-list not found."
       );
-
-
-    if (!filtered.length) {
-
-      list.innerHTML =
-        empty(
-          trips.length
-            ? "No trips match your search."
-            : "No trips available yet."
-        );
-
       return;
     }
 
 
-    list.innerHTML =
-      filtered.map(
-        trip =>
-          itemCard(
-            trip.image,
-            ea(trip.name),
+    try {
 
-            `
-              <p>
-                ${ea(
-                  trip.destination
-                )}
+      const trips =
+        await getTrips();
 
-                ${
-                  trip.duration
-                    ? " · " +
-                      ea(
-                        trip.duration
+
+      const search =
+        $a(
+          "trip-search"
+        );
+
+
+      const query =
+        search
+          ? String(
+              search.value || ""
+            )
+              .trim()
+              .toLowerCase()
+          : "";
+
+
+      const filtered =
+        trips.filter(
+          trip => {
+
+            if (!query) {
+              return true;
+            }
+
+            return [
+              trip.name,
+              trip.destination,
+              trip.duration,
+              trip.price,
+              trip.description
+            ].some(
+              value =>
+                String(
+                  value || ""
+                )
+                  .toLowerCase()
+                  .includes(query)
+            );
+          }
+        );
+
+
+      if (
+        !filtered.length
+      ) {
+
+        list.innerHTML =
+          empty(
+            trips.length
+              ? "No trips match your search."
+              : "No trips available yet."
+          );
+
+        return;
+      }
+
+
+      list.innerHTML =
+        filtered
+          .map(
+            trip => {
+
+              return `
+                <div class="a-item-card">
+
+                  <img
+                    src="${ea(
+                      imgFallback(
+                        trip.image
                       )
-                    : ""
-                }
+                    )}"
+                    alt=""
+                    onerror="this.onerror=null;this.src=PLACEHOLDER_FALLBACK">
 
-                ${
-                  trip.price
-                    ? " · " +
-                      ea(
-                        trip.price
-                      )
-                    : ""
-                }
-              </p>
+                  <div class="a-item-info">
 
-              ${
-                trip.description
-                  ? `
+                    <h3>
+                      ${ea(
+                        trip.name
+                      )}
+                    </h3>
+
                     <p>
                       ${ea(
-                        trip.description
+                        trip.destination
                       )}
                     </p>
-                  `
-                  : ""
-              }
-            `,
 
-            btn(
-              "Edit",
-              `data-edit-trip="${trip.id}"`
-            ) +
+                    ${
+                      trip.duration
+                        ? `
+                          <p>
+                            Duration:
+                            ${ea(
+                              trip.duration
+                            )}
+                          </p>
+                        `
+                        : ""
+                    }
 
-            btn(
-              "Delete",
-              `data-delete-trip="${trip.id}"`,
-              "a-btn-danger"
-            )
+                    ${
+                      trip.price
+                        ? `
+                          <p>
+                            Price:
+                            ${ea(
+                              trip.price
+                            )}
+                          </p>
+                        `
+                        : ""
+                    }
+
+                    ${
+                      trip.description
+                        ? `
+                          <p>
+                            ${ea(
+                              trip.description
+                            )}
+                          </p>
+                        `
+                        : ""
+                    }
+
+                    <div class="a-item-actions">
+
+                      ${actionButton(
+                        "Edit",
+                        `data-edit-trip="${ea(
+                          trip.id
+                        )}"`
+                      )}
+
+                      ${actionButton(
+                        "Delete",
+                        `data-delete-trip="${ea(
+                          trip.id
+                        )}"`,
+                        "a-btn-danger"
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+              `;
+            }
           )
-      ).join("");
+          .join("");
+
+
+    } catch (error) {
+
+      console.error(
+        "Trips error:",
+        error
+      );
+
+      list.innerHTML =
+        empty(
+          error?.message ||
+            "Unable to load trips."
+        );
+    }
   };
 
 
 let tripImageDraft = "";
 
 
-async function openTripModal(id) {
+async function openTripModal(
+  id
+) {
 
-  const trip =
-    id
-      ? await getTripById(id)
-      : null;
+  try {
 
-
-  const vehicles =
-    await getVehicles();
-
-
-  const form =
-    $a("trip-form");
-
-  if (!form) return;
+    const trip =
+      id
+        ? await getTripById(
+            id
+          )
+        : null;
 
 
-  form.reset();
+    const vehicles =
+      await getVehicles();
 
 
-  showError(
-    "trip-error",
-    ""
-  );
+    const form =
+      $a("trip-form");
 
 
-  form.dataset.id =
-    trip
-      ? String(trip.id)
-      : "";
+    if (!form) {
 
-
-  const title =
-    $a("trip-modal-title");
-
-  if (title) {
-
-    title.textContent =
-      trip
-        ? "Edit Trip"
-        : "Add Trip";
-  }
-
-
-  /* IMPORTANT:
-     Use IDs instead of form.name,
-     form.destination, etc.
-  */
-
-  $a("trip-name").value =
-    trip?.name || "";
-
-  $a("trip-destination").value =
-    trip?.destination || "";
-
-  $a("trip-duration").value =
-    trip?.duration || "";
-
-  $a("trip-price").value =
-    trip?.price || "";
-
-  $a("trip-description").value =
-    trip?.description || "";
-
-
-  tripImageDraft =
-    trip?.image || "";
-
-
-  const preview =
-    $a(
-      "trip-image-preview"
-    );
-
-  if (preview) {
-
-    preview.src =
-      imgFallback(
-        tripImageDraft
+      adminToast(
+        "Trip form was not found in dashboard.html.",
+        "error"
       );
-  }
+
+      console.error(
+        "Missing #trip-form"
+      );
+
+      return;
+    }
 
 
-  const container =
-    $a(
-      "trip-vehicle-checkboxes"
+    /* Reset safely */
+
+    try {
+      form.reset();
+    } catch (e) {}
+
+
+    showError(
+      "trip-error",
+      ""
     );
 
 
-  if (!container) {
-    openModal("trip-modal");
-    return;
-  }
+    form.dataset.id =
+      trip
+        ? String(trip.id)
+        : "";
 
 
-  if (!vehicles.length) {
-
-    container.innerHTML = `
-      <span class="a-item-meta">
-        No vehicles yet.
-        Add one in Vehicles first.
-      </span>
-    `;
-
-  } else {
-
-    const selected =
-      trip?.vehicleIds || [];
+    const title =
+      $a(
+        "trip-modal-title"
+      );
 
 
-    container.innerHTML =
-      vehicles.map(
-        vehicle => {
+    if (title) {
 
-          const checked =
-            selected.includes(
-              vehicle.id
+      title.textContent =
+        trip
+          ? "Edit Trip"
+          : "Add Trip";
+    }
+
+
+    /*
+      IMPORTANT:
+      ALL fields use setFieldValue().
+      No form.name.value anywhere.
+    */
+
+    setFieldValue(
+      "trip-name",
+      trip?.name || ""
+    );
+
+    setFieldValue(
+      "trip-destination",
+      trip?.destination || ""
+    );
+
+    setFieldValue(
+      "trip-duration",
+      trip?.duration || ""
+    );
+
+    setFieldValue(
+      "trip-price",
+      trip?.price || ""
+    );
+
+    setFieldValue(
+      "trip-description",
+      trip?.description || ""
+    );
+
+
+    tripImageDraft =
+      trip?.image || "";
+
+
+    const preview =
+      $a(
+        "trip-image-preview"
+      );
+
+
+    if (preview) {
+
+      preview.src =
+        imgFallback(
+          tripImageDraft
+        );
+    }
+
+
+    const container =
+      $a(
+        "trip-vehicle-checkboxes"
+      );
+
+
+    if (container) {
+
+      if (
+        !vehicles ||
+        !vehicles.length
+      ) {
+
+        container.innerHTML = `
+          <span class="a-item-meta">
+            No vehicles yet.
+            Add one in Vehicles first.
+          </span>
+        `;
+
+      } else {
+
+        const selected =
+          Array.isArray(
+            trip?.vehicleIds
+          )
+            ? trip.vehicleIds
+            : [];
+
+
+        container.innerHTML =
+          vehicles
+            .map(
+              vehicle => {
+
+                const checked =
+                  selected
+                    .map(
+                      Number
+                    )
+                    .includes(
+                      Number(
+                        vehicle.id
+                      )
+                    )
+                    ? "checked"
+                    : "";
+
+
+                const unavailable =
+                  vehicle.available ===
+                  false
+                    ? " (unavailable)"
+                    : "";
+
+
+                return `
+                  <label>
+
+                    <input
+                      type="checkbox"
+                      value="${ea(
+                        vehicle.id
+                      )}"
+                      ${checked}>
+
+                    ${ea(
+                      vehicle.name
+                    )}
+
+                    —
+                    ${ea(
+                      vehicle.capacity ??
+                      "—"
+                    )}
+                    seats
+
+                    ${ea(
+                      unavailable
+                    )}
+
+                  </label>
+                `;
+              }
             )
-              ? "checked"
-              : "";
+            .join("");
+      }
+    }
 
 
-          const unavailable =
-            vehicle.available === false
-              ? " (unavailable)"
-              : "";
+    openModal(
+      "trip-modal"
+    );
 
 
-          return `
-            <label>
+  } catch (error) {
 
-              <input
-                type="checkbox"
-                value="${ea(
-                  vehicle.id
-                )}"
-                ${checked}>
+    console.error(
+      "Open trip modal error:",
+      error
+    );
 
-              ${ea(
-                vehicle.name
-              )}
-
-              —
-              ${ea(
-                vehicle.capacity ??
-                "—"
-              )}
-              seats
-
-              ${unavailable}
-
-            </label>
-          `;
-        }
-      ).join("");
+    adminToast(
+      error?.message ||
+        "Unable to open trip form.",
+      "error"
+    );
   }
-
-
-  openModal(
-    "trip-modal"
-  );
 }
 
 
-async function saveTripForm(event) {
+async function saveTripForm(
+  event
+) {
 
   event.preventDefault();
 
@@ -1188,13 +1185,15 @@ async function saveTripForm(event) {
 
 
   const name =
-    $a("trip-name").value.trim();
+    getFieldValue(
+      "trip-name"
+    ).trim();
 
 
   const destination =
-    $a(
+    getFieldValue(
       "trip-destination"
-    ).value.trim();
+    ).trim();
 
 
   if (
@@ -1235,26 +1234,25 @@ async function saveTripForm(event) {
     destination,
 
     duration:
-      $a(
+      getFieldValue(
         "trip-duration"
-      ).value.trim(),
+      ).trim(),
 
     price:
-      $a(
+      getFieldValue(
         "trip-price"
-      ).value.trim(),
+      ).trim(),
 
     description:
-      $a(
+      getFieldValue(
         "trip-description"
-      ).value.trim(),
+      ).trim(),
 
     image:
       tripImageDraft ||
       PLACEHOLDER_FALLBACK,
 
     vehicleIds
-
   };
 
 
@@ -1270,20 +1268,22 @@ async function saveTripForm(event) {
           payload
         );
 
+        adminToast(
+          "Trip updated successfully.",
+          "success"
+        );
+
       } else {
 
         await saveTrip(
           payload
         );
+
+        adminToast(
+          "Trip added successfully.",
+          "success"
+        );
       }
-
-
-      adminToast(
-        form.dataset.id
-          ? "Trip updated successfully."
-          : "Trip added successfully.",
-        "success"
-      );
 
 
       closeModal(
@@ -1292,7 +1292,6 @@ async function saveTripForm(event) {
 
 
       await PANEL_LOADERS.trips();
-
 
       await PANEL_LOADERS.dashboard();
 
@@ -1314,111 +1313,159 @@ PANEL_LOADERS.vehicles =
     if (!list) return;
 
 
-    const vehicles =
-      await getVehicles();
+    try {
+
+      const vehicles =
+        await getVehicles();
 
 
-    if (!vehicles.length) {
+      if (!vehicles.length) {
+
+        list.innerHTML =
+          empty(
+            "No vehicles available yet."
+          );
+
+        return;
+      }
+
+
+      list.innerHTML =
+        vehicles
+          .map(
+            vehicle => {
+
+              const available =
+                vehicle.available !==
+                false;
+
+
+              return `
+                <div class="a-item-card">
+
+                  <img
+                    src="${ea(
+                      imgFallback(
+                        vehicle.image_url
+                      )
+                    )}"
+                    alt=""
+                    onerror="this.onerror=null;this.src=PLACEHOLDER_FALLBACK">
+
+                  <div class="a-item-info">
+
+                    <h3>
+                      ${ea(
+                        vehicle.name
+                      )}
+                    </h3>
+
+                    <p>
+                      ${ea(
+                        vehicle.type ||
+                        ""
+                      )}
+                    </p>
+
+                    ${
+                      vehicle.capacity !==
+                        null &&
+                      vehicle.capacity !==
+                        undefined
+                        ? `
+                          <p>
+                            Capacity:
+                            ${ea(
+                              vehicle.capacity
+                            )}
+                            seats
+                          </p>
+                        `
+                        : ""
+                    }
+
+                    ${
+                      vehicle.registration
+                        ? `
+                          <p>
+                            Registration:
+                            ${ea(
+                              vehicle.registration
+                            )}
+                          </p>
+                        `
+                        : ""
+                    }
+
+                    <span class="a-badge">
+
+                      ${
+                        available
+                          ? "Available"
+                          : "Unavailable"
+                      }
+
+                    </span>
+
+                    <div class="a-item-actions">
+
+                      ${actionButton(
+                        "Edit",
+                        `data-edit-vehicle="${ea(
+                          vehicle.id
+                        )}"`
+                      )}
+
+                      ${actionButton(
+                        available
+                          ? "Mark Unavailable"
+                          : "Mark Available",
+                        `data-toggle-vehicle="${ea(
+                          vehicle.id
+                        )}"`
+                      )}
+
+                      ${actionButton(
+                        "Delete",
+                        `data-delete-vehicle="${ea(
+                          vehicle.id
+                        )}"`,
+                        "a-btn-danger"
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+              `;
+            }
+          )
+          .join("");
+
+
+    } catch (error) {
+
+      console.error(
+        "Vehicles error:",
+        error
+      );
 
       list.innerHTML =
         empty(
-          "No vehicles available yet."
+          error?.message ||
+            "Unable to load vehicles."
         );
-
-      return;
     }
-
-
-    list.innerHTML =
-      vehicles.map(
-        vehicle => {
-
-          const available =
-            vehicle.available !== false;
-
-
-          return itemCard(
-
-            vehicle.image_url,
-
-            ea(
-              vehicle.name
-            ),
-
-            `
-              <p>
-
-                ${ea(
-                  vehicle.type ||
-                  ""
-                )}
-
-                ${
-                  vehicle.capacity !== null &&
-                  vehicle.capacity !== undefined
-                    ? " · " +
-                      ea(
-                        vehicle.capacity
-                      ) +
-                      " seats"
-                    : ""
-                }
-
-                ${
-                  vehicle.registration
-                    ? " · " +
-                      ea(
-                        vehicle.registration
-                      )
-                    : ""
-                }
-
-              </p>
-            `,
-
-            btn(
-              "Edit",
-              `data-edit-vehicle="${vehicle.id}"`
-            ) +
-
-            btn(
-              available
-                ? "Mark Unavailable"
-                : "Mark Available",
-              `data-toggle-vehicle="${vehicle.id}"`
-            ) +
-
-            btn(
-              "Delete",
-              `data-delete-vehicle="${vehicle.id}"`,
-              "a-btn-danger"
-            ),
-
-            `
-              <span class="a-badge ${
-                available
-                  ? "ok"
-                  : "off"
-              }">
-
-                ${
-                  available
-                    ? "Available"
-                    : "Unavailable"
-                }
-
-              </span>
-            `
-          );
-        }
-      ).join("");
   };
 
 
 let vehicleImageDraft = "";
 
 
-async function openVehicleModal(id) {
+async function openVehicleModal(
+  id
+) {
 
   const vehicles =
     await getVehicles();
@@ -1428,7 +1475,7 @@ async function openVehicleModal(id) {
     id
       ? vehicles.find(
           item =>
-            item.id ===
+            Number(item.id) ===
             Number(id)
         )
       : null;
@@ -1439,10 +1486,21 @@ async function openVehicleModal(id) {
       "vehicle-form"
     );
 
-  if (!form) return;
+
+  if (!form) {
+
+    adminToast(
+      "Vehicle form was not found.",
+      "error"
+    );
+
+    return;
+  }
 
 
-  form.reset();
+  try {
+    form.reset();
+  } catch (e) {}
 
 
   showError(
@@ -1453,7 +1511,9 @@ async function openVehicleModal(id) {
 
   form.dataset.id =
     vehicle
-      ? String(vehicle.id)
+      ? String(
+          vehicle.id
+        )
       : "";
 
 
@@ -1461,6 +1521,7 @@ async function openVehicleModal(id) {
     $a(
       "vehicle-modal-title"
     );
+
 
   if (title) {
 
@@ -1471,31 +1532,32 @@ async function openVehicleModal(id) {
   }
 
 
-  /* Use IDs everywhere. */
+  setFieldValue(
+    "vehicle-name",
+    vehicle?.name || ""
+  );
 
-  $a("vehicle-name").value =
-    vehicle?.name || "";
+  setFieldValue(
+    "vehicle-type",
+    vehicle?.type || ""
+  );
 
-  $a("vehicle-type").value =
-    vehicle?.type || "";
+  setFieldValue(
+    "vehicle-capacity",
+    vehicle?.capacity ?? ""
+  );
 
-  $a("vehicle-capacity").value =
-    vehicle?.capacity ??
-    "";
+  setFieldValue(
+    "vehicle-registration",
+    vehicle?.registration || ""
+  );
 
-  $a(
-    "vehicle-registration"
-  ).value =
-    vehicle?.registration ||
-    "";
-
-  $a(
-    "vehicle-available"
-  ).value =
-    vehicle &&
-    vehicle.available === false
+  setFieldValue(
+    "vehicle-available",
+    vehicle?.available === false
       ? "false"
-      : "true";
+      : "true"
+  );
 
 
   vehicleImageDraft =
@@ -1506,6 +1568,7 @@ async function openVehicleModal(id) {
     $a(
       "vehicle-image-preview"
     );
+
 
   if (preview) {
 
@@ -1522,7 +1585,9 @@ async function openVehicleModal(id) {
 }
 
 
-async function saveVehicleForm(event) {
+async function saveVehicleForm(
+  event
+) {
 
   event.preventDefault();
 
@@ -1532,9 +1597,9 @@ async function saveVehicleForm(event) {
 
 
   const name =
-    $a(
+    getFieldValue(
       "vehicle-name"
-    ).value.trim();
+    ).trim();
 
 
   if (!name) {
@@ -1553,24 +1618,24 @@ async function saveVehicleForm(event) {
     name,
 
     type:
-      $a(
+      getFieldValue(
         "vehicle-type"
-      ).value.trim(),
+      ).trim(),
 
     capacity:
-      $a(
+      getFieldValue(
         "vehicle-capacity"
-      ).value.trim(),
+      ).trim(),
 
     registration:
-      $a(
+      getFieldValue(
         "vehicle-registration"
-      ).value.trim(),
+      ).trim(),
 
     available:
-      $a(
+      getFieldValue(
         "vehicle-available"
-      ).value === "true",
+      ) !== "false",
 
     image_url:
       vehicleImageDraft ||
@@ -1590,20 +1655,22 @@ async function saveVehicleForm(event) {
           payload
         );
 
+        adminToast(
+          "Vehicle updated successfully.",
+          "success"
+        );
+
       } else {
 
         await saveVehicle(
           payload
         );
+
+        adminToast(
+          "Vehicle added successfully.",
+          "success"
+        );
       }
-
-
-      adminToast(
-        form.dataset.id
-          ? "Vehicle updated successfully."
-          : "Vehicle added successfully.",
-        "success"
-      );
 
 
       closeModal(
@@ -1613,9 +1680,7 @@ async function saveVehicleForm(event) {
 
       await PANEL_LOADERS.vehicles();
 
-
       await PANEL_LOADERS.dashboard();
-
     }
   );
 }
@@ -1634,90 +1699,115 @@ PANEL_LOADERS.gallery =
     if (!list) return;
 
 
-    const items =
-      await getGallery();
+    try {
+
+      const items =
+        await getGallery();
 
 
-    if (!items.length) {
+      if (!items.length) {
+
+        list.innerHTML =
+          empty(
+            "No gallery images available."
+          );
+
+        return;
+      }
+
+
+      list.innerHTML =
+        items
+          .map(
+            item => {
+
+              return `
+                <div class="a-item-card">
+
+                  <img
+                    src="${ea(
+                      imgFallback(
+                        item.image_url
+                      )
+                    )}"
+                    alt=""
+                    onerror="this.onerror=null;this.src=PLACEHOLDER_FALLBACK">
+
+                  <div class="a-item-info">
+
+                    <h3>
+                      ${ea(
+                        item.caption ||
+                        "No caption"
+                      )}
+                    </h3>
+
+                    ${
+                      item.description
+                        ? `
+                          <p>
+                            ${ea(
+                              item.description
+                            )}
+                          </p>
+                        `
+                        : ""
+                    }
+
+                    <span class="a-badge">
+
+                      ${
+                        item.approved ===
+                        false
+                          ? "Hidden"
+                          : "Visible"
+                      }
+
+                    </span>
+
+                    <div class="a-item-actions">
+
+                      ${actionButton(
+                        item.approved === false
+                          ? "Show"
+                          : "Hide",
+                        `data-toggle-gallery="${ea(
+                          item.id
+                        )}"`
+                      )}
+
+                      ${actionButton(
+                        "Delete",
+                        `data-delete-photo="${ea(
+                          item.id
+                        )}"`,
+                        "a-btn-danger"
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+              `;
+            }
+          )
+          .join("");
+
+
+    } catch (error) {
+
+      console.error(
+        "Gallery error:",
+        error
+      );
 
       list.innerHTML =
         empty(
-          "No gallery images available."
+          error?.message ||
+            "Unable to load gallery."
         );
-
-      return;
     }
-
-
-    list.innerHTML =
-      items.map(
-        gallery => {
-
-          const visible =
-            gallery.approved !== false;
-
-
-          return itemCard(
-
-            gallery.image_url,
-
-            ea(
-              gallery.caption ||
-              "No caption"
-            ),
-
-            `
-              <div
-                class="a-inline-edit">
-
-                <input
-                  type="text"
-                  value="${ea(
-                    gallery.caption ||
-                    ""
-                  )}"
-                  data-caption-input="${gallery.id}"
-                  aria-label="Caption">
-
-                ${btn(
-                  "Save caption",
-                  `data-save-caption="${gallery.id}"`
-                )}
-
-              </div>
-            `,
-
-            btn(
-              visible
-                ? "Hide from site"
-                : "Show on site",
-              `data-toggle-gallery="${gallery.id}"`
-            ) +
-
-            btn(
-              "Delete",
-              `data-delete-photo="${gallery.id}"`,
-              "a-btn-danger"
-            ),
-
-            `
-              <span class="a-badge ${
-                visible
-                  ? "ok"
-                  : "off"
-              }">
-
-                ${
-                  visible
-                    ? "Visible on site"
-                    : "Hidden"
-                }
-
-              </span>
-            `
-          );
-        }
-      ).join("");
   };
 
 
@@ -1734,77 +1824,134 @@ PANEL_LOADERS.videos =
     if (!list) return;
 
 
-    const videos =
-      await getVideos();
+    try {
+
+      const videos =
+        await getVideos();
 
 
-    if (!videos.length) {
+      if (!videos.length) {
+
+        list.innerHTML =
+          empty(
+            "No videos available yet."
+          );
+
+        return;
+      }
+
+
+      list.innerHTML =
+        videos
+          .map(
+            video => {
+
+              let thumbnail = "";
+
+              if (
+                video.youtubeId
+              ) {
+
+                thumbnail =
+                  "https://img.youtube.com/vi/" +
+                  encodeURIComponent(
+                    video.youtubeId
+                  ) +
+                  "/hqdefault.jpg";
+              }
+
+
+              return `
+                <div class="a-item-card">
+
+                  ${
+                    thumbnail
+                      ? `
+                        <img
+                          src="${ea(
+                            thumbnail
+                          )}"
+                          alt=""
+                          onerror="this.style.display='none'">
+                      `
+                      : ""
+                  }
+
+                  <div class="a-item-info">
+
+                    <h3>
+                      ${ea(
+                        video.title
+                      )}
+                    </h3>
+
+                    ${
+                      video.description
+                        ? `
+                          <p>
+                            ${ea(
+                              video.description
+                            )}
+                          </p>
+                        `
+                        : ""
+                    }
+
+                    <p>
+                      YouTube:
+                      ${ea(
+                        video.youtubeId ||
+                        "Not set"
+                      )}
+                    </p>
+
+                    <div class="a-item-actions">
+
+                      ${actionButton(
+                        "Edit",
+                        `data-edit-video="${ea(
+                          video.id
+                        )}"`
+                      )}
+
+                      ${actionButton(
+                        "Delete",
+                        `data-delete-video="${ea(
+                          video.id
+                        )}"`,
+                        "a-btn-danger"
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+              `;
+            }
+          )
+          .join("");
+
+
+    } catch (error) {
+
+      console.error(
+        "Videos error:",
+        error
+      );
 
       list.innerHTML =
         empty(
-          "No videos available yet."
+          error?.message ||
+            "Unable to load videos."
         );
-
-      return;
     }
-
-
-    list.innerHTML =
-      videos.map(
-        video => {
-
-          const thumbnail =
-            video.youtubeId
-              ? `https://img.youtube.com/vi/${encodeURIComponent(
-                  video.youtubeId
-                )}/default.jpg`
-              : "";
-
-
-          return itemCard(
-
-            thumbnail,
-
-            ea(
-              video.title
-            ),
-
-            `
-              <p>
-                ${ea(
-                  video.description ||
-                  ""
-                )}
-              </p>
-
-              <p class="a-item-meta">
-
-                YouTube ID:
-                ${ea(
-                  video.youtubeId ||
-                  "not set"
-                )}
-
-              </p>
-            `,
-
-            btn(
-              "Edit",
-              `data-edit-video="${video.id}"`
-            ) +
-
-            btn(
-              "Delete",
-              `data-delete-video="${video.id}"`,
-              "a-btn-danger"
-            )
-          );
-        }
-      ).join("");
   };
 
 
-async function openVideoModal(id) {
+async function openVideoModal(
+  id
+) {
 
   const videos =
     await getVideos();
@@ -1814,7 +1961,7 @@ async function openVideoModal(id) {
     id
       ? videos.find(
           item =>
-            item.id ===
+            Number(item.id) ===
             Number(id)
         )
       : null;
@@ -1825,10 +1972,21 @@ async function openVideoModal(id) {
       "video-form"
     );
 
-  if (!form) return;
+
+  if (!form) {
+
+    adminToast(
+      "Video form was not found.",
+      "error"
+    );
+
+    return;
+  }
 
 
-  form.reset();
+  try {
+    form.reset();
+  } catch (e) {}
 
 
   showError(
@@ -1839,7 +1997,9 @@ async function openVideoModal(id) {
 
   form.dataset.id =
     video
-      ? String(video.id)
+      ? String(
+          video.id
+        )
       : "";
 
 
@@ -1847,6 +2007,7 @@ async function openVideoModal(id) {
     $a(
       "video-modal-title"
     );
+
 
   if (title) {
 
@@ -1857,20 +2018,20 @@ async function openVideoModal(id) {
   }
 
 
-  /* IDs — never form.title etc. */
+  setFieldValue(
+    "video-title",
+    video?.title || ""
+  );
 
-  $a("video-title").value =
-    video?.title || "";
+  setFieldValue(
+    "video-description",
+    video?.description || ""
+  );
 
-  $a(
-    "video-description"
-  ).value =
-    video?.description || "";
-
-  $a(
-    "video-youtube"
-  ).value =
-    video?.youtubeId || "";
+  setFieldValue(
+    "video-youtube",
+    video?.youtubeId || ""
+  );
 
 
   openModal(
@@ -1879,7 +2040,9 @@ async function openVideoModal(id) {
 }
 
 
-async function saveVideoForm(event) {
+async function saveVideoForm(
+  event
+) {
 
   event.preventDefault();
 
@@ -1889,9 +2052,9 @@ async function saveVideoForm(event) {
 
 
   const title =
-    $a(
+    getFieldValue(
       "video-title"
-    ).value.trim();
+    ).trim();
 
 
   if (!title) {
@@ -1906,28 +2069,32 @@ async function saveVideoForm(event) {
 
 
   const raw =
-    $a(
+    getFieldValue(
       "video-youtube"
-    ).value.trim();
+    ).trim();
 
 
-  const youtubeId =
-    extractYouTubeId(
-      raw
-    );
+  let youtubeId =
+    "";
 
 
-  if (
-    raw &&
-    !youtubeId
-  ) {
+  if (raw) {
 
-    showError(
-      "video-error",
-      "Please enter a valid YouTube link or 11-character ID."
-    );
+    youtubeId =
+      extractYouTubeId(
+        raw
+      );
 
-    return;
+
+    if (!youtubeId) {
+
+      showError(
+        "video-error",
+        "Please enter a valid YouTube link or video ID."
+      );
+
+      return;
+    }
   }
 
 
@@ -1936,12 +2103,11 @@ async function saveVideoForm(event) {
     title,
 
     description:
-      $a(
+      getFieldValue(
         "video-description"
-      ).value.trim(),
+      ).trim(),
 
     youtubeId
-
   };
 
 
@@ -1957,20 +2123,22 @@ async function saveVideoForm(event) {
           payload
         );
 
+        adminToast(
+          "Video updated successfully.",
+          "success"
+        );
+
       } else {
 
         await saveVideo(
           payload
         );
+
+        adminToast(
+          "Video added successfully.",
+          "success"
+        );
       }
-
-
-      adminToast(
-        form.dataset.id
-          ? "Video updated successfully."
-          : "Video added successfully.",
-        "success"
-      );
 
 
       closeModal(
@@ -1980,9 +2148,7 @@ async function saveVideoForm(event) {
 
       await PANEL_LOADERS.videos();
 
-
       await PANEL_LOADERS.dashboard();
-
     }
   );
 }
@@ -2001,97 +2167,121 @@ PANEL_LOADERS.reviews =
     if (!list) return;
 
 
-    const reviews =
-      await getReviews();
+    try {
+
+      const reviews =
+        await getReviews();
 
 
-    if (!reviews.length) {
+      if (!reviews.length) {
+
+        list.innerHTML =
+          empty(
+            "No reviews available."
+          );
+
+        return;
+      }
+
+
+      list.innerHTML =
+        reviews
+          .map(
+            review => {
+
+              return `
+                <div class="a-item-card">
+
+                  <div class="a-item-info">
+
+                    <h3>
+                      ${ea(
+                        review.name ||
+                        "Anonymous"
+                      )}
+
+                      <span
+                        style="color:#ffb020;">
+                        ${starsA(
+                          review.rating
+                        )}
+                      </span>
+                    </h3>
+
+                    <p>
+                      ${ea(
+                        review.review ||
+                        review.comment ||
+                        ""
+                      )}
+                    </p>
+
+                    <span class="a-badge">
+
+                      ${
+                        review.approved
+                          ? "Visible"
+                          : "Pending"
+                      }
+
+                    </span>
+
+                    <div class="a-item-actions">
+
+                      ${actionButton(
+                        "Edit",
+                        `data-edit-review="${ea(
+                          review.id
+                        )}"`
+                      )}
+
+                      ${actionButton(
+                        review.approved
+                          ? "Hide"
+                          : "Approve",
+                        `data-toggle-review="${ea(
+                          review.id
+                        )}"`
+                      )}
+
+                      ${actionButton(
+                        "Delete",
+                        `data-delete-review="${ea(
+                          review.id
+                        )}"`,
+                        "a-btn-danger"
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+              `;
+            }
+          )
+          .join("");
+
+
+    } catch (error) {
+
+      console.error(
+        "Reviews error:",
+        error
+      );
 
       list.innerHTML =
         empty(
-          "No reviews available."
+          error?.message ||
+            "Unable to load reviews."
         );
-
-      return;
     }
-
-
-    list.innerHTML =
-      reviews.map(
-        review => {
-
-          const approved =
-            review.approved === true;
-
-
-          return itemCard(
-
-            null,
-
-            `
-              ${ea(
-                review.name ||
-                "Anonymous"
-              )}
-
-              <span
-                style="color:#ffb020;font-size:.85rem;">
-                ${starsA(
-                  review.rating
-                )}
-              </span>
-            `,
-
-            `
-              <p>
-                ${ea(
-                  review.review ||
-                  review.comment ||
-                  ""
-                )}
-              </p>
-            `,
-
-            btn(
-              "Edit",
-              `data-edit-review="${review.id}"`
-            ) +
-
-            btn(
-              approved
-                ? "Hide from site"
-                : "Approve",
-              `data-toggle-review="${review.id}"`
-            ) +
-
-            btn(
-              "Delete",
-              `data-delete-review="${review.id}"`,
-              "a-btn-danger"
-            ),
-
-            `
-              <span class="a-badge ${
-                approved
-                  ? "ok"
-                  : "off"
-              }">
-
-                ${
-                  approved
-                    ? "Visible on site"
-                    : "Pending approval"
-                }
-
-              </span>
-            `
-          );
-        }
-      ).join("");
   };
 
 
-async function openReviewModal(id) {
+async function openReviewModal(
+  id
+) {
 
   const reviews =
     await getReviews();
@@ -2101,7 +2291,7 @@ async function openReviewModal(id) {
     id
       ? reviews.find(
           item =>
-            item.id ===
+            Number(item.id) ===
             Number(id)
         )
       : null;
@@ -2112,10 +2302,21 @@ async function openReviewModal(id) {
       "review-form-admin"
     );
 
-  if (!form) return;
+
+  if (!form) {
+
+    adminToast(
+      "Review form was not found.",
+      "error"
+    );
+
+    return;
+  }
 
 
-  form.reset();
+  try {
+    form.reset();
+  } catch (e) {}
 
 
   showError(
@@ -2126,7 +2327,9 @@ async function openReviewModal(id) {
 
   form.dataset.id =
     review
-      ? String(review.id)
+      ? String(
+          review.id
+        )
       : "";
 
 
@@ -2134,6 +2337,7 @@ async function openReviewModal(id) {
     $a(
       "review-modal-title"
     );
+
 
   if (title) {
 
@@ -2144,38 +2348,31 @@ async function openReviewModal(id) {
   }
 
 
-  /* IDs — never form.name etc. */
+  setFieldValue(
+    "review-name",
+    review?.name || ""
+  );
 
-  $a(
-    "review-name"
-  ).value =
-    review?.name || "";
+  setFieldValue(
+    "review-rating",
+    review?.rating || 5
+  );
 
-
-  $a(
-    "review-rating"
-  ).value =
-    String(
-      review?.rating || 5
-    );
-
-
-  $a(
-    "review-text"
-  ).value =
+  setFieldValue(
+    "review-text",
     review?.review ||
-    review?.comment ||
-    "";
+      review?.comment ||
+      ""
+  );
 
-
-  $a(
-    "review-approved"
-  ).value =
+  setFieldValue(
+    "review-approved",
     review
       ? String(
           !!review.approved
         )
-      : "true";
+      : "true"
+  );
 
 
   openModal(
@@ -2184,7 +2381,9 @@ async function openReviewModal(id) {
 }
 
 
-async function saveReviewForm(event) {
+async function saveReviewForm(
+  event
+) {
 
   event.preventDefault();
 
@@ -2194,15 +2393,15 @@ async function saveReviewForm(event) {
 
 
   const name =
-    $a(
+    getFieldValue(
       "review-name"
-    ).value.trim();
+    ).trim();
 
 
   const reviewText =
-    $a(
+    getFieldValue(
       "review-text"
-    ).value.trim();
+    ).trim();
 
 
   if (
@@ -2212,19 +2411,38 @@ async function saveReviewForm(event) {
 
     showError(
       "review-error",
-      "Name and review text are required."
+      "Name and review are required."
     );
 
     return;
   }
 
 
-  const rating =
+  let rating =
     parseInt(
-      $a(
+      getFieldValue(
         "review-rating"
-      ).value,
+      ),
       10
+    );
+
+
+  if (
+    !Number.isFinite(
+      rating
+    )
+  ) {
+    rating = 5;
+  }
+
+
+  rating =
+    Math.max(
+      1,
+      Math.min(
+        5,
+        rating
+      )
     );
 
 
@@ -2232,21 +2450,15 @@ async function saveReviewForm(event) {
 
     name,
 
-    rating:
-      Number.isFinite(
-        rating
-      )
-        ? rating
-        : 5,
+    rating,
 
     review:
       reviewText,
 
     approved:
-      $a(
+      getFieldValue(
         "review-approved"
-      ).value === "true"
-
+      ) === "true"
   };
 
 
@@ -2262,20 +2474,22 @@ async function saveReviewForm(event) {
           payload
         );
 
+        adminToast(
+          "Review updated successfully.",
+          "success"
+        );
+
       } else {
 
         await saveReview(
           payload
         );
+
+        adminToast(
+          "Review added successfully.",
+          "success"
+        );
       }
-
-
-      adminToast(
-        form.dataset.id
-          ? "Review updated successfully."
-          : "Review added successfully.",
-        "success"
-      );
 
 
       closeModal(
@@ -2285,9 +2499,7 @@ async function saveReviewForm(event) {
 
       await PANEL_LOADERS.reviews();
 
-
       await PANEL_LOADERS.dashboard();
-
     }
   );
 }
@@ -2296,14 +2508,6 @@ async function saveReviewForm(event) {
 /* =========================================================
    ENQUIRIES
    ========================================================= */
-
-const ENQUIRY_STATUSES = [
-  "New",
-  "Contacted",
-  "Confirmed",
-  "Closed"
-];
-
 
 PANEL_LOADERS.enquiries =
   async function () {
@@ -2314,156 +2518,186 @@ PANEL_LOADERS.enquiries =
     if (!list) return;
 
 
-    const filter =
-      $a(
-        "enquiry-filter"
-      );
+    try {
+
+      const enquiries =
+        await getEnquiries();
 
 
-    const selected =
-      filter
-        ? filter.value
-        : "";
-
-
-    const enquiries =
-      await getEnquiries();
-
-
-    const filtered =
-      enquiries
-        .filter(
-          enquiry =>
-            !selected ||
-            enquiry.status ===
-              selected
-        )
-        .sort(
-          (a, b) =>
-            String(
-              b.created_at || ""
-            ).localeCompare(
-              String(
-                a.created_at || ""
-              )
-            )
+      const filter =
+        $a(
+          "enquiry-filter"
         );
 
 
-    if (!filtered.length) {
+      const selected =
+        filter
+          ? filter.value
+          : "";
+
+
+      const filtered =
+        enquiries
+          .filter(
+            enquiry =>
+              !selected ||
+              enquiry.status ===
+                selected
+          )
+          .sort(
+            (a, b) =>
+              String(
+                b.created_at ||
+                ""
+              ).localeCompare(
+                String(
+                  a.created_at ||
+                  ""
+                )
+              )
+          );
+
+
+      if (
+        !filtered.length
+      ) {
+
+        list.innerHTML =
+          empty(
+            "No enquiries found."
+          );
+
+        return;
+      }
+
+
+      list.innerHTML =
+        filtered
+          .map(
+            enquiry => {
+
+              const status =
+                enquiry.status ||
+                "New";
+
+
+              const statuses = [
+                "New",
+                "Contacted",
+                "Confirmed",
+                "Closed"
+              ];
+
+
+              const options =
+                statuses
+                  .map(
+                    value => `
+                      <option
+                        value="${ea(
+                          value
+                        )}"
+                        ${
+                          value ===
+                          status
+                            ? "selected"
+                            : ""
+                        }>
+                        ${ea(
+                          value
+                        )}
+                      </option>
+                    `
+                  )
+                  .join("");
+
+
+              return `
+                <div class="a-item-card">
+
+                  <div class="a-item-info">
+
+                    <h3>
+                      ${ea(
+                        enquiry.name ||
+                        "Unnamed"
+                      )}
+                    </h3>
+
+                    <p>
+                      Phone:
+                      ${ea(
+                        enquiry.phone ||
+                        ""
+                      )}
+                    </p>
+
+                    <p>
+                      Trip:
+                      ${ea(
+                        enquiry.trip ||
+                        "General enquiry"
+                      )}
+                    </p>
+
+                    <p>
+                      ${ea(
+                        enquiry.message ||
+                        ""
+                      )}
+                    </p>
+
+                    <p>
+                      ${ea(
+                        fmtDate(
+                          enquiry.created_at
+                        )
+                      )}
+                    </p>
+
+                    <select
+                      data-enquiry-status="${ea(
+                        enquiry.id
+                      )}">
+
+                      ${options}
+
+                    </select>
+
+                    <div class="a-item-actions">
+
+                      ${actionButton(
+                        "Delete",
+                        `data-delete-enquiry="${ea(
+                          enquiry.id
+                        )}"`,
+                        "a-btn-danger"
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+              `;
+            }
+          )
+          .join("");
+
+
+    } catch (error) {
+
+      console.error(
+        "Enquiries error:",
+        error
+      );
 
       list.innerHTML =
         empty(
-          "No enquiries found."
+          error?.message ||
+            "Unable to load enquiries."
         );
-
-      return;
     }
-
-
-    list.innerHTML =
-      filtered.map(
-        enquiry => {
-
-          const status =
-            enquiry.status ||
-            "New";
-
-
-          const options =
-            ENQUIRY_STATUSES
-              .map(
-                value => `
-                  <option
-                    value="${ea(value)}"
-                    ${
-                      value === status
-                        ? "selected"
-                        : ""
-                    }>
-                    ${ea(value)}
-                  </option>
-                `
-              )
-              .join("");
-
-
-          return itemCard(
-
-            null,
-
-            ea(
-              enquiry.name ||
-              "Unnamed"
-            ),
-
-            `
-              <p>
-
-                📞
-
-                <a
-                  href="tel:${ea(
-                    enquiry.phone ||
-                    ""
-                  )}">
-                  ${ea(
-                    enquiry.phone ||
-                    ""
-                  )}
-                </a>
-
-                · 🧳
-
-                ${ea(
-                  enquiry.trip ||
-                  "General enquiry"
-                )}
-
-              </p>
-
-              <p>
-                ${ea(
-                  enquiry.message ||
-                  "—"
-                )}
-              </p>
-
-              <p class="a-item-meta">
-                ${ea(
-                  fmtDate(
-                    enquiry.created_at
-                  )
-                )}
-              </p>
-            `,
-
-            `
-              <select
-                data-enquiry-status="${enquiry.id}"
-                aria-label="Enquiry status">
-
-                ${options}
-
-              </select>
-
-              ${btn(
-                "Delete",
-                `data-delete-enquiry="${enquiry.id}"`,
-                "a-btn-danger"
-              )}
-            `,
-
-            `
-              <span class="a-badge">
-
-                ${ea(status)}
-
-              </span>
-            `
-          );
-        }
-      ).join("");
   };
 
 
@@ -2474,129 +2708,203 @@ PANEL_LOADERS.enquiries =
 PANEL_LOADERS.settings =
   async function () {
 
-    const business =
-      getBusiness();
+    try {
+
+      const business =
+        await getBusiness();
 
 
-    const fields = [
-      "phone",
-      "whatsapp",
-      "email",
-      "address",
-      "hours",
-      "mapUrl",
-      "facebook",
-      "instagram",
-      "youtube",
-      "aboutText",
-      "footerText"
-    ];
+      const data =
+        business || {};
 
 
-    fields.forEach(
-      field => {
+      setFieldValue(
+        "settings-phone",
+        data.phone || ""
+      );
 
-        const element =
-          $a(
-            "settings-" +
-            (
-              field === "mapUrl"
-                ? "map"
-                : field === "aboutText"
-                  ? "about"
-                  : field === "footerText"
-                    ? "footer"
-                    : field
-            )
-          );
+      setFieldValue(
+        "settings-whatsapp",
+        data.whatsapp || ""
+      );
+
+      setFieldValue(
+        "settings-email",
+        data.email || ""
+      );
+
+      setFieldValue(
+        "settings-address",
+        data.address || ""
+      );
+
+      setFieldValue(
+        "settings-hours",
+        data.hours || ""
+      );
+
+      setFieldValue(
+        "settings-map",
+        data.mapUrl || ""
+      );
+
+      setFieldValue(
+        "settings-facebook",
+        data.facebook || ""
+      );
+
+      setFieldValue(
+        "settings-instagram",
+        data.instagram || ""
+      );
+
+      setFieldValue(
+        "settings-youtube",
+        data.youtube || ""
+      );
+
+      setFieldValue(
+        "settings-about",
+        data.aboutText || ""
+      );
+
+      setFieldValue(
+        "settings-footer",
+        data.footerText || ""
+      );
 
 
-        if (element) {
+    } catch (error) {
 
-          element.value =
-            business[field] ||
-            "";
-
-        }
-      }
-    );
+      console.error(
+        "Settings error:",
+        error
+      );
+    }
   };
 
 
-async function saveSettingsForm(event) {
+async function saveSettingsForm(
+  event
+) {
 
   event.preventDefault();
 
 
-  const fields = {
+  const data = {
 
     phone:
-      $a(
+      getFieldValue(
         "settings-phone"
-      ).value.trim(),
+      ).trim(),
 
     whatsapp:
-      $a(
+      getFieldValue(
         "settings-whatsapp"
-      ).value.trim(),
+      ).trim(),
 
     email:
-      $a(
+      getFieldValue(
         "settings-email"
-      ).value.trim(),
+      ).trim(),
 
     address:
-      $a(
+      getFieldValue(
         "settings-address"
-      ).value.trim(),
+      ).trim(),
 
     hours:
-      $a(
+      getFieldValue(
         "settings-hours"
-      ).value.trim(),
+      ).trim(),
 
     mapUrl:
-      $a(
+      getFieldValue(
         "settings-map"
-      ).value.trim(),
+      ).trim(),
 
     facebook:
-      $a(
+      getFieldValue(
         "settings-facebook"
-      ).value.trim(),
+      ).trim(),
 
     instagram:
-      $a(
+      getFieldValue(
         "settings-instagram"
-      ).value.trim(),
+      ).trim(),
 
     youtube:
-      $a(
+      getFieldValue(
         "settings-youtube"
-      ).value.trim(),
+      ).trim(),
 
     aboutText:
-      $a(
+      getFieldValue(
         "settings-about"
-      ).value.trim(),
+      ).trim(),
 
     footerText:
-      $a(
+      getFieldValue(
         "settings-footer"
-      ).value.trim()
-
+      ).trim()
   };
 
 
-  if (
-    fields.email &&
-    !/^\S+@\S+\.\S+$/.test(
-      fields.email
-    )
-  ) {
+  await guard(
+    async () => {
+
+      await saveSettings(
+        data
+      );
+
+
+      adminToast(
+        "Settings saved successfully.",
+        "success"
+      );
+    }
+  );
+}
+
+
+/* =========================================================
+   GALLERY ADD
+   ========================================================= */
+
+async function saveGalleryForm(
+  event
+) {
+
+  event.preventDefault();
+
+
+  const fileInput =
+    $a("g-image");
+
+
+  const caption =
+    getFieldValue(
+      "g-caption"
+    ).trim();
+
+
+  const description =
+    getFieldValue(
+      "g-description"
+    ).trim();
+
+
+  const file =
+    fileInput &&
+    fileInput.files
+      ? fileInput.files[0]
+      : null;
+
+
+  if (!file) {
 
     adminToast(
-      "Please enter a valid email address.",
+      "Please select an image.",
       "error"
     );
 
@@ -2607,22 +2915,108 @@ async function saveSettingsForm(event) {
   await guard(
     async () => {
 
-      await saveSettings(
-        fields
-      );
+      const image =
+        await readImage(
+          file,
+          1200
+        );
+
+
+      await saveGalleryItem({
+
+        image_url:
+          image,
+
+        caption,
+
+        description
+      });
 
 
       adminToast(
-        "Settings updated successfully.",
+        "Image added successfully.",
         "success"
       );
+
+
+      const form =
+        $a(
+          "gallery-add-form"
+        );
+
+
+      if (form) {
+        form.reset();
+      }
+
+
+      await PANEL_LOADERS.gallery();
+
+      await PANEL_LOADERS.dashboard();
     }
   );
 }
 
 
 /* =========================================================
-   INIT
+   PANEL NAVIGATION
+   ========================================================= */
+
+function showPanel(
+  name
+) {
+
+  document
+    .querySelectorAll(
+      ".admin-panel"
+    )
+    .forEach(
+      panel => {
+
+        panel.classList.toggle(
+          "active",
+          panel.id ===
+            "panel-" + name
+        );
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-panel]"
+    )
+    .forEach(
+      item => {
+
+        item.classList.toggle(
+          "active",
+          item.dataset.panel ===
+            name
+        );
+      }
+    );
+
+
+  if (
+    PANEL_LOADERS[name]
+  ) {
+
+    guard(
+      PANEL_LOADERS[name]
+    );
+  }
+
+
+  window.scrollTo(
+    0,
+    0
+  );
+}
+
+
+/* =========================================================
+   INITIALIZATION
    ========================================================= */
 
 let adminInitialized =
@@ -2640,32 +3034,34 @@ function initAdmin() {
     true;
 
 
-  /* =======================================================
-     PANEL NAVIGATION
-     ======================================================= */
+  /* -------------------------------------------------------
+     NAVIGATION
+     ------------------------------------------------------- */
 
   document.addEventListener(
     "click",
     async event => {
 
-      const element =
+      const target =
         event.target.closest(
           "button, a"
         );
 
 
-      if (!element) {
+      if (!target) {
         return;
       }
 
 
       const data =
-        element.dataset;
+        target.dataset;
 
 
-      /* Panel */
+      /* PANEL */
 
-      if (data.panel) {
+      if (
+        data.panel
+      ) {
 
         event.preventDefault();
 
@@ -2677,9 +3073,11 @@ function initAdmin() {
       }
 
 
-      /* Modal close */
+      /* CLOSE MODAL */
 
-      if (data.close) {
+      if (
+        data.close
+      ) {
 
         closeModal(
           data.close
@@ -2689,114 +3087,15 @@ function initAdmin() {
       }
 
 
-      /* ===================================================
-         QUICK ACTIONS
-         =================================================== */
-
-      if (data.quick) {
-
-        if (
-          data.quick ===
-          "trip"
-        ) {
-
-          showPanel(
-            "trips"
-          );
-
-          await guard(
-            () =>
-              openTripModal(null)
-          );
-
-          return;
-        }
-
-
-        if (
-          data.quick ===
-          "vehicle"
-        ) {
-
-          showPanel(
-            "vehicles"
-          );
-
-          await guard(
-            () =>
-              openVehicleModal(null)
-          );
-
-          return;
-        }
-
-
-        if (
-          data.quick ===
-          "gallery"
-        ) {
-
-          showPanel(
-            "gallery"
-          );
-
-          const imageInput =
-            $a("g-image");
-
-          if (imageInput) {
-            imageInput.focus();
-          }
-
-          return;
-        }
-
-
-        if (
-          data.quick ===
-          "video"
-        ) {
-
-          showPanel(
-            "videos"
-          );
-
-          await guard(
-            () =>
-              openVideoModal(null)
-          );
-
-          return;
-        }
-
-
-        if (
-          data.quick ===
-          "review"
-        ) {
-
-          showPanel(
-            "reviews"
-          );
-
-          await guard(
-            () =>
-              openReviewModal(null)
-          );
-
-          return;
-        }
-      }
-
-
-      /* ===================================================
-         LOGOUT
-         =================================================== */
+      /* LOGOUT */
 
       if (
-        element.classList.contains(
+        target.classList.contains(
           "a-logout-btn"
         )
       ) {
+
+        event.preventDefault();
 
         await adminLogout();
 
@@ -2808,19 +3107,21 @@ function initAdmin() {
       }
 
 
-      /* ===================================================
-         TRIPS
-         =================================================== */
+      /* ---------------------------------------------------
+         QUICK ACTIONS
+         --------------------------------------------------- */
 
       if (
-        data.editTrip
+        data.quick ===
+        "trip"
       ) {
 
-        await guard(
-          () =>
-            openTripModal(
-              data.editTrip
-            )
+        showPanel(
+          "trips"
+        );
+
+        await openTripModal(
+          null
         );
 
         return;
@@ -2828,55 +3129,16 @@ function initAdmin() {
 
 
       if (
-        data.deleteTrip
+        data.quick ===
+        "vehicle"
       ) {
 
-        if (
-          !confirm(
-            "Delete this trip? This cannot be undone."
-          )
-        ) {
-          return;
-        }
-
-
-        await guard(
-          async () => {
-
-            await deleteTrip(
-              data.deleteTrip
-            );
-
-
-            adminToast(
-              "Trip deleted successfully.",
-              "success"
-            );
-
-
-            await PANEL_LOADERS.trips();
-
-            await PANEL_LOADERS.dashboard();
-          }
+        showPanel(
+          "vehicles"
         );
 
-        return;
-      }
-
-
-      /* ===================================================
-         VEHICLES
-         =================================================== */
-
-      if (
-        data.editVehicle
-      ) {
-
-        await guard(
-          () =>
-            openVehicleModal(
-              data.editVehicle
-            )
+        await openVehicleModal(
+          null
         );
 
         return;
@@ -2884,54 +3146,16 @@ function initAdmin() {
 
 
       if (
-        data.toggleVehicle
+        data.quick ===
+        "video"
       ) {
 
-        await guard(
-          async () => {
+        showPanel(
+          "videos"
+        );
 
-            const vehicles =
-              await getVehicles();
-
-
-            const vehicle =
-              vehicles.find(
-                item =>
-                  item.id ===
-                  Number(
-                    data.toggleVehicle
-                  )
-              );
-
-
-            if (!vehicle) {
-
-              throw new Error(
-                "Vehicle not found."
-              );
-            }
-
-
-            await updateVehicle(
-              vehicle.id,
-              {
-                available:
-                  vehicle.available ===
-                  false
-              }
-            );
-
-
-            adminToast(
-              "Vehicle availability updated.",
-              "success"
-            );
-
-
-            await PANEL_LOADERS.vehicles();
-
-            await PANEL_LOADERS.dashboard();
-          }
+        await openVideoModal(
+          null
         );
 
         return;
@@ -2939,134 +3163,16 @@ function initAdmin() {
 
 
       if (
-        data.deleteVehicle
+        data.quick ===
+        "review"
       ) {
 
-        if (
-          !confirm(
-            "Delete this vehicle? It will also be removed from trips using it."
-          )
-        ) {
-          return;
-        }
-
-
-        await guard(
-          async () => {
-
-            const vehicleId =
-              Number(
-                data.deleteVehicle
-              );
-
-
-            const trips =
-              await getTrips();
-
-
-            for (
-              const trip of trips
-            ) {
-
-              const ids =
-                trip.vehicleIds ||
-                [];
-
-
-              if (
-                ids.includes(
-                  vehicleId
-                )
-              ) {
-
-                const updatedIds =
-                  ids.filter(
-                    id =>
-                      Number(id) !==
-                      vehicleId
-                  );
-
-
-                await updateTrip(
-                  trip.id,
-                  {
-                    vehicleIds:
-                      updatedIds
-                  }
-                );
-              }
-            }
-
-
-            await deleteVehicle(
-              vehicleId
-            );
-
-
-            adminToast(
-              "Vehicle deleted successfully.",
-              "success"
-            );
-
-
-            await PANEL_LOADERS.vehicles();
-
-            await PANEL_LOADERS.trips();
-
-            await PANEL_LOADERS.dashboard();
-          }
+        showPanel(
+          "reviews"
         );
 
-        return;
-      }
-
-
-      /* ===================================================
-         GALLERY
-         =================================================== */
-
-      if (
-        data.saveCaption
-      ) {
-
-        await guard(
-          async () => {
-
-            const input =
-              document.querySelector(
-                `[data-caption-input="${CSS.escape(
-                  String(
-                    data.saveCaption
-                  )
-                )}"]`
-              );
-
-
-            if (!input) {
-
-              throw new Error(
-                "Caption field not found."
-              );
-            }
-
-
-            await updateGalleryItem(
-              data.saveCaption,
-              {
-                caption:
-                  input.value.trim()
-              }
-            );
-
-
-            adminToast(
-              "Caption updated successfully.",
-              "success"
-            );
-
-
-            await PANEL_LOADERS.gallery();
-          }
+        await openReviewModal(
+          null
         );
 
         return;
@@ -3074,792 +3180,4 @@ function initAdmin() {
 
 
       if (
-        data.toggleGallery
-      ) {
-
-        await guard(
-          async () => {
-
-            const items =
-              await getGallery();
-
-
-            const item =
-              items.find(
-                gallery =>
-                  gallery.id ===
-                  Number(
-                    data.toggleGallery
-                  )
-              );
-
-
-            if (!item) {
-
-              throw new Error(
-                "Gallery item not found."
-              );
-            }
-
-
-            await updateGalleryItem(
-              data.toggleGallery,
-              {
-                approved:
-                  item.approved ===
-                  false
-              }
-            );
-
-
-            adminToast(
-              "Photo visibility updated.",
-              "success"
-            );
-
-
-            await PANEL_LOADERS.gallery();
-
-            await PANEL_LOADERS.dashboard();
-          }
-        );
-
-        return;
-      }
-
-
-      if (
-        data.deletePhoto
-      ) {
-
-        if (
-          !confirm(
-            "Delete this image?"
-          )
-        ) {
-          return;
-        }
-
-
-        await guard(
-          async () => {
-
-            await deleteGalleryItem(
-              data.deletePhoto
-            );
-
-
-            adminToast(
-              "Image deleted successfully.",
-              "success"
-            );
-
-
-            await PANEL_LOADERS.gallery();
-
-            await PANEL_LOADERS.dashboard();
-          }
-        );
-
-        return;
-      }
-
-
-      /* ===================================================
-         VIDEOS
-         =================================================== */
-
-      if (
-        data.editVideo
-      ) {
-
-        await guard(
-          () =>
-            openVideoModal(
-              data.editVideo
-            )
-        );
-
-        return;
-      }
-
-
-      if (
-        data.deleteVideo
-      ) {
-
-        if (
-          !confirm(
-            "Delete this video?"
-          )
-        ) {
-          return;
-        }
-
-
-        await guard(
-          async () => {
-
-            await deleteVideo(
-              data.deleteVideo
-            );
-
-
-            adminToast(
-              "Video deleted successfully.",
-              "success"
-            );
-
-
-            await PANEL_LOADERS.videos();
-
-            await PANEL_LOADERS.dashboard();
-          }
-        );
-
-        return;
-      }
-
-
-      /* ===================================================
-         REVIEWS
-         =================================================== */
-
-      if (
-        data.editReview
-      ) {
-
-        await guard(
-          () =>
-            openReviewModal(
-              data.editReview
-            )
-        );
-
-        return;
-      }
-
-
-      if (
-        data.deleteReview
-      ) {
-
-        if (
-          !confirm(
-            "Delete this review?"
-          )
-        ) {
-          return;
-        }
-
-
-        await guard(
-          async () => {
-
-            await deleteReview(
-              data.deleteReview
-            );
-
-
-            adminToast(
-              "Review deleted successfully.",
-              "success"
-            );
-
-
-            await PANEL_LOADERS.reviews();
-
-            await PANEL_LOADERS.dashboard();
-          }
-        );
-
-        return;
-      }
-
-
-      if (
-        data.toggleReview
-      ) {
-
-        await guard(
-          async () => {
-
-            const reviews =
-              await getReviews();
-
-
-            const review =
-              reviews.find(
-                item =>
-                  item.id ===
-                  Number(
-                    data.toggleReview
-                  )
-              );
-
-
-            if (!review) {
-
-              throw new Error(
-                "Review not found."
-              );
-            }
-
-
-            await updateReview(
-              data.toggleReview,
-              {
-                approved:
-                  !review.approved
-              }
-            );
-
-
-            adminToast(
-              "Review visibility updated.",
-              "success"
-            );
-
-
-            await PANEL_LOADERS.reviews();
-
-            await PANEL_LOADERS.dashboard();
-          }
-        );
-
-        return;
-      }
-
-
-      /* ===================================================
-         ENQUIRIES
-         =================================================== */
-
-      if (
-        data.deleteEnquiry
-      ) {
-
-        if (
-          !confirm(
-            "Delete this enquiry?"
-          )
-        ) {
-          return;
-        }
-
-
-        await guard(
-          async () => {
-
-            await deleteEnquiry(
-              data.deleteEnquiry
-            );
-
-
-            adminToast(
-              "Enquiry deleted successfully.",
-              "success"
-            );
-
-
-            await PANEL_LOADERS.enquiries();
-
-            await PANEL_LOADERS.dashboard();
-          }
-        );
-
-        return;
-      }
-
-    }
-  );
-
-
-  /* =======================================================
-     CHANGE EVENTS
-     ======================================================= */
-
-  document.addEventListener(
-    "change",
-    event => {
-
-      const target =
-        event.target;
-
-
-      if (
-        target &&
-        target.dataset &&
-        target.dataset.enquiryStatus
-      ) {
-
-        guard(
-          async () => {
-
-            await updateEnquiry(
-              target.dataset.enquiryStatus,
-              {
-                status:
-                  target.value
-              }
-            );
-
-
-            adminToast(
-              "Enquiry status updated.",
-              "success"
-            );
-
-
-            await PANEL_LOADERS.enquiries();
-
-            await PANEL_LOADERS.dashboard();
-          }
-        );
-      }
-
-
-      if (
-        target &&
-        target.id ===
-          "enquiry-filter"
-      ) {
-
-        guard(
-          PANEL_LOADERS.enquiries
-        );
-      }
-    }
-  );
-
-
-  /* =======================================================
-     SEARCH
-     ======================================================= */
-
-  const tripSearch =
-    $a("trip-search");
-
-
-  if (tripSearch) {
-
-    tripSearch.addEventListener(
-      "input",
-      () =>
-        guard(
-          PANEL_LOADERS.trips
-        )
-    );
-  }
-
-
-  /* =======================================================
-     ADD BUTTONS
-     ======================================================= */
-
-  const addTrip =
-    $a("add-trip-btn");
-
-
-  if (addTrip) {
-
-    addTrip.addEventListener(
-      "click",
-      () =>
-        guard(
-          () =>
-            openTripModal(null)
-        )
-    );
-  }
-
-
-  const addVehicle =
-    $a("add-vehicle-btn");
-
-
-  if (addVehicle) {
-
-    addVehicle.addEventListener(
-      "click",
-      () =>
-        guard(
-          () =>
-            openVehicleModal(null)
-        )
-    );
-  }
-
-
-  const addVideo =
-    $a("add-video-btn");
-
-
-  if (addVideo) {
-
-    addVideo.addEventListener(
-      "click",
-      () =>
-        guard(
-          () =>
-            openVideoModal(null)
-        )
-    );
-  }
-
-
-  const addReview =
-    $a("add-review-btn");
-
-
-  if (addReview) {
-
-    addReview.addEventListener(
-      "click",
-      () =>
-        guard(
-          () =>
-            openReviewModal(null)
-        )
-    );
-  }
-
-
-  /* =======================================================
-     TRIP IMAGE
-     ======================================================= */
-
-  const tripImageInput =
-    $a(
-      "trip-image-input"
-    );
-
-
-  if (tripImageInput) {
-
-    tripImageInput.addEventListener(
-      "change",
-      event => {
-
-        guard(
-          async () => {
-
-            const image =
-              await readImage(
-                event.target.files[0]
-              );
-
-
-            if (!image) {
-              return;
-            }
-
-
-            tripImageDraft =
-              image;
-
-
-            const preview =
-              $a(
-                "trip-image-preview"
-              );
-
-
-            if (preview) {
-
-              preview.src =
-                image;
-            }
-          }
-        );
-      }
-    );
-  }
-
-
-  /* =======================================================
-     VEHICLE IMAGE
-     ======================================================= */
-
-  const vehicleImageInput =
-    $a(
-      "vehicle-image-input"
-    );
-
-
-  if (vehicleImageInput) {
-
-    vehicleImageInput.addEventListener(
-      "change",
-      event => {
-
-        guard(
-          async () => {
-
-            const image =
-              await readImage(
-                event.target.files[0]
-              );
-
-
-            if (!image) {
-              return;
-            }
-
-
-            vehicleImageDraft =
-              image;
-
-
-            const preview =
-              $a(
-                "vehicle-image-preview"
-              );
-
-
-            if (preview) {
-
-              preview.src =
-                image;
-            }
-          }
-        );
-      }
-    );
-  }
-
-
-  /* =======================================================
-     FORMS
-     ======================================================= */
-
-  const tripForm =
-    $a("trip-form");
-
-
-  if (tripForm) {
-
-    tripForm.addEventListener(
-      "submit",
-      saveTripForm
-    );
-  }
-
-
-  const vehicleForm =
-    $a("vehicle-form");
-
-
-  if (vehicleForm) {
-
-    vehicleForm.addEventListener(
-      "submit",
-      saveVehicleForm
-    );
-  }
-
-
-  const videoForm =
-    $a("video-form");
-
-
-  if (videoForm) {
-
-    videoForm.addEventListener(
-      "submit",
-      saveVideoForm
-    );
-  }
-
-
-  const reviewForm =
-    $a(
-      "review-form-admin"
-    );
-
-
-  if (reviewForm) {
-
-    reviewForm.addEventListener(
-      "submit",
-      saveReviewForm
-    );
-  }
-
-
-  const settingsForm =
-    $a("settings-form");
-
-
-  if (settingsForm) {
-
-    settingsForm.addEventListener(
-      "submit",
-      saveSettingsForm
-    );
-  }
-
-
-  /* =======================================================
-     GALLERY ADD
-     ======================================================= */
-
-  const galleryForm =
-    $a(
-      "gallery-add-form"
-    );
-
-
-  if (galleryForm) {
-
-    galleryForm.addEventListener(
-      "submit",
-      event => {
-
-        event.preventDefault();
-
-
-        guard(
-          async () => {
-
-            const imageInput =
-              $a("g-image");
-
-
-            const captionInput =
-              $a("g-caption");
-
-
-            const descriptionInput =
-              $a(
-                "g-description"
-              );
-
-
-            const file =
-              imageInput &&
-              imageInput.files
-                ? imageInput.files[0]
-                : null;
-
-
-            if (!file) {
-
-              adminToast(
-                "Please choose an image.",
-                "error"
-              );
-
-              return;
-            }
-
-
-            const image =
-              await readImage(
-                file,
-                1200
-              );
-
-
-            await saveGalleryItem({
-
-              image_url:
-                image,
-
-              caption:
-                captionInput
-                  ? captionInput.value.trim()
-                  : "",
-
-              description:
-                descriptionInput
-                  ? descriptionInput.value.trim()
-                  : ""
-
-            });
-
-
-            adminToast(
-              "Image added successfully.",
-              "success"
-            );
-
-
-            galleryForm.reset();
-
-
-            await PANEL_LOADERS.gallery();
-
-            await PANEL_LOADERS.dashboard();
-          }
-        );
-      }
-    );
-  }
-
-
-  /* =======================================================
-     ESC KEY
-     ======================================================= */
-
-  document.addEventListener(
-    "keydown",
-    event => {
-
-      if (
-        event.key !==
-        "Escape"
-      ) {
-        return;
-      }
-
-
-      document
-        .querySelectorAll(
-          ".a-modal-overlay.open"
-        )
-        .forEach(
-          modal =>
-            modal.classList.remove(
-              "open"
-            )
-        );
-    }
-  );
-
-
-  /* =======================================================
-     CLICK OUTSIDE MODAL
-     ======================================================= */
-
-  document.addEventListener(
-    "click",
-    event => {
-
-      const overlay =
-        event.target.closest(
-          ".a-modal-overlay"
-        );
-
-
-      if (
-        overlay &&
-        event.target === overlay
-      ) {
-
-        overlay.classList.remove(
-          "open"
-        );
-      }
-    }
-  );
-
-
-  /* =======================================================
-     INITIAL LOAD
-     ======================================================= */
-
-  showPanel(
-    "dashboard"
-  );
-}
+        data.quick
