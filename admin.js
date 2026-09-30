@@ -3180,4 +3180,943 @@ function initAdmin() {
 
 
       if (
-        data.quick
+        data.quick ===
+        "gallery"
+      ) {
+
+        showPanel(
+          "gallery"
+        );
+
+        const input =
+          $a("g-image");
+
+        if (input) {
+          input.focus();
+        }
+
+        return;
+      }
+
+
+      /* ---------------------------------------------------
+         TRIPS
+         --------------------------------------------------- */
+
+      if (
+        data.editTrip
+      ) {
+
+        await openTripModal(
+          data.editTrip
+        );
+
+        return;
+      }
+
+
+      if (
+        data.deleteTrip
+      ) {
+
+        if (
+          !confirm(
+            "Delete this trip?"
+          )
+        ) {
+          return;
+        }
+
+
+        await guard(
+          async () => {
+
+            await deleteTrip(
+              data.deleteTrip
+            );
+
+
+            adminToast(
+              "Trip deleted successfully.",
+              "success"
+            );
+
+
+            await PANEL_LOADERS.trips();
+
+            await PANEL_LOADERS.dashboard();
+          }
+        );
+
+        return;
+      }
+
+
+      /* ---------------------------------------------------
+         VEHICLES
+         --------------------------------------------------- */
+
+      if (
+        data.editVehicle
+      ) {
+
+        await openVehicleModal(
+          data.editVehicle
+        );
+
+        return;
+      }
+
+
+      if (
+        data.toggleVehicle
+      ) {
+
+        await guard(
+          async () => {
+
+            const vehicles =
+              await getVehicles();
+
+
+            const vehicle =
+              vehicles.find(
+                item =>
+                  Number(
+                    item.id
+                  ) ===
+                  Number(
+                    data.toggleVehicle
+                  )
+              );
+
+
+            if (!vehicle) {
+              throw new Error(
+                "Vehicle not found."
+              );
+            }
+
+
+            await updateVehicle(
+              vehicle.id,
+              {
+                available:
+                  vehicle.available ===
+                  false
+              }
+            );
+
+
+            adminToast(
+              "Vehicle availability updated.",
+              "success"
+            );
+
+
+            await PANEL_LOADERS.vehicles();
+
+            await PANEL_LOADERS.dashboard();
+          }
+        );
+
+        return;
+      }
+
+
+      if (
+        data.deleteVehicle
+      ) {
+
+        if (
+          !confirm(
+            "Delete this vehicle?"
+          )
+        ) {
+          return;
+        }
+
+
+        await guard(
+          async () => {
+
+            const vehicleId =
+              Number(
+                data.deleteVehicle
+              );
+
+
+            /*
+              Remove vehicle from
+              any trip using it.
+            */
+
+            const trips =
+              await getTrips();
+
+
+            for (
+              const trip of trips
+            ) {
+
+              const ids =
+                Array.isArray(
+                  trip.vehicleIds
+                )
+                  ? trip.vehicleIds
+                  : [];
+
+
+              if (
+                ids
+                  .map(Number)
+                  .includes(
+                    vehicleId
+                  )
+              ) {
+
+                const newIds =
+                  ids.filter(
+                    id =>
+                      Number(id) !==
+                      vehicleId
+                  );
+
+
+                await updateTrip(
+                  trip.id,
+                  {
+                    vehicleIds:
+                      newIds
+                  }
+                );
+              }
+            }
+
+
+            await deleteVehicle(
+              vehicleId
+            );
+
+
+            adminToast(
+              "Vehicle deleted successfully.",
+              "success"
+            );
+
+
+            await PANEL_LOADERS.vehicles();
+
+            await PANEL_LOADERS.trips();
+
+            await PANEL_LOADERS.dashboard();
+          }
+        );
+
+        return;
+      }
+
+
+      /* ---------------------------------------------------
+         GALLERY
+         --------------------------------------------------- */
+
+      if (
+        data.toggleGallery
+      ) {
+
+        await guard(
+          async () => {
+
+            const gallery =
+              await getGallery();
+
+
+            const item =
+              gallery.find(
+                row =>
+                  Number(
+                    row.id
+                  ) ===
+                  Number(
+                    data.toggleGallery
+                  )
+              );
+
+
+            if (!item) {
+              throw new Error(
+                "Gallery item not found."
+              );
+            }
+
+
+            await updateGalleryItem(
+              item.id,
+              {
+                approved:
+                  item.approved ===
+                  false
+              }
+            );
+
+
+            adminToast(
+              "Gallery visibility updated.",
+              "success"
+            );
+
+
+            await PANEL_LOADERS.gallery();
+
+            await PANEL_LOADERS.dashboard();
+          }
+        );
+
+        return;
+      }
+
+
+      if (
+        data.deletePhoto
+      ) {
+
+        if (
+          !confirm(
+            "Delete this gallery image?"
+          )
+        ) {
+          return;
+        }
+
+
+        await guard(
+          async () => {
+
+            await deleteGalleryItem(
+              data.deletePhoto
+            );
+
+
+            adminToast(
+              "Gallery image deleted.",
+              "success"
+            );
+
+
+            await PANEL_LOADERS.gallery();
+
+            await PANEL_LOADERS.dashboard();
+          }
+        );
+
+        return;
+      }
+
+
+      /* ---------------------------------------------------
+         VIDEOS
+         --------------------------------------------------- */
+
+      if (
+        data.editVideo
+      ) {
+
+        await openVideoModal(
+          data.editVideo
+        );
+
+        return;
+      }
+
+
+      if (
+        data.deleteVideo
+      ) {
+
+        if (
+          !confirm(
+            "Delete this video?"
+          )
+        ) {
+          return;
+        }
+
+
+        await guard(
+          async () => {
+
+            await deleteVideo(
+              data.deleteVideo
+            );
+
+
+            adminToast(
+              "Video deleted successfully.",
+              "success"
+            );
+
+
+            await PANEL_LOADERS.videos();
+
+            await PANEL_LOADERS.dashboard();
+          }
+        );
+
+        return;
+      }
+
+
+      /* ---------------------------------------------------
+         REVIEWS
+         --------------------------------------------------- */
+
+      if (
+        data.editReview
+      ) {
+
+        await openReviewModal(
+          data.editReview
+        );
+
+        return;
+      }
+
+
+      if (
+        data.toggleReview
+      ) {
+
+        await guard(
+          async () => {
+
+            const reviews =
+              await getReviews();
+
+
+            const review =
+              reviews.find(
+                row =>
+                  Number(
+                    row.id
+                  ) ===
+                  Number(
+                    data.toggleReview
+                  )
+              );
+
+
+            if (!review) {
+              throw new Error(
+                "Review not found."
+              );
+            }
+
+
+            await updateReview(
+              review.id,
+              {
+                approved:
+                  !review.approved
+              }
+            );
+
+
+            adminToast(
+              "Review visibility updated.",
+              "success"
+            );
+
+
+            await PANEL_LOADERS.reviews();
+
+            await PANEL_LOADERS.dashboard();
+          }
+        );
+
+        return;
+      }
+
+
+      if (
+        data.deleteReview
+      ) {
+
+        if (
+          !confirm(
+            "Delete this review?"
+          )
+        ) {
+          return;
+        }
+
+
+        await guard(
+          async () => {
+
+            await deleteReview(
+              data.deleteReview
+            );
+
+
+            adminToast(
+              "Review deleted successfully.",
+              "success"
+            );
+
+
+            await PANEL_LOADERS.reviews();
+
+            await PANEL_LOADERS.dashboard();
+          }
+        );
+
+        return;
+      }
+
+
+      /* ---------------------------------------------------
+         ENQUIRIES
+         --------------------------------------------------- */
+
+      if (
+        data.deleteEnquiry
+      ) {
+
+        if (
+          !confirm(
+            "Delete this enquiry?"
+          )
+        ) {
+          return;
+        }
+
+
+        await guard(
+          async () => {
+
+            await deleteEnquiry(
+              data.deleteEnquiry
+            );
+
+
+            adminToast(
+              "Enquiry deleted successfully.",
+              "success"
+            );
+
+
+            await PANEL_LOADERS.enquiries();
+
+            await PANEL_LOADERS.dashboard();
+          }
+        );
+
+        return;
+      }
+
+    }
+  );
+
+
+  /* =======================================================
+     CHANGE EVENTS
+     ======================================================= */
+
+  document.addEventListener(
+    "change",
+    event => {
+
+      const target =
+        event.target;
+
+
+      if (
+        target?.dataset
+          ?.enquiryStatus
+      ) {
+
+        guard(
+          async () => {
+
+            await updateEnquiry(
+              target.dataset
+                .enquiryStatus,
+              {
+                status:
+                  target.value
+              }
+            );
+
+
+            adminToast(
+              "Enquiry status updated.",
+              "success"
+            );
+
+
+            await PANEL_LOADERS.enquiries();
+
+            await PANEL_LOADERS.dashboard();
+          }
+        );
+      }
+
+
+      /* TRIP IMAGE */
+
+      if (
+        target?.id ===
+        "trip-image-input"
+      ) {
+
+        guard(
+          async () => {
+
+            const file =
+              target.files?.[0];
+
+
+            if (!file) {
+              return;
+            }
+
+
+            tripImageDraft =
+              await readImage(
+                file
+              );
+
+
+            const preview =
+              $a(
+                "trip-image-preview"
+              );
+
+
+            if (preview) {
+
+              preview.src =
+                tripImageDraft;
+            }
+          }
+        );
+      }
+
+
+      /* VEHICLE IMAGE */
+
+      if (
+        target?.id ===
+        "vehicle-image-input"
+      ) {
+
+        guard(
+          async () => {
+
+            const file =
+              target.files?.[0];
+
+
+            if (!file) {
+              return;
+            }
+
+
+            vehicleImageDraft =
+              await readImage(
+                file
+              );
+
+
+            const preview =
+              $a(
+                "vehicle-image-preview"
+              );
+
+
+            if (preview) {
+
+              preview.src =
+                vehicleImageDraft;
+            }
+          }
+        );
+      }
+
+
+      /* ENQUIRY FILTER */
+
+      if (
+        target?.id ===
+        "enquiry-filter"
+      ) {
+
+        guard(
+          PANEL_LOADERS
+            .enquiries
+        );
+      }
+    }
+  );
+
+
+  /* =======================================================
+     SEARCH
+     ======================================================= */
+
+  const tripSearch =
+    $a(
+      "trip-search"
+    );
+
+
+  if (tripSearch) {
+
+    tripSearch.addEventListener(
+      "input",
+      () => {
+
+        guard(
+          PANEL_LOADERS
+            .trips
+        );
+      }
+    );
+  }
+
+
+  /* =======================================================
+     ADD BUTTONS
+     ======================================================= */
+
+  const addTrip =
+    $a(
+      "add-trip-btn"
+    );
+
+
+  if (addTrip) {
+
+    addTrip.addEventListener(
+      "click",
+      () =>
+        openTripModal(
+          null
+        )
+    );
+  }
+
+
+  const addVehicle =
+    $a(
+      "add-vehicle-btn"
+    );
+
+
+  if (addVehicle) {
+
+    addVehicle.addEventListener(
+      "click",
+      () =>
+        openVehicleModal(
+          null
+        )
+    );
+  }
+
+
+  const addVideo =
+    $a(
+      "add-video-btn"
+    );
+
+
+  if (addVideo) {
+
+    addVideo.addEventListener(
+      "click",
+      () =>
+        openVideoModal(
+          null
+        )
+    );
+  }
+
+
+  const addReview =
+    $a(
+      "add-review-btn"
+    );
+
+
+  if (addReview) {
+
+    addReview.addEventListener(
+      "click",
+      () =>
+        openReviewModal(
+          null
+        )
+    );
+  }
+
+
+  /* =======================================================
+     FORMS
+     ======================================================= */
+
+  const tripForm =
+    $a(
+      "trip-form"
+    );
+
+
+  if (tripForm) {
+
+    tripForm.addEventListener(
+      "submit",
+      saveTripForm
+    );
+  }
+
+
+  const vehicleForm =
+    $a(
+      "vehicle-form"
+    );
+
+
+  if (vehicleForm) {
+
+    vehicleForm.addEventListener(
+      "submit",
+      saveVehicleForm
+    );
+  }
+
+
+  const videoForm =
+    $a(
+      "video-form"
+    );
+
+
+  if (videoForm) {
+
+    videoForm.addEventListener(
+      "submit",
+      saveVideoForm
+    );
+  }
+
+
+  const reviewForm =
+    $a(
+      "review-form-admin"
+    );
+
+
+  if (reviewForm) {
+
+    reviewForm.addEventListener(
+      "submit",
+      saveReviewForm
+    );
+  }
+
+
+  const settingsForm =
+    $a(
+      "settings-form"
+    );
+
+
+  if (settingsForm) {
+
+    settingsForm.addEventListener(
+      "submit",
+      saveSettingsForm
+    );
+  }
+
+
+  const galleryForm =
+    $a(
+      "gallery-add-form"
+    );
+
+
+  if (galleryForm) {
+
+    galleryForm.addEventListener(
+      "submit",
+      saveGalleryForm
+    );
+  }
+
+
+  /* =======================================================
+     ESCAPE TO CLOSE MODAL
+     ======================================================= */
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key ===
+        "Escape"
+      ) {
+
+        document
+          .querySelectorAll(
+            ".a-modal-overlay.open"
+          )
+          .forEach(
+            modal =>
+              modal.classList.remove(
+                "open"
+              )
+          );
+      }
+    }
+  );
+
+
+  /* =======================================================
+     CLICK OUTSIDE MODAL
+     ======================================================= */
+
+  document.addEventListener(
+    "click",
+    event => {
+
+      const overlay =
+        event.target.closest(
+          ".a-modal-overlay"
+        );
+
+
+      if (
+        overlay &&
+        event.target ===
+          overlay
+      ) {
+
+        overlay.classList.remove(
+          "open"
+        );
+      }
+    }
+  );
+
+
+  /* =======================================================
+     FIRST LOAD
+     ======================================================= */
+
+  showPanel(
+    "dashboard"
+  );
+}
