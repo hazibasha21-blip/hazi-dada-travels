@@ -93,7 +93,7 @@ const TRANSLATIONS = {
     destination: "गंतव्य"
   }
 };
-
+const translations = TRANSLATIONS;
 
 /* =========================================================
    PLACEHOLDER IMAGE
