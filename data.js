@@ -56,7 +56,60 @@ const TRANSLATIONS = {
     viewDetails: "View Details",
     duration: "Duration",
     price: "Price",
-    destination: "Destination"
+    destination: "Destination",
+
+    btn_book_now: "Book Now",
+    hero_title: "Explore More, Travel Better",
+    hero_subtitle: "Comfortable and reliable travel services for your journey.",
+    btn_explore_trips: "Explore Trips",
+
+    section_featured: "Featured Trips",
+    btn_see_all: "See All",
+    loading_trips: "Loading trips...",
+    empty_trips: "No trips available at the moment.",
+
+    section_vehicles: "Our Vehicles",
+    loading_vehicles: "Loading vehicles...",
+    empty_vehicles: "No vehicles available at the moment.",
+
+    why_title: "Why Choose Hazi Dada Travels?",
+    why_1_t: "Reliable Service",
+    why_1_d: "Dependable travel service for your journey.",
+    why_2_t: "Comfortable Vehicles",
+    why_2_d: "Travel comfortably with our well-maintained vehicles.",
+    why_3_t: "Multiple Destinations",
+    why_3_d: "Explore a variety of destinations with us.",
+    why_4_t: "Customer Friendly",
+    why_4_d: "We focus on making your journey simple and convenient.",
+
+    section_gallery: "Gallery",
+    loading_gallery: "Loading gallery...",
+    empty_gallery: "No gallery images available.",
+
+    section_video_preview: "Travel Videos",
+    loading_videos: "Loading videos...",
+
+    section_reviews: "Customer Reviews",
+    empty_reviews: "No reviews available yet.",
+
+    cta_title: "Ready to Start Your Journey?",
+    cta_sub: "Book your trip with Hazi Dada Travels today.",
+    btn_contact_us: "Contact Us",
+
+    footer_about: "Your trusted travel partner for comfortable and reliable journeys.",
+    footer_quick_links: "Quick Links",
+    nav_home: "Home",
+    nav_trips: "Trips",
+    nav_vehicles: "Vehicles",
+    nav_gallery: "Gallery",
+    nav_videos: "Videos",
+    nav_reviews: "Reviews",
+    nav_contact: "Contact",
+    footer_contact: "Contact Us",
+    footer_rights: "All rights reserved.",
+
+    err_load: "Unable to load information.",
+    btn_retry: "Retry"
   },
 
   te: {
@@ -73,7 +126,60 @@ const TRANSLATIONS = {
     viewDetails: "వివరాలు చూడండి",
     duration: "వ్యవధి",
     price: "ధర",
-    destination: "గమ్యం"
+    destination: "గమ్యం",
+
+    btn_book_now: "బుక్ చేయండి",
+    hero_title: "మరింత అన్వేషించండి, మెరుగ్గా ప్రయాణించండి",
+    hero_subtitle: "మీ ప్రయాణానికి సౌకర్యవంతమైన మరియు నమ్మకమైన ట్రావెల్ సేవలు.",
+    btn_explore_trips: "ట్రిప్స్ చూడండి",
+
+    section_featured: "ముఖ్యమైన ట్రిప్స్",
+    btn_see_all: "అన్నీ చూడండి",
+    loading_trips: "ట్రిప్స్ లోడ్ అవుతున్నాయి...",
+    empty_trips: "ప్రస్తుతం ట్రిప్స్ అందుబాటులో లేవు.",
+
+    section_vehicles: "మా వాహనాలు",
+    loading_vehicles: "వాహనాలు లోడ్ అవుతున్నాయి...",
+    empty_vehicles: "ప్రస్తుతం వాహనాలు అందుబాటులో లేవు.",
+
+    why_title: "హాజీ దాదా ట్రావెల్స్‌ను ఎందుకు ఎంచుకోవాలి?",
+    why_1_t: "నమ్మకమైన సేవ",
+    why_1_d: "మీ ప్రయాణానికి నమ్మకమైన ట్రావెల్ సేవ.",
+    why_2_t: "సౌకర్యవంతమైన వాహనాలు",
+    why_2_d: "మంచిగా నిర్వహించబడిన వాహనాల్లో సౌకర్యవంతంగా ప్రయాణించండి.",
+    why_3_t: "అనేక గమ్యస్థానాలు",
+    why_3_d: "మాతో కలిసి వివిధ గమ్యస్థానాలను సందర్శించండి.",
+    why_4_t: "కస్టమర్‌కు అనుకూలమైన సేవ",
+    why_4_d: "మీ ప్రయాణాన్ని సులభంగా మరియు సౌకర్యవంతంగా చేయడమే మా లక్ష్యం.",
+
+    section_gallery: "గ్యాలరీ",
+    loading_gallery: "గ్యాలరీ లోడ్ అవుతోంది...",
+    empty_gallery: "గ్యాలరీలో చిత్రాలు అందుబాటులో లేవు.",
+
+    section_video_preview: "ప్రయాణ వీడియోలు",
+    loading_videos: "వీడియోలు లోడ్ అవుతున్నాయి...",
+
+    section_reviews: "కస్టమర్ సమీక్షలు",
+    empty_reviews: "ఇంకా సమీక్షలు అందుబాటులో లేవు.",
+
+    cta_title: "మీ ప్రయాణాన్ని ప్రారంభించడానికి సిద్ధంగా ఉన్నారా?",
+    cta_sub: "ఈరోజే హాజీ దాదా ట్రావెల్స్‌తో మీ ట్రిప్‌ను బుక్ చేసుకోండి.",
+    btn_contact_us: "సంప్రదించండి",
+
+    footer_about: "సౌకర్యవంతమైన మరియు నమ్మకమైన ప్రయాణాలకు మీ విశ్వసనీయ ట్రావెల్ భాగస్వామి.",
+    footer_quick_links: "త్వరిత లింకులు",
+    nav_home: "హోమ్",
+    nav_trips: "ట్రిప్స్",
+    nav_vehicles: "వాహనాలు",
+    nav_gallery: "గ్యాలరీ",
+    nav_videos: "వీడియోలు",
+    nav_reviews: "సమీక్షలు",
+    nav_contact: "సంప్రదించండి",
+    footer_contact: "సంప్రదించండి",
+    footer_rights: "అన్ని హక్కులు రిజర్వ్ చేయబడ్డాయి.",
+
+    err_load: "సమాచారాన్ని లోడ్ చేయలేకపోయాము.",
+    btn_retry: "మళ్లీ ప్రయత్నించండి"
   },
 
   hi: {
@@ -90,9 +196,63 @@ const TRANSLATIONS = {
     viewDetails: "विवरण देखें",
     duration: "अवधि",
     price: "कीमत",
-    destination: "गंतव्य"
+    destination: "गंतव्य",
+
+    btn_book_now: "बुक करें",
+    hero_title: "और अधिक खोजें, बेहतर यात्रा करें",
+    hero_subtitle: "आपकी यात्रा के लिए आरामदायक और भरोसेमंद ट्रैवल सेवाएँ।",
+    btn_explore_trips: "ट्रिप्स देखें",
+
+    section_featured: "विशेष ट्रिप्स",
+    btn_see_all: "सभी देखें",
+    loading_trips: "ट्रिप्स लोड हो रही हैं...",
+    empty_trips: "फिलहाल कोई ट्रिप उपलब्ध नहीं है।",
+
+    section_vehicles: "हमारे वाहन",
+    loading_vehicles: "वाहन लोड हो रहे हैं...",
+    empty_vehicles: "फिलहाल कोई वाहन उपलब्ध नहीं है।",
+
+    why_title: "हाजी दादा ट्रैवल्स क्यों चुनें?",
+    why_1_t: "भरोसेमंद सेवा",
+    why_1_d: "आपकी यात्रा के लिए भरोसेमंद ट्रैवल सेवा।",
+    why_2_t: "आरामदायक वाहन",
+    why_2_d: "अच्छी तरह से रखरखाव किए गए वाहनों में आराम से यात्रा करें।",
+    why_3_t: "कई गंतव्य",
+    why_3_d: "हमारे साथ विभिन्न गंतव्यों की यात्रा करें।",
+    why_4_t: "ग्राहक अनुकूल सेवा",
+    why_4_d: "हम आपकी यात्रा को आसान और सुविधाजनक बनाने पर ध्यान देते हैं।",
+
+    section_gallery: "गैलरी",
+    loading_gallery: "गैलरी लोड हो रही है...",
+    empty_gallery: "गैलरी में कोई चित्र उपलब्ध नहीं है।",
+
+    section_video_preview: "यात्रा वीडियो",
+    loading_videos: "वीडियो लोड हो रहे हैं...",
+
+    section_reviews: "ग्राहक समीक्षाएँ",
+    empty_reviews: "अभी कोई समीक्षा उपलब्ध नहीं है।",
+
+    cta_title: "अपनी यात्रा शुरू करने के लिए तैयार हैं?",
+    cta_sub: "आज ही हाजी दादा ट्रैवल्स के साथ अपनी यात्रा बुक करें।",
+    btn_contact_us: "संपर्क करें",
+
+    footer_about: "आरामदायक और भरोसेमंद यात्राओं के लिए आपका विश्वसनीय ट्रैवल पार्टनर।",
+    footer_quick_links: "त्वरित लिंक",
+    nav_home: "होम",
+    nav_trips: "ट्रिप्स",
+    nav_vehicles: "वाहन",
+    nav_gallery: "गैलरी",
+    nav_videos: "वीडियो",
+    nav_reviews: "समीक्षाएँ",
+    nav_contact: "संपर्क करें",
+    footer_contact: "संपर्क करें",
+    footer_rights: "सर्वाधिकार सुरक्षित।",
+
+    err_load: "जानकारी लोड नहीं हो सकी।",
+    btn_retry: "फिर से प्रयास करें"
   }
 };
+
 const translations = TRANSLATIONS;
 
 /* =========================================================
