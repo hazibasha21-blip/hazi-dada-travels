@@ -254,6 +254,7 @@ const TRANSLATIONS = {
 };
 
 const translations = TRANSLATIONS;
+window.translations = TRANSLATIONS;
 
 /* =========================================================
    PLACEHOLDER IMAGE
