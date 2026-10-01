@@ -1261,4 +1261,459 @@ function enquiryRowFromUI(enquiry = {}) {
 }
 
 
-function mapEnquiry(row =
+function mapEnquiry(row = {}) {
+  return {
+    id: row.id,
+    created_at: row.created_at || null,
+    name: row.name || "",
+    phone: row.phone || "",
+    trip: row.trip || "",
+    message: row.message || "",
+    status: row.status || "new"
+  };
+}
+
+
+async function getEnquiries() {
+  const db = ensureSupabase();
+
+  const {
+    data,
+    error
+  } = await db
+    .from("enquiries")
+    .select("*")
+    .order("created_at", {
+      ascending: false
+    });
+
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load enquiries."
+    );
+  }
+
+  return (data || []).map(mapEnquiry);
+}
+
+
+async function saveEnquiry(enquiry) {
+  const db = ensureSupabase();
+  const row = enquiryRowFromUI(enquiry);
+
+  const {
+    data,
+    error
+  } = await db
+    .from("enquiries")
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to submit enquiry."
+    );
+  }
+
+  return mapEnquiry(data);
+}
+
+
+async function updateEnquiryStatus(id, status) {
+  const db = ensureSupabase();
+
+  const {
+    data,
+    error
+  } = await db
+    .from("enquiries")
+    .update({
+      status: status || "new"
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to update enquiry."
+    );
+  }
+
+  return mapEnquiry(data);
+}
+
+
+async function deleteEnquiry(id) {
+  const db = ensureSupabase();
+
+  const { error } = await db
+    .from("enquiries")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to delete enquiry."
+    );
+  }
+
+  return true;
+}
+
+
+/* =========================================================
+   VIDEOS
+   ========================================================= */
+
+function mapVideo(row = {}) {
+  return {
+    id: row.id,
+    created_at: row.created_at || null,
+    title: row.title || "",
+    description: row.description || "",
+    youtube_id: row.youtube_id || "",
+    youtubeId: row.youtube_id || ""
+  };
+}
+
+
+function videoRowFromUI(video = {}) {
+  return {
+    title: video.title || "",
+    description: video.description || "",
+
+    youtube_id:
+      video.youtube_id ||
+      video.youtubeId ||
+      ""
+  };
+}
+
+
+async function getVideos() {
+  const db = ensureSupabase();
+
+  const {
+    data,
+    error
+  } = await db
+    .from("videos")
+    .select("*")
+    .order("created_at", {
+      ascending: false
+    });
+
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load videos."
+    );
+  }
+
+  return (data || []).map(mapVideo);
+}
+
+
+async function saveVideo(video) {
+  const db = ensureSupabase();
+  const row = videoRowFromUI(video);
+
+  if (
+    video.id !== undefined &&
+    video.id !== null &&
+    video.id !== ""
+  ) {
+    const {
+      data,
+      error
+    } = await db
+      .from("videos")
+      .update(row)
+      .eq("id", video.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw dbError(
+        error,
+        "Failed to update video."
+      );
+    }
+
+    return mapVideo(data);
+  }
+
+  const {
+    data,
+    error
+  } = await db
+    .from("videos")
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to create video."
+    );
+  }
+
+  return mapVideo(data);
+}
+
+
+async function deleteVideo(id) {
+  const db = ensureSupabase();
+
+  const { error } = await db
+    .from("videos")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to delete video."
+    );
+  }
+
+  return true;
+}
+
+
+/* =========================================================
+   SETTINGS
+   ========================================================= */
+
+function settingsRowFromUI(settings = {}) {
+  return {
+    business_name:
+      settings.business_name ??
+      settings.name ??
+      "",
+
+    phone:
+      settings.phone ?? "",
+
+    whatsapp:
+      settings.whatsapp ?? "",
+
+    email:
+      settings.email ?? "",
+
+    address:
+      settings.address ?? "",
+
+    description:
+      settings.description ?? "",
+
+    hours:
+      settings.hours ?? "",
+
+    map_url:
+      settings.map_url ?? "",
+
+    facebook:
+      settings.facebook ?? "",
+
+    instagram:
+      settings.instagram ?? "",
+
+    youtube:
+      settings.youtube ?? "",
+
+    about_text:
+      settings.about_text ?? "",
+
+    footer_text:
+      settings.footer_text ?? ""
+  };
+}
+
+
+async function getSettings() {
+  const db = ensureSupabase();
+
+  const {
+    data,
+    error
+  } = await db
+    .from("settings")
+    .select("*")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load settings."
+    );
+  }
+
+  return data || null;
+}
+
+
+async function saveSettings(settings = {}) {
+  const db = ensureSupabase();
+
+  /*
+   * Always fetch the existing row first when the caller
+   * did not provide all fields. This prevents dashboard
+   * fields that are not present in the form from being
+   * erased.
+   */
+  let existing = null;
+
+  if (
+    settings.id === undefined ||
+    settings.id === null ||
+    settings.id === ""
+  ) {
+    const {
+      data,
+      error
+    } = await db
+      .from("settings")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw dbError(
+        error,
+        "Failed to check existing settings."
+      );
+    }
+
+    existing = data || null;
+  } else {
+    const {
+      data,
+      error
+    } = await db
+      .from("settings")
+      .select("*")
+      .eq("id", settings.id)
+      .maybeSingle();
+
+    if (error) {
+      throw dbError(
+        error,
+        "Failed to load existing settings."
+      );
+    }
+
+    existing = data || null;
+  }
+
+  /*
+   * Merge existing DB values with incoming values.
+   * This is especially important for business_name
+   * and description because they are not displayed
+   * in dashboard.html.
+   */
+  const merged = {
+    ...(existing || {}),
+    ...settings
+  };
+
+  const row = settingsRowFromUI(merged);
+
+  let result;
+
+  if (existing && existing.id !== undefined) {
+    const {
+      data,
+      error
+    } = await db
+      .from("settings")
+      .update(row)
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw dbError(
+        error,
+        "Failed to update settings."
+      );
+    }
+
+    result = data;
+
+  } else {
+    const {
+      data,
+      error
+    } = await db
+      .from("settings")
+      .insert(row)
+      .select()
+      .single();
+
+    if (error) {
+      throw dbError(
+        error,
+        "Failed to create settings."
+      );
+    }
+
+    result = data;
+  }
+
+  businessCache =
+    normalizeBusiness(result);
+
+  return result;
+}
+
+
+/* =========================================================
+   DATA LAYER INITIALIZATION
+   ========================================================= */
+
+async function initDataLayer() {
+  try {
+    ensureSupabase();
+
+    await refreshBusinessCache();
+
+    return true;
+
+  } catch (error) {
+    console.warn(
+      "[data.js] Data layer initialization warning:",
+      error
+    );
+
+    return false;
+  }
+}
+
+
+/* =========================================================
+   START DATA LAYER
+   ========================================================= */
+
+if (typeof window !== "undefined") {
+  window.addEventListener(
+    "DOMContentLoaded",
+    function () {
+      initDataLayer()
+        .catch(function (error) {
+          console.warn(
+            "[data.js] Initialization failed:",
+            error
+          );
+        });
+    }
+  );
+}
