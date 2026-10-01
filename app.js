@@ -1098,10 +1098,6 @@ async function renderTripDetails(id) {
   let trip = null;
 
   try {
-    /*
-      Current data.js provides getTrip().
-      Older app.js expected getTripById().
-    */
     trip = await getTrip(id);
   } catch (err) {
     console.error(
@@ -1121,12 +1117,6 @@ async function renderTripDetails(id) {
     return;
   }
 
-  /*
-    Current trips table contains a single
-    vehicle text field, not vehicleIds.
-    Therefore we load all vehicles and show
-    available vehicles.
-  */
   let vehicles = [];
 
   try {
@@ -2074,7 +2064,7 @@ function renderFooter() {
             .join("")
         }
 
-        <!-- Only change: force fresh admin login -->
+        <!-- Admin Panel -->
         <a
           href="login.html?force=1"
           class="admin-link"
