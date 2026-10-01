@@ -1,33 +1,31 @@
 /* =========================================================
-   HAZI DADA TRAVELS
-   data.js
-   Supabase data layer + translations + business settings
+   HAZI DADA TRAVELS — DATA LAYER
+   Supabase + translations + CRUD
+   Compatible with current app.js
    ========================================================= */
 
-/* =========================================================
-   FALLBACKS
-   ========================================================= */
+
+/* ---------------------------------------------------------
+   FALLBACK IMAGE
+   --------------------------------------------------------- */
 
 const PLACEHOLDER_FALLBACK =
   "https://placehold.co/800x500?text=Hazi+Dada+Travels";
 
-const ADMIN_USER_ID =
-  "589555e8-5853-4e58-aaac-8038ec833c80";
 
-let BUSINESS_CACHE = null;
-
-
-/* =========================================================
+/* ---------------------------------------------------------
    TRANSLATIONS
-   ========================================================= */
+   --------------------------------------------------------- */
 
 const translations = {
 
-  /* =========================
+  /* =======================================================
      ENGLISH
-     ========================= */
+     ======================================================= */
 
   en: {
+
+    /* Navigation */
     home: "Home",
     trips: "Trips",
     vehicles: "Vehicles",
@@ -35,96 +33,41 @@ const translations = {
     videos: "Videos",
     reviews: "Reviews",
     contact: "Contact",
-    about: "About",
 
+    nav_home: "Home",
+    nav_trips: "Trips",
+    nav_vehicles: "Vehicles",
+    nav_gallery: "Gallery",
+    nav_videos: "Videos",
+    nav_reviews: "Reviews",
+    nav_contact: "Contact",
+
+    /* Language */
     language: "Language",
     selectLanguage: "Select Language",
     english: "English",
     telugu: "Telugu",
     hindi: "Hindi",
 
+    /* Hero */
     hero_title: "Travel with Hazi Dada Travels",
     hero_subtitle: "Comfortable travel, trusted service.",
     btn_explore_trips: "Explore Trips",
     btn_book_now: "Book Now",
 
+    /* Sections */
     section_featured: "Featured Trips",
-    section_vehicles: "Our Vehicles",
+    section_trips: "Trips",
+    section_vehicles: "Vehicles",
     section_gallery: "Gallery",
-    section_video_preview: "Latest Videos",
-    section_reviews: "Customer Reviews",
+    section_video_preview: "Videos",
+    section_videos: "Videos",
+    section_reviews: "Reviews",
+    section_contact: "Contact",
 
-    section_trips: "Our Trips",
-    section_all_trips: "All Trips",
+    btn_see_all: "See all",
 
-    why_title: "Why Choose Us",
-
-    why_1_t: "Easy Booking",
-    why_1_d: "Simple and convenient booking through phone or WhatsApp.",
-
-    why_2_t: "Comfortable Vehicles",
-    why_2_d: "Travel comfortably in well-maintained vehicles.",
-
-    why_3_t: "Flexible Trips",
-    why_3_d: "Choose trips and travel options according to your needs.",
-
-    why_4_t: "Trusted Service",
-    why_4_d: "Reliable service focused on a smooth travel experience.",
-
-    plan_title: "Plan Your Journey",
-    plan_description: "Contact us for trips and vehicle bookings.",
-
-    contactUs: "Contact Us",
-    callNow: "Call Now",
-    whatsapp: "WhatsApp",
-    sendEnquiry: "Send Enquiry",
-
-    bookNow: "Book Now",
-    viewDetails: "View Details",
-    bookTrip: "Book Trip",
-
-    name: "Name",
-    phone: "Phone",
-    email: "Email",
-    message: "Message",
-
-    yourName: "Your Name",
-    yourPhone: "Your Phone",
-    yourEmail: "Your Email",
-    yourMessage: "Your Message",
-
-    destination: "Destination",
-    duration: "Duration",
-    price: "Price",
-    vehicle: "Vehicle",
-
-    capacity: "Capacity",
-    registration: "Registration",
-    available: "Available",
-    unavailable: "Unavailable",
-
-    rating: "Rating",
-    comment: "Comment",
-
-    trip: "Trip",
-    selectTrip: "Select Trip",
-
-    address: "Address",
-    hours: "Hours",
-
-    followUs: "Follow Us",
-
-    submit: "Submit",
-    send: "Send",
-    cancel: "Cancel",
-    close: "Close",
-    back: "Back",
-    next: "Next",
-    previous: "Previous",
-
-    readMore: "Read More",
-    watchVideo: "Watch Video",
-
+    /* Loading */
     loading: "Loading...",
     loading_trips: "Loading trips...",
     loading_vehicles: "Loading vehicles...",
@@ -132,344 +75,589 @@ const translations = {
     loading_videos: "Loading videos...",
     loading_reviews: "Loading reviews...",
 
-    noTrips: "Nothing available right now.",
-    noVehicles: "Nothing available right now.",
-    noGallery: "Nothing available right now.",
-    noVideos: "Nothing available right now.",
-    noReviews: "Nothing available right now.",
+    /* Empty */
+    empty_trips: "No trips available.",
+    empty_vehicles: "No vehicles available.",
+    empty_gallery: "No photos available.",
+    empty_videos: "No videos available.",
+    empty_reviews: "No reviews available.",
 
-    nothing_available: "Nothing available right now.",
+    /* Errors */
+    err_load: "Unable to load this section.",
+    btn_retry: "Retry",
+    err_required: "Please fill in the required fields.",
+    error_generic: "Something went wrong.",
+    error_trip_not_found: "Trip not found.",
 
-    enquirySent: "Your enquiry has been sent successfully.",
-    reviewSent: "Your review has been submitted successfully.",
-    somethingWentWrong: "Something went wrong. Please try again.",
+    /* Why choose us */
+    why_title: "Why Choose Us",
 
-    admin: "Admin",
+    why_1_t: "Easy Booking",
+    why_1_d: "Simple booking through call or WhatsApp.",
 
-    footer_about:
-      "Travel with Hazi Dada Travels.",
+    why_2_t: "Comfortable Vehicles",
+    why_2_d: "Comfortable vehicles for your travel needs.",
 
-    footer_rights:
-      "All rights reserved."
+    why_3_t: "Flexible Trips",
+    why_3_d: "Choose trips and travel options that suit you.",
+
+    why_4_t: "Trusted Service",
+    why_4_d: "Reliable service focused on your journey.",
+
+    /* CTA */
+    cta_title: "Plan Your Journey",
+    cta_sub: "Contact us for trips and vehicle bookings.",
+
+    /* Buttons */
+    btn_view_details: "View Details",
+    btn_book_vehicle: "Book Vehicle",
+    btn_call: "Call",
+    btn_whatsapp: "WhatsApp",
+    btn_email: "Email",
+    btn_open_map: "Open Map",
+    btn_contact_us: "Contact Us",
+    btn_enquire: "Enquire Now",
+    btn_submit: "Submit",
+    btn_send: "Send",
+    btn_close: "Close",
+    btn_cancel: "Cancel",
+    btn_back: "Back",
+
+    /* Labels */
+    label_destination: "Destination",
+    label_duration: "Duration",
+    label_price: "Price",
+    label_highlights: "Highlights",
+    label_trip_gallery: "Trip Gallery",
+    label_available_vehicles: "Available Vehicles",
+    label_available: "Available",
+    label_unavailable: "Unavailable",
+
+    /* Compatibility aliases */
+    destination: "Destination",
+    duration: "Duration",
+    price: "Price",
+    vehicle: "Vehicle",
+    capacity: "Capacity",
+    registration: "Registration",
+    available: "Available",
+    unavailable: "Unavailable",
+
+    /* Categories */
+    cat_all: "All",
+
+    /* Reviews */
+    write_review: "Write a Review",
+    form_your_name: "Your Name",
+    form_rating: "Rating",
+    form_review_text: "Your Review",
+    sample_badge: "Sample",
+
+    /* Contact */
+    contactUs: "Contact Us",
+    contact_phone: "Phone",
+    contact_email: "Email",
+    contact_address: "Address",
+    contact_hours: "Hours",
+    contact_social: "Social",
+
+    /* Footer */
+    footer_about: "Travel with Hazi Dada Travels.",
+    footer_quick_links: "Quick Links",
+    footer_contact: "Contact",
+    footer_rights: "All rights reserved.",
+
+    /* Forms */
+    name: "Name",
+    phone: "Phone",
+    email: "Email",
+    message: "Message",
+    trip: "Trip",
+    selectTrip: "Select Trip",
+    rating: "Rating",
+    comment: "Comment",
+    yourName: "Your Name",
+    yourPhone: "Your Phone",
+    yourEmail: "Your Email",
+    yourMessage: "Your Message",
+    send: "Send",
+    submit: "Submit",
+    cancel: "Cancel",
+    close: "Close",
+
+    /* Media */
+    readMore: "Read More",
+    next: "Next",
+    previous: "Previous",
+    watchVideo: "Watch Video",
+
+    /* Booking */
+    bookTrip: "Book Trip",
+
+    /* Messages */
+    enquirySent: "Enquiry sent successfully.",
+    reviewSent: "Review submitted successfully.",
+    toast_enquiry_sent: "Enquiry sent successfully.",
+    toast_review_submitted: "Review submitted successfully.",
+    somethingWentWrong: "Something went wrong.",
+    no_video_link: "Video link is not available."
   },
 
 
-  /* =========================
+  /* =======================================================
      TELUGU
-     ========================= */
+     ======================================================= */
 
   te: {
+
+    /* Navigation */
     home: "హోమ్",
-    trips: "ప్రయాణాలు",
+    trips: "ట్రిప్స్",
     vehicles: "వాహనాలు",
     gallery: "గ్యాలరీ",
     videos: "వీడియోలు",
-    reviews: "సమీక్షలు",
+    reviews: "రివ్యూలు",
     contact: "సంప్రదించండి",
-    about: "మా గురించి",
 
+    nav_home: "హోమ్",
+    nav_trips: "ట్రిప్స్",
+    nav_vehicles: "వాహనాలు",
+    nav_gallery: "గ్యాలరీ",
+    nav_videos: "వీడియోలు",
+    nav_reviews: "రివ్యూలు",
+    nav_contact: "సంప్రదించండి",
+
+    /* Language */
     language: "భాష",
     selectLanguage: "భాషను ఎంచుకోండి",
     english: "ఇంగ్లీష్",
     telugu: "తెలుగు",
     hindi: "హిందీ",
 
+    /* Hero */
     hero_title: "హాజీ దాదా ట్రావెల్స్‌తో ప్రయాణించండి",
-    hero_subtitle: "సౌకర్యవంతమైన ప్రయాణం, విశ్వసనీయ సేవ.",
-    btn_explore_trips: "ప్రయాణాలను చూడండి",
+    hero_subtitle: "సౌకర్యవంతమైన ప్రయాణం, నమ్మకమైన సేవ.",
+    btn_explore_trips: "ట్రిప్స్ చూడండి",
     btn_book_now: "ఇప్పుడే బుక్ చేయండి",
 
-    section_featured: "ప్రత్యేక ప్రయాణాలు",
-    section_vehicles: "మా వాహనాలు",
+    /* Sections */
+    section_featured: "ప్రత్యేక ట్రిప్స్",
+    section_trips: "ట్రిప్స్",
+    section_vehicles: "వాహనాలు",
     section_gallery: "గ్యాలరీ",
-    section_video_preview: "తాజా వీడియోలు",
-    section_reviews: "కస్టమర్ సమీక్షలు",
+    section_video_preview: "వీడియోలు",
+    section_videos: "వీడియోలు",
+    section_reviews: "రివ్యూలు",
+    section_contact: "సంప్రదించండి",
 
-    section_trips: "మా ప్రయాణాలు",
-    section_all_trips: "అన్ని ప్రయాణాలు",
+    btn_see_all: "అన్నీ చూడండి",
 
-    why_title: "మమ్మల్ని ఎందుకు ఎంచుకోవాలి",
+    /* Loading */
+    loading: "లోడ్ అవుతోంది...",
+    loading_trips: "ట్రిప్స్ లోడ్ అవుతున్నాయి...",
+    loading_vehicles: "వాహనాలు లోడ్ అవుతున్నాయి...",
+    loading_gallery: "గ్యాలరీ లోడ్ అవుతోంది...",
+    loading_videos: "వీడియోలు లోడ్ అవుతున్నాయి...",
+    loading_reviews: "రివ్యూలు లోడ్ అవుతున్నాయి...",
+
+    /* Empty */
+    empty_trips: "ప్రస్తుతం ట్రిప్స్ అందుబాటులో లేవు.",
+    empty_vehicles: "ప్రస్తుతం వాహనాలు అందుబాటులో లేవు.",
+    empty_gallery: "ప్రస్తుతం ఫోటోలు అందుబాటులో లేవు.",
+    empty_videos: "ప్రస్తుతం వీడియోలు అందుబాటులో లేవు.",
+    empty_reviews: "ప్రస్తుతం రివ్యూలు అందుబాటులో లేవు.",
+
+    /* Errors */
+    err_load: "ఈ విభాగాన్ని లోడ్ చేయలేకపోయాము.",
+    btn_retry: "మళ్లీ ప్రయత్నించండి",
+    err_required: "అవసరమైన వివరాలను నమోదు చేయండి.",
+    error_generic: "ఏదో సమస్య ఏర్పడింది.",
+    error_trip_not_found: "ట్రిప్ కనుగొనబడలేదు.",
+
+    /* Why */
+    why_title: "మమ్మల్ని ఎందుకు ఎంచుకోవాలి?",
 
     why_1_t: "సులభమైన బుకింగ్",
-    why_1_d: "ఫోన్ లేదా వాట్సాప్ ద్వారా సులభంగా బుకింగ్ చేసుకోవచ్చు.",
+    why_1_d: "కాల్ లేదా వాట్సాప్ ద్వారా సులభంగా బుక్ చేసుకోండి.",
 
     why_2_t: "సౌకర్యవంతమైన వాహనాలు",
-    why_2_d: "చక్కగా నిర్వహించబడిన వాహనాల్లో సౌకర్యవంతంగా ప్రయాణించండి.",
+    why_2_d: "మీ ప్రయాణ అవసరాలకు అనువైన సౌకర్యవంతమైన వాహనాలు.",
 
-    why_3_t: "సౌకర్యవంతమైన ప్రయాణాలు",
-    why_3_d: "మీ అవసరాలకు అనుగుణంగా ప్రయాణాలను ఎంచుకోండి.",
+    why_3_t: "అనువైన ట్రిప్స్",
+    why_3_d: "మీకు అనుకూలమైన ట్రిప్ మరియు ప్రయాణ ఎంపికలను ఎంచుకోండి.",
 
-    why_4_t: "విశ్వసనీయ సేవ",
-    why_4_d: "సురక్షితమైన మరియు సౌకర్యవంతమైన ప్రయాణ అనుభవానికి నమ్మకమైన సేవ.",
+    why_4_t: "నమ్మకమైన సేవ",
+    why_4_d: "మీ ప్రయాణంపై దృష్టి పెట్టే నమ్మకమైన సేవ.",
 
-    plan_title: "మీ ప్రయాణాన్ని ప్లాన్ చేసుకోండి",
-    plan_description:
-      "ప్రయాణాలు మరియు వాహన బుకింగ్ కోసం మమ్మల్ని సంప్రదించండి.",
+    /* CTA */
+    cta_title: "మీ ప్రయాణాన్ని ప్లాన్ చేసుకోండి",
+    cta_sub: "ట్రిప్స్ మరియు వాహనాల బుకింగ్ కోసం మమ్మల్ని సంప్రదించండి.",
 
-    contactUs: "మమ్మల్ని సంప్రదించండి",
-    callNow: "ఇప్పుడే కాల్ చేయండి",
-    whatsapp: "వాట్సాప్",
-    sendEnquiry: "విచారణ పంపండి",
+    /* Buttons */
+    btn_view_details: "వివరాలు చూడండి",
+    btn_book_vehicle: "వాహనం బుక్ చేయండి",
+    btn_call: "కాల్ చేయండి",
+    btn_whatsapp: "వాట్సాప్",
+    btn_email: "ఈమెయిల్",
+    btn_open_map: "మ్యాప్ తెరవండి",
+    btn_contact_us: "మమ్మల్ని సంప్రదించండి",
+    btn_enquire: "విచారించండి",
+    btn_submit: "సమర్పించండి",
+    btn_send: "పంపండి",
+    btn_close: "మూసివేయండి",
+    btn_cancel: "రద్దు చేయండి",
+    btn_back: "వెనుకకు",
 
-    bookNow: "ఇప్పుడే బుక్ చేయండి",
-    viewDetails: "వివరాలు చూడండి",
-    bookTrip: "ప్రయాణాన్ని బుక్ చేయండి",
-
-    name: "పేరు",
-    phone: "ఫోన్",
-    email: "ఈమెయిల్",
-    message: "సందేశం",
-
-    yourName: "మీ పేరు",
-    yourPhone: "మీ ఫోన్",
-    yourEmail: "మీ ఈమెయిల్",
-    yourMessage: "మీ సందేశం",
+    /* Labels */
+    label_destination: "గమ్యం",
+    label_duration: "వ్యవధి",
+    label_price: "ధర",
+    label_highlights: "ప్రత్యేకతలు",
+    label_trip_gallery: "ట్రిప్ గ్యాలరీ",
+    label_available_vehicles: "అందుబాటులో ఉన్న వాహనాలు",
+    label_available: "అందుబాటులో ఉంది",
+    label_unavailable: "అందుబాటులో లేదు",
 
     destination: "గమ్యం",
     duration: "వ్యవధి",
     price: "ధర",
     vehicle: "వాహనం",
-
     capacity: "సామర్థ్యం",
     registration: "రిజిస్ట్రేషన్",
     available: "అందుబాటులో ఉంది",
     unavailable: "అందుబాటులో లేదు",
 
+    /* Categories */
+    cat_all: "అన్నీ",
+
+    /* Reviews */
+    write_review: "రివ్యూ రాయండి",
+    form_your_name: "మీ పేరు",
+    form_rating: "రేటింగ్",
+    form_review_text: "మీ రివ్యూ",
+    sample_badge: "నమూనా",
+
+    /* Contact */
+    contactUs: "సంప్రదించండి",
+    contact_phone: "ఫోన్",
+    contact_email: "ఈమెయిల్",
+    contact_address: "చిరునామా",
+    contact_hours: "సమయాలు",
+    contact_social: "సోషల్",
+
+    /* Footer */
+    footer_about: "హాజీ దాదా ట్రావెల్స్‌తో ప్రయాణించండి.",
+    footer_quick_links: "త్వరిత లింకులు",
+    footer_contact: "సంప్రదింపు",
+    footer_rights: "అన్ని హక్కులు ప్రత్యేకించబడ్డాయి.",
+
+    /* Forms */
+    name: "పేరు",
+    phone: "ఫోన్",
+    email: "ఈమెయిల్",
+    message: "సందేశం",
+    trip: "ట్రిప్",
+    selectTrip: "ట్రిప్ ఎంచుకోండి",
     rating: "రేటింగ్",
     comment: "వ్యాఖ్య",
-
-    trip: "ప్రయాణం",
-    selectTrip: "ప్రయాణాన్ని ఎంచుకోండి",
-
-    address: "చిరునామా",
-    hours: "సమయాలు",
-
-    followUs: "మమ్మల్ని అనుసరించండి",
-
-    submit: "సమర్పించండి",
+    yourName: "మీ పేరు",
+    yourPhone: "మీ ఫోన్",
+    yourEmail: "మీ ఈమెయిల్",
+    yourMessage: "మీ సందేశం",
     send: "పంపండి",
+    submit: "సమర్పించండి",
     cancel: "రద్దు చేయండి",
     close: "మూసివేయండి",
-    back: "వెనుకకు",
+
+    /* Media */
+    readMore: "మరింత చదవండి",
     next: "తదుపరి",
     previous: "మునుపటి",
-
-    readMore: "మరింత చదవండి",
     watchVideo: "వీడియో చూడండి",
 
-    loading: "లోడ్ అవుతోంది...",
-    loading_trips: "ప్రయాణాలు లోడ్ అవుతున్నాయి...",
-    loading_vehicles: "వాహనాలు లోడ్ అవుతున్నాయి...",
-    loading_gallery: "గ్యాలరీ లోడ్ అవుతోంది...",
-    loading_videos: "వీడియోలు లోడ్ అవుతున్నాయి...",
-    loading_reviews: "సమీక్షలు లోడ్ అవుతున్నాయి...",
+    /* Booking */
+    bookTrip: "ట్రిప్ బుక్ చేయండి",
 
-    noTrips: "ప్రస్తుతం ఏమీ అందుబాటులో లేదు.",
-    noVehicles: "ప్రస్తుతం ఏమీ అందుబాటులో లేదు.",
-    noGallery: "ప్రస్తుతం ఏమీ అందుబాటులో లేదు.",
-    noVideos: "ప్రస్తుతం ఏమీ అందుబాటులో లేదు.",
-    noReviews: "ప్రస్తుతం ఏమీ అందుబాటులో లేదు.",
-
-    nothing_available: "ప్రస్తుతం ఏమీ అందుబాటులో లేదు.",
-
-    enquirySent: "మీ విచారణ విజయవంతంగా పంపబడింది.",
-    reviewSent: "మీ సమీక్ష విజయవంతంగా సమర్పించబడింది.",
-    somethingWentWrong:
-      "ఏదో తప్పు జరిగింది. దయచేసి మళ్లీ ప్రయత్నించండి.",
-
-    admin: "అడ్మిన్",
-
-    footer_about:
-      "హాజీ దాదా ట్రావెల్స్‌తో ప్రయాణించండి.",
-
-    footer_rights:
-      "అన్ని హక్కులు రిజర్వ్ చేయబడ్డాయి."
+    /* Messages */
+    enquirySent: "విచారణ విజయవంతంగా పంపబడింది.",
+    reviewSent: "రివ్యూ విజయవంతంగా పంపబడింది.",
+    toast_enquiry_sent: "విచారణ విజయవంతంగా పంపబడింది.",
+    toast_review_submitted: "రివ్యూ విజయవంతంగా పంపబడింది.",
+    somethingWentWrong: "ఏదో సమస్య ఏర్పడింది.",
+    no_video_link: "వీడియో లింక్ అందుబాటులో లేదు."
   },
 
 
-  /* =========================
+  /* =======================================================
      HINDI
-     ========================= */
+     ======================================================= */
 
   hi: {
+
+    /* Navigation */
     home: "होम",
-    trips: "यात्राएं",
+    trips: "ट्रिप्स",
     vehicles: "वाहन",
     gallery: "गैलरी",
     videos: "वीडियो",
-    reviews: "समीक्षाएं",
+    reviews: "रिव्यू",
     contact: "संपर्क",
-    about: "हमारे बारे में",
 
+    nav_home: "होम",
+    nav_trips: "ट्रिप्स",
+    nav_vehicles: "वाहन",
+    nav_gallery: "गैलरी",
+    nav_videos: "वीडियो",
+    nav_reviews: "रिव्यू",
+    nav_contact: "संपर्क",
+
+    /* Language */
     language: "भाषा",
     selectLanguage: "भाषा चुनें",
     english: "अंग्रेज़ी",
     telugu: "तेलुगु",
     hindi: "हिंदी",
 
+    /* Hero */
     hero_title: "हाजी दादा ट्रैवल्स के साथ यात्रा करें",
     hero_subtitle: "आरामदायक यात्रा, भरोसेमंद सेवा।",
-    btn_explore_trips: "यात्राएं देखें",
+    btn_explore_trips: "ट्रिप्स देखें",
     btn_book_now: "अभी बुक करें",
 
-    section_featured: "विशेष यात्राएं",
-    section_vehicles: "हमारे वाहन",
+    /* Sections */
+    section_featured: "विशेष ट्रिप्स",
+    section_trips: "ट्रिप्स",
+    section_vehicles: "वाहन",
     section_gallery: "गैलरी",
-    section_video_preview: "नवीनतम वीडियो",
-    section_reviews: "ग्राहक समीक्षाएं",
+    section_video_preview: "वीडियो",
+    section_videos: "वीडियो",
+    section_reviews: "रिव्यू",
+    section_contact: "संपर्क",
 
-    section_trips: "हमारी यात्राएं",
-    section_all_trips: "सभी यात्राएं",
+    btn_see_all: "सभी देखें",
 
-    why_title: "हमें क्यों चुनें",
+    /* Loading */
+    loading: "लोड हो रहा है...",
+    loading_trips: "ट्रिप्स लोड हो रही हैं...",
+    loading_vehicles: "वाहन लोड हो रहे हैं...",
+    loading_gallery: "गैलरी लोड हो रही है...",
+    loading_videos: "वीडियो लोड हो रहे हैं...",
+    loading_reviews: "रिव्यू लोड हो रहे हैं...",
+
+    /* Empty */
+    empty_trips: "अभी कोई ट्रिप उपलब्ध नहीं है.",
+    empty_vehicles: "अभी कोई वाहन उपलब्ध नहीं है.",
+    empty_gallery: "अभी कोई फोटो उपलब्ध नहीं है.",
+    empty_videos: "अभी कोई वीडियो उपलब्ध नहीं है.",
+    empty_reviews: "अभी कोई रिव्यू उपलब्ध नहीं है.",
+
+    /* Errors */
+    err_load: "इस सेक्शन को लोड नहीं किया जा सका.",
+    btn_retry: "फिर से प्रयास करें",
+    err_required: "कृपया आवश्यक जानकारी भरें.",
+    error_generic: "कुछ गलत हो गया.",
+    error_trip_not_found: "ट्रिप नहीं मिली.",
+
+    /* Why */
+    why_title: "हमें क्यों चुनें?",
 
     why_1_t: "आसान बुकिंग",
-    why_1_d: "फोन या व्हाट्सऐप के माध्यम से आसानी से बुकिंग करें।",
+    why_1_d: "कॉल या व्हाट्सऐप के माध्यम से आसानी से बुक करें.",
 
     why_2_t: "आरामदायक वाहन",
-    why_2_d: "अच्छी तरह से रखरखाव किए गए वाहनों में आरामदायक यात्रा करें।",
+    why_2_d: "आपकी यात्रा के लिए आरामदायक वाहन.",
 
-    why_3_t: "लचीली यात्राएं",
-    why_3_d: "अपनी जरूरत के अनुसार यात्रा और विकल्प चुनें।",
+    why_3_t: "लचीली ट्रिप्स",
+    why_3_d: "अपनी सुविधा के अनुसार ट्रिप और यात्रा विकल्प चुनें.",
 
     why_4_t: "भरोसेमंद सेवा",
-    why_4_d: "सुविधाजनक यात्रा अनुभव के लिए भरोसेमंद सेवा।",
+    why_4_d: "आपकी यात्रा पर केंद्रित भरोसेमंद सेवा.",
 
-    plan_title: "अपनी यात्रा की योजना बनाएं",
-    plan_description:
-      "यात्राओं और वाहन बुकिंग के लिए हमसे संपर्क करें।",
+    /* CTA */
+    cta_title: "अपनी यात्रा की योजना बनाएं",
+    cta_sub: "ट्रिप और वाहन बुकिंग के लिए हमसे संपर्क करें.",
 
-    contactUs: "हमसे संपर्क करें",
-    callNow: "अभी कॉल करें",
-    whatsapp: "व्हाट्सऐप",
-    sendEnquiry: "पूछताछ भेजें",
+    /* Buttons */
+    btn_view_details: "विवरण देखें",
+    btn_book_vehicle: "वाहन बुक करें",
+    btn_call: "कॉल करें",
+    btn_whatsapp: "व्हाट्सऐप",
+    btn_email: "ईमेल",
+    btn_open_map: "मैप खोलें",
+    btn_contact_us: "संपर्क करें",
+    btn_enquire: "पूछताछ करें",
+    btn_submit: "सबमिट करें",
+    btn_send: "भेजें",
+    btn_close: "बंद करें",
+    btn_cancel: "रद्द करें",
+    btn_back: "वापस",
 
-    bookNow: "अभी बुक करें",
-    viewDetails: "विवरण देखें",
-    bookTrip: "यात्रा बुक करें",
-
-    name: "नाम",
-    phone: "फोन",
-    email: "ईमेल",
-    message: "संदेश",
-
-    yourName: "आपका नाम",
-    yourPhone: "आपका फोन",
-    yourEmail: "आपका ईमेल",
-    yourMessage: "आपका संदेश",
+    /* Labels */
+    label_destination: "गंतव्य",
+    label_duration: "अवधि",
+    label_price: "कीमत",
+    label_highlights: "मुख्य बातें",
+    label_trip_gallery: "ट्रिप गैलरी",
+    label_available_vehicles: "उपलब्ध वाहन",
+    label_available: "उपलब्ध",
+    label_unavailable: "उपलब्ध नहीं",
 
     destination: "गंतव्य",
     duration: "अवधि",
     price: "कीमत",
     vehicle: "वाहन",
-
     capacity: "क्षमता",
     registration: "रजिस्ट्रेशन",
     available: "उपलब्ध",
     unavailable: "उपलब्ध नहीं",
 
+    /* Categories */
+    cat_all: "सभी",
+
+    /* Reviews */
+    write_review: "रिव्यू लिखें",
+    form_your_name: "आपका नाम",
+    form_rating: "रेटिंग",
+    form_review_text: "आपका रिव्यू",
+    sample_badge: "नमूना",
+
+    /* Contact */
+    contactUs: "संपर्क करें",
+    contact_phone: "फोन",
+    contact_email: "ईमेल",
+    contact_address: "पता",
+    contact_hours: "समय",
+    contact_social: "सोशल",
+
+    /* Footer */
+    footer_about: "हाजी दादा ट्रैवल्स के साथ यात्रा करें.",
+    footer_quick_links: "त्वरित लिंक",
+    footer_contact: "संपर्क",
+    footer_rights: "सर्वाधिकार सुरक्षित.",
+
+    /* Forms */
+    name: "नाम",
+    phone: "फोन",
+    email: "ईमेल",
+    message: "संदेश",
+    trip: "ट्रिप",
+    selectTrip: "ट्रिप चुनें",
     rating: "रेटिंग",
     comment: "टिप्पणी",
-
-    trip: "यात्रा",
-    selectTrip: "यात्रा चुनें",
-
-    address: "पता",
-    hours: "समय",
-
-    followUs: "हमें फॉलो करें",
-
-    submit: "सबमिट करें",
+    yourName: "आपका नाम",
+    yourPhone: "आपका फोन",
+    yourEmail: "आपका ईमेल",
+    yourMessage: "आपका संदेश",
     send: "भेजें",
+    submit: "सबमिट करें",
     cancel: "रद्द करें",
     close: "बंद करें",
-    back: "वापस",
+
+    /* Media */
+    readMore: "और पढ़ें",
     next: "अगला",
     previous: "पिछला",
-
-    readMore: "और पढ़ें",
     watchVideo: "वीडियो देखें",
 
-    loading: "लोड हो रहा है...",
-    loading_trips: "यात्राएं लोड हो रही हैं...",
-    loading_vehicles: "वाहन लोड हो रहे हैं...",
-    loading_gallery: "गैलरी लोड हो रही है...",
-    loading_videos: "वीडियो लोड हो रहे हैं...",
-    loading_reviews: "समीक्षाएं लोड हो रही हैं...",
+    /* Booking */
+    bookTrip: "ट्रिप बुक करें",
 
-    noTrips: "अभी कुछ भी उपलब्ध नहीं है।",
-    noVehicles: "अभी कुछ भी उपलब्ध नहीं है।",
-    noGallery: "अभी कुछ भी उपलब्ध नहीं है।",
-    noVideos: "अभी कुछ भी उपलब्ध नहीं है।",
-    noReviews: "अभी कुछ भी उपलब्ध नहीं है।",
-
-    nothing_available: "अभी कुछ भी उपलब्ध नहीं है।",
-
-    enquirySent: "आपकी पूछताछ सफलतापूर्वक भेज दी गई है।",
-    reviewSent: "आपकी समीक्षा सफलतापूर्वक जमा कर दी गई है।",
-    somethingWentWrong:
-      "कुछ गलत हो गया। कृपया फिर से प्रयास करें।",
-
-    admin: "एडमिन",
-
-    footer_about:
-      "हाजी दादा ट्रैवल्स के साथ यात्रा करें।",
-
-    footer_rights:
-      "सर्वाधिकार सुरक्षित।"
+    /* Messages */
+    enquirySent: "पूछताछ सफलतापूर्वक भेजी गई.",
+    reviewSent: "रिव्यू सफलतापूर्वक भेजा गया.",
+    toast_enquiry_sent: "पूछताछ सफलतापूर्वक भेजी गई.",
+    toast_review_submitted: "रिव्यू सफलतापूर्वक भेजा गया.",
+    somethingWentWrong: "कुछ गलत हो गया.",
+    no_video_link: "वीडियो लिंक उपलब्ध नहीं है."
   }
-
 };
 
 
-/* =========================================================
+/* ---------------------------------------------------------
+   BUSINESS CACHE
+   --------------------------------------------------------- */
+
+let BUSINESS_CACHE = null;
+
+
+/* ---------------------------------------------------------
+   DEFAULT BUSINESS DETAILS
+   --------------------------------------------------------- */
+
+const BUSINESS_DEFAULTS = {
+  id: 1,
+  name: "Hazi Dada Travels",
+  phone: "",
+  whatsapp: "",
+  email: "",
+  address: "",
+  description: "Comfortable travel, trusted service.",
+  hours: "",
+  mapUrl: "",
+  facebook: "",
+  instagram: "",
+  youtube: "",
+  aboutText: "",
+  footerText: "Travel with Hazi Dada Travels."
+};
+
+
+/* ---------------------------------------------------------
    SUPABASE HELPERS
-   ========================================================= */
+   --------------------------------------------------------- */
 
 function ensureSupabase() {
   if (
     typeof supabaseClient === "undefined" ||
     !supabaseClient
   ) {
-    throw new Error("Supabase client unavailable.");
+    throw new Error(
+      "Supabase client is not available."
+    );
   }
 
   return supabaseClient;
 }
 
 
-function dbError(error, fallbackMessage) {
-  console.error("[data.js]", error);
+function dbError(error, context = "Database error") {
+  console.error(
+    "[data.js]",
+    context,
+    error
+  );
 
-  if (error && error.message) {
-    throw new Error(error.message);
-  }
+  const message =
+    error &&
+    (
+      error.message ||
+      error.details ||
+      error.hint
+    );
 
-  throw new Error(
-    fallbackMessage || "Database operation failed."
+  return new Error(
+    message ||
+    context
   );
 }
 
 
-async function dataLayerIsAdmin() {
+/* ---------------------------------------------------------
+   ADMIN CHECK
+   --------------------------------------------------------- */
+
+function dataLayerIsAdmin() {
   try {
-    const client = ensureSupabase();
 
-    const {
-      data,
-      error
-    } = await client.auth.getSession();
-
-    if (error || !data || !data.session) {
-      return false;
+    if (
+      typeof ADMIN_USER_ID !== "undefined"
+    ) {
+      return true;
     }
 
-    return (
-      data.session.user &&
-      data.session.user.id === ADMIN_USER_ID
-    );
+    return false;
 
-  } catch (error) {
+  } catch (e) {
     return false;
   }
 }
@@ -477,16 +665,6 @@ async function dataLayerIsAdmin() {
 
 /* =========================================================
    TRIPS
-   Existing table:
-   id
-   created_at
-   name
-   destination
-   description
-   price
-   duration
-   image_url
-   vehicle
    ========================================================= */
 
 function mapTrip(row) {
@@ -494,41 +672,34 @@ function mapTrip(row) {
 
   return {
     id: row.id,
-
     created_at: row.created_at,
 
     name: row.name || "",
+    destination: row.destination || "",
+    description: row.description || "",
+    price: row.price || "",
+    duration: row.duration || "",
+    image_url: row.image_url || "",
+    image: row.image_url || "",
+    vehicle: row.vehicle || "",
 
-    destination:
-      row.destination || "",
-
-    description:
-      row.description || "",
-
-    price:
-      row.price || "",
-
-    duration:
-      row.duration || "",
-
-    image_url:
-      row.image_url || "",
-
-    image:
-      row.image_url || "",
-
-    vehicle:
-      row.vehicle || "",
-
-    /* UI compatibility */
+    /*
+      These fields are supported by the public app
+      if they exist in future schema versions.
+      Current database does not require them.
+    */
     category: row.category || "",
-    highlights: row.highlights || [],
-    gallery: row.gallery || []
+    highlights: Array.isArray(row.highlights)
+      ? row.highlights
+      : [],
+    gallery: Array.isArray(row.gallery)
+      ? row.gallery
+      : []
   };
 }
 
 
-function tripRowFromUI(trip) {
+function tripRowFromUI(trip = {}) {
   return {
     name: trip.name || "",
     destination: trip.destination || "",
@@ -538,162 +709,123 @@ function tripRowFromUI(trip) {
     image_url:
       trip.image_url ||
       trip.image ||
-      ""
-    ,
+      "",
     vehicle: trip.vehicle || ""
   };
 }
 
 
 async function getTrips() {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      data,
-      error
-    } = await client
+  const { data, error } =
+    await db
       .from("trips")
       .select("*")
       .order("created_at", {
         ascending: false
       });
 
-    if (error) {
-      dbError(error, "Unable to load trips.");
-    }
-
-    return (data || []).map(mapTrip);
-
-  } catch (error) {
-    console.error("[data.js] getTrips failed:", error);
-    return [];
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load trips."
+    );
   }
+
+  return Array.isArray(data)
+    ? data.map(mapTrip)
+    : [];
 }
 
 
 async function getTrip(id) {
-  try {
-    if (id === undefined || id === null) {
-      return null;
-    }
+  const db = ensureSupabase();
 
-    const client = ensureSupabase();
-
-    const {
-      data,
-      error
-    } = await client
+  const { data, error } =
+    await db
       .from("trips")
       .select("*")
       .eq("id", id)
       .maybeSingle();
 
-    if (error) {
-      dbError(error, "Unable to load trip.");
-    }
-
-    return mapTrip(data);
-
-  } catch (error) {
-    console.error("[data.js] getTrip failed:", error);
-    return null;
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load trip."
+    );
   }
-}
 
-
-/* Compatibility function */
-
-async function getTripById(id) {
-  return await getTrip(id);
+  return mapTrip(data);
 }
 
 
 async function saveTrip(trip) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const row = tripRowFromUI(trip);
+  const row =
+    tripRowFromUI(trip);
 
-    if (trip && trip.id) {
+  if (trip.id) {
 
-      const {
-        data,
-        error
-      } = await client
+    const { data, error } =
+      await db
         .from("trips")
         .update(row)
         .eq("id", trip.id)
         .select()
         .single();
 
-      if (error) {
-        dbError(error, "Unable to update trip.");
-      }
-
-      return mapTrip(data);
+    if (error) {
+      throw dbError(
+        error,
+        "Failed to update trip."
+      );
     }
 
-    const {
-      data,
-      error
-    } = await client
+    return mapTrip(data);
+  }
+
+  const { data, error } =
+    await db
       .from("trips")
       .insert(row)
       .select()
       .single();
 
-    if (error) {
-      dbError(error, "Unable to create trip.");
-    }
-
-    return mapTrip(data);
-
-  } catch (error) {
-    console.error("[data.js] saveTrip failed:", error);
-    throw error;
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to create trip."
+    );
   }
+
+  return mapTrip(data);
 }
 
 
 async function deleteTrip(id) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      error
-    } = await client
+  const { error } =
+    await db
       .from("trips")
       .delete()
       .eq("id", id);
 
-    if (error) {
-      dbError(error, "Unable to delete trip.");
-    }
-
-    return true;
-
-  } catch (error) {
-    console.error("[data.js] deleteTrip failed:", error);
-    throw error;
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to delete trip."
+    );
   }
+
+  return true;
 }
 
 
 /* =========================================================
    VEHICLES
-   Existing table:
-   id
-   created_at
-   name
-   type
-   capacity
-   registration
-   image_url
-   available
-
-   IMPORTANT:
-   No description column.
    ========================================================= */
 
 function mapVehicle(row) {
@@ -701,34 +833,24 @@ function mapVehicle(row) {
 
   return {
     id: row.id,
-
     created_at: row.created_at,
 
-    name:
-      row.name || "",
-
-    type:
-      row.type || "",
-
-    capacity:
-      row.capacity ?? "",
-
+    name: row.name || "",
+    type: row.type || "",
+    capacity: row.capacity || "",
     registration:
       row.registration || "",
-
     image_url:
       row.image_url || "",
-
     image:
       row.image_url || "",
-
     available:
       row.available !== false
   };
 }
 
 
-function vehicleRowFromUI(vehicle) {
+function vehicleRowFromUI(vehicle = {}) {
   return {
     name: vehicle.name || "",
     type: vehicle.type || "",
@@ -754,178 +876,116 @@ function vehicleRowFromUI(vehicle) {
 
 
 async function getVehicles() {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      data,
-      error
-    } = await client
+  const { data, error } =
+    await db
       .from("vehicles")
       .select("*")
       .order("created_at", {
         ascending: false
       });
 
-    if (error) {
-      dbError(error, "Unable to load vehicles.");
-    }
-
-    return (data || []).map(mapVehicle);
-
-  } catch (error) {
-    console.error("[data.js] getVehicles failed:", error);
-    return [];
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load vehicles."
+    );
   }
+
+  return Array.isArray(data)
+    ? data.map(mapVehicle)
+    : [];
 }
 
 
 async function getVehicle(id) {
-  try {
-    if (id === undefined || id === null) {
-      return null;
-    }
+  const db = ensureSupabase();
 
-    const client = ensureSupabase();
-
-    const {
-      data,
-      error
-    } = await client
+  const { data, error } =
+    await db
       .from("vehicles")
       .select("*")
       .eq("id", id)
       .maybeSingle();
 
-    if (error) {
-      dbError(error, "Unable to load vehicle.");
-    }
-
-    return mapVehicle(data);
-
-  } catch (error) {
-    console.error("[data.js] getVehicle failed:", error);
-    return null;
-  }
-}
-
-
-/* Compatibility helper */
-
-async function getVehiclesByIds(ids) {
-  try {
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return [];
-    }
-
-    const client = ensureSupabase();
-
-    const {
-      data,
-      error
-    } = await client
-      .from("vehicles")
-      .select("*")
-      .in("id", ids);
-
-    if (error) {
-      dbError(error, "Unable to load selected vehicles.");
-    }
-
-    return (data || []).map(mapVehicle);
-
-  } catch (error) {
-    console.error(
-      "[data.js] getVehiclesByIds failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load vehicle."
     );
-
-    return [];
   }
+
+  return mapVehicle(data);
 }
 
 
 async function saveVehicle(vehicle) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const row = vehicleRowFromUI(vehicle);
+  const row =
+    vehicleRowFromUI(vehicle);
 
-    if (vehicle && vehicle.id) {
+  if (vehicle.id) {
 
-      const {
-        data,
-        error
-      } = await client
+    const { data, error } =
+      await db
         .from("vehicles")
         .update(row)
         .eq("id", vehicle.id)
         .select()
         .single();
 
-      if (error) {
-        dbError(error, "Unable to update vehicle.");
-      }
-
-      return mapVehicle(data);
+    if (error) {
+      throw dbError(
+        error,
+        "Failed to update vehicle."
+      );
     }
 
-    const {
-      data,
-      error
-    } = await client
+    return mapVehicle(data);
+  }
+
+  const { data, error } =
+    await db
       .from("vehicles")
       .insert(row)
       .select()
       .single();
 
-    if (error) {
-      dbError(error, "Unable to create vehicle.");
-    }
-
-    return mapVehicle(data);
-
-  } catch (error) {
-    console.error("[data.js] saveVehicle failed:", error);
-    throw error;
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to create vehicle."
+    );
   }
+
+  return mapVehicle(data);
 }
 
 
 async function deleteVehicle(id) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      error
-    } = await client
+  const { error } =
+    await db
       .from("vehicles")
       .delete()
       .eq("id", id);
 
-    if (error) {
-      dbError(error, "Unable to delete vehicle.");
-    }
-
-    return true;
-
-  } catch (error) {
-    console.error("[data.js] deleteVehicle failed:", error);
-    throw error;
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to delete vehicle."
+    );
   }
+
+  return true;
 }
 
 
 /* =========================================================
    GALLERY
-   Existing table:
-   id
-   created_at
-   title
-   media_url
-   media_type
-   description
-   approved
    ========================================================= */
 
 function mapGallery(row) {
@@ -933,11 +993,9 @@ function mapGallery(row) {
 
   return {
     id: row.id,
-
     created_at: row.created_at,
 
-    title:
-      row.title || "",
+    title: row.title || "",
 
     media_url:
       row.media_url || "",
@@ -951,20 +1009,25 @@ function mapGallery(row) {
     description:
       row.description || "",
 
+    caption:
+      row.title || "",
+
     approved:
-      row.approved !== false
+      row.approved === true
   };
 }
 
 
-function galleryRowFromUI(item) {
+function galleryRowFromUI(item = {}) {
   return {
-    title: item.title || "",
+    title:
+      item.title ||
+      item.caption ||
+      "",
 
     media_url:
       item.media_url ||
       item.image_url ||
-      item.url ||
       "",
 
     media_type:
@@ -975,175 +1038,137 @@ function galleryRowFromUI(item) {
       item.description || "",
 
     approved:
-      item.approved !== false
+      item.approved === true
   };
 }
 
 
 async function getGallery() {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const isAdmin =
-      await dataLayerIsAdmin();
-
-    let query = client
+  let query =
+    db
       .from("gallery")
       .select("*")
       .order("created_at", {
         ascending: false
       });
 
-    if (!isAdmin) {
-      query = query.eq("approved", true);
-    }
+  /*
+    Public users should only see approved gallery items.
+    Admin panel can see all items.
+  */
 
-    const {
-      data,
-      error
-    } = await query;
-
-    if (error) {
-      dbError(error, "Unable to load gallery.");
-    }
-
-    return (data || []).map(mapGallery);
-
-  } catch (error) {
-    console.error("[data.js] getGallery failed:", error);
-    return [];
+  if (!dataLayerIsAdmin()) {
+    query = query.eq(
+      "approved",
+      true
+    );
   }
+
+  const { data, error } =
+    await query;
+
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load gallery."
+    );
+  }
+
+  return Array.isArray(data)
+    ? data.map(mapGallery)
+    : [];
 }
 
 
 async function getGalleryItem(id) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      data,
-      error
-    } = await client
+  const { data, error } =
+    await db
       .from("gallery")
       .select("*")
       .eq("id", id)
       .maybeSingle();
 
-    if (error) {
-      dbError(error, "Unable to load gallery item.");
-    }
-
-    return mapGallery(data);
-
-  } catch (error) {
-    console.error(
-      "[data.js] getGalleryItem failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load gallery item."
     );
-
-    return null;
   }
+
+  return mapGallery(data);
 }
 
 
 async function saveGalleryItem(item) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const row =
-      galleryRowFromUI(item);
+  const row =
+    galleryRowFromUI(item);
 
-    if (item && item.id) {
+  if (item.id) {
 
-      const {
-        data,
-        error
-      } = await client
+    const { data, error } =
+      await db
         .from("gallery")
         .update(row)
         .eq("id", item.id)
         .select()
         .single();
 
-      if (error) {
-        dbError(
-          error,
-          "Unable to update gallery item."
-        );
-      }
-
-      return mapGallery(data);
+    if (error) {
+      throw dbError(
+        error,
+        "Failed to update gallery item."
+      );
     }
 
-    const {
-      data,
-      error
-    } = await client
+    return mapGallery(data);
+  }
+
+  const { data, error } =
+    await db
       .from("gallery")
       .insert(row)
       .select()
       .single();
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to create gallery item."
-      );
-    }
-
-    return mapGallery(data);
-
-  } catch (error) {
-    console.error(
-      "[data.js] saveGalleryItem failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to create gallery item."
     );
-
-    throw error;
   }
+
+  return mapGallery(data);
 }
 
 
 async function deleteGalleryItem(id) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      error
-    } = await client
+  const { error } =
+    await db
       .from("gallery")
       .delete()
       .eq("id", id);
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to delete gallery item."
-      );
-    }
-
-    return true;
-
-  } catch (error) {
-    console.error(
-      "[data.js] deleteGalleryItem failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to delete gallery item."
     );
-
-    throw error;
   }
+
+  return true;
 }
 
 
 /* =========================================================
    REVIEWS
-   Existing table:
-   id
-   approved
-   created_at
-   name
-   rating
-   comment
    ========================================================= */
 
 function mapReview(row) {
@@ -1151,35 +1176,39 @@ function mapReview(row) {
 
   return {
     id: row.id,
+    created_at: row.created_at,
 
-    created_at:
-      row.created_at,
-
-    name:
-      row.name || "",
+    name: row.name || "",
 
     rating:
-      Number(row.rating || 0),
-
-    comment:
-      row.comment || "",
+      Number(row.rating) || 0,
 
     review:
-      row.comment || "",
+      row.comment ||
+      row.review ||
+      "",
+
+    comment:
+      row.comment ||
+      row.review ||
+      "",
+
+    image_url:
+      row.image_url || "",
 
     approved:
-      row.approved !== false
+      row.approved === true
   };
 }
 
 
-function reviewRowFromUI(review) {
+function reviewRowFromUI(review = {}) {
   return {
     name:
       review.name || "",
 
     rating:
-      Number(review.rating || 0),
+      Number(review.rating) || 0,
 
     comment:
       review.comment ||
@@ -1187,172 +1216,132 @@ function reviewRowFromUI(review) {
       "",
 
     approved:
-      review.approved !== false
+      review.approved === true
   };
 }
 
 
 async function getReviews() {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const isAdmin =
-      await dataLayerIsAdmin();
-
-    let query = client
+  let query =
+    db
       .from("reviews")
       .select("*")
       .order("created_at", {
         ascending: false
       });
 
-    if (!isAdmin) {
-      query = query.eq("approved", true);
-    }
-
-    const {
-      data,
-      error
-    } = await query;
-
-    if (error) {
-      dbError(error, "Unable to load reviews.");
-    }
-
-    return (data || []).map(mapReview);
-
-  } catch (error) {
-    console.error("[data.js] getReviews failed:", error);
-    return [];
+  if (!dataLayerIsAdmin()) {
+    query = query.eq(
+      "approved",
+      true
+    );
   }
+
+  const { data, error } =
+    await query;
+
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load reviews."
+    );
+  }
+
+  return Array.isArray(data)
+    ? data.map(mapReview)
+    : [];
 }
 
 
 async function getReview(id) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      data,
-      error
-    } = await client
+  const { data, error } =
+    await db
       .from("reviews")
       .select("*")
       .eq("id", id)
       .maybeSingle();
 
-    if (error) {
-      dbError(error, "Unable to load review.");
-    }
-
-    return mapReview(data);
-
-  } catch (error) {
-    console.error("[data.js] getReview failed:", error);
-    return null;
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load review."
+    );
   }
+
+  return mapReview(data);
 }
 
 
 async function saveReview(review) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const row =
-      reviewRowFromUI(review);
+  const row =
+    reviewRowFromUI(review);
 
-    if (review && review.id) {
+  if (review.id) {
 
-      const {
-        data,
-        error
-      } = await client
+    const { data, error } =
+      await db
         .from("reviews")
         .update(row)
         .eq("id", review.id)
         .select()
         .single();
 
-      if (error) {
-        dbError(
-          error,
-          "Unable to update review."
-        );
-      }
-
-      return mapReview(data);
+    if (error) {
+      throw dbError(
+        error,
+        "Failed to update review."
+      );
     }
 
-    const {
-      data,
-      error
-    } = await client
+    return mapReview(data);
+  }
+
+  const { data, error } =
+    await db
       .from("reviews")
       .insert(row)
       .select()
       .single();
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to create review."
-      );
-    }
-
-    return mapReview(data);
-
-  } catch (error) {
-    console.error(
-      "[data.js] saveReview failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to create review."
     );
-
-    throw error;
   }
+
+  return mapReview(data);
 }
 
 
 async function deleteReview(id) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      error
-    } = await client
+  const { error } =
+    await db
       .from("reviews")
       .delete()
       .eq("id", id);
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to delete review."
-      );
-    }
-
-    return true;
-
-  } catch (error) {
-    console.error(
-      "[data.js] deleteReview failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to delete review."
     );
-
-    throw error;
   }
+
+  return true;
 }
 
 
 /* =========================================================
    ENQUIRIES
-   Existing table:
-   id
-   created_at
-   name
-   phone
-   trip
-   message
-   status
    ========================================================= */
 
 function mapEnquiry(row) {
@@ -1360,206 +1349,161 @@ function mapEnquiry(row) {
 
   return {
     id: row.id,
+    created_at: row.created_at,
 
-    created_at:
-      row.created_at,
+    name: row.name || "",
+    phone: row.phone || "",
+    trip: row.trip || "",
+    message: row.message || "",
+    status: row.status || "new"
+  };
+}
 
+
+function enquiryRowFromUI(enquiry = {}) {
+  /*
+    IMPORTANT:
+    The verified enquiries table contains:
+    id, created_at, name, phone, trip,
+    message, status
+
+    Do NOT send travel_date or people
+    because those columns are not present
+    in the current database.
+  */
+
+  return {
     name:
-      row.name || "",
+      enquiry.name || "",
 
     phone:
-      row.phone || "",
+      enquiry.phone || "",
 
     trip:
-      row.trip || "",
+      enquiry.trip || "",
 
     message:
-      row.message || "",
+      enquiry.message || "",
 
     status:
-      row.status || "new"
+      enquiry.status || "new"
   };
 }
 
 
 async function getEnquiries() {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      data,
-      error
-    } = await client
+  const { data, error } =
+    await db
       .from("enquiries")
       .select("*")
       .order("created_at", {
         ascending: false
       });
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to load enquiries."
-      );
-    }
-
-    return (data || []).map(mapEnquiry);
-
-  } catch (error) {
-    console.error(
-      "[data.js] getEnquiries failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load enquiries."
     );
-
-    return [];
   }
+
+  return Array.isArray(data)
+    ? data.map(mapEnquiry)
+    : [];
 }
 
 
 async function getEnquiry(id) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      data,
-      error
-    } = await client
+  const { data, error } =
+    await db
       .from("enquiries")
       .select("*")
       .eq("id", id)
       .maybeSingle();
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to load enquiry."
-      );
-    }
-
-    return mapEnquiry(data);
-
-  } catch (error) {
-    console.error(
-      "[data.js] getEnquiry failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load enquiry."
     );
-
-    return null;
   }
+
+  return mapEnquiry(data);
 }
 
 
 async function saveEnquiry(enquiry) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const row = {
-      name:
-        enquiry.name || "",
+  const row =
+    enquiryRowFromUI(
+      enquiry
+    );
 
-      phone:
-        enquiry.phone || "",
+  if (enquiry.id) {
 
-      trip:
-        enquiry.trip || "",
-
-      message:
-        enquiry.message || "",
-
-      status:
-        enquiry.status || "new"
-    };
-
-    if (enquiry && enquiry.id) {
-
-      const {
-        data,
-        error
-      } = await client
+    const { data, error } =
+      await db
         .from("enquiries")
         .update(row)
         .eq("id", enquiry.id)
         .select()
         .single();
 
-      if (error) {
-        dbError(
-          error,
-          "Unable to update enquiry."
-        );
-      }
-
-      return mapEnquiry(data);
+    if (error) {
+      throw dbError(
+        error,
+        "Failed to update enquiry."
+      );
     }
 
-    const {
-      data,
-      error
-    } = await client
+    return mapEnquiry(data);
+  }
+
+  const { data, error } =
+    await db
       .from("enquiries")
       .insert(row)
       .select()
       .single();
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to create enquiry."
-      );
-    }
-
-    return mapEnquiry(data);
-
-  } catch (error) {
-    console.error(
-      "[data.js] saveEnquiry failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to create enquiry."
     );
-
-    throw error;
   }
+
+  return mapEnquiry(data);
 }
 
 
 async function deleteEnquiry(id) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      error
-    } = await client
+  const { error } =
+    await db
       .from("enquiries")
       .delete()
       .eq("id", id);
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to delete enquiry."
-      );
-    }
-
-    return true;
-
-  } catch (error) {
-    console.error(
-      "[data.js] deleteEnquiry failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to delete enquiry."
     );
-
-    throw error;
   }
+
+  return true;
 }
 
 
 /* =========================================================
    VIDEOS
-   Existing table:
-   id
-   created_at
-   title
-   description
-   youtube_id
    ========================================================= */
 
 function mapVideo(row) {
@@ -1567,9 +1511,7 @@ function mapVideo(row) {
 
   return {
     id: row.id,
-
-    created_at:
-      row.created_at,
+    created_at: row.created_at,
 
     title:
       row.title || "",
@@ -1586,7 +1528,7 @@ function mapVideo(row) {
 }
 
 
-function videoRowFromUI(video) {
+function videoRowFromUI(video = {}) {
   return {
     title:
       video.title || "",
@@ -1603,342 +1545,240 @@ function videoRowFromUI(video) {
 
 
 async function getVideos() {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      data,
-      error
-    } = await client
+  const { data, error } =
+    await db
       .from("videos")
       .select("*")
       .order("created_at", {
         ascending: false
       });
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to load videos."
-      );
-    }
-
-    return (data || []).map(mapVideo);
-
-  } catch (error) {
-    console.error("[data.js] getVideos failed:", error);
-    return [];
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load videos."
+    );
   }
+
+  return Array.isArray(data)
+    ? data.map(mapVideo)
+    : [];
 }
 
 
 async function getVideo(id) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      data,
-      error
-    } = await client
+  const { data, error } =
+    await db
       .from("videos")
       .select("*")
       .eq("id", id)
       .maybeSingle();
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to load video."
-      );
-    }
-
-    return mapVideo(data);
-
-  } catch (error) {
-    console.error("[data.js] getVideo failed:", error);
-    return null;
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to load video."
+    );
   }
+
+  return mapVideo(data);
 }
 
 
 async function saveVideo(video) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const row =
-      videoRowFromUI(video);
+  const row =
+    videoRowFromUI(video);
 
-    if (video && video.id) {
+  if (video.id) {
 
-      const {
-        data,
-        error
-      } = await client
+    const { data, error } =
+      await db
         .from("videos")
         .update(row)
         .eq("id", video.id)
         .select()
         .single();
 
-      if (error) {
-        dbError(
-          error,
-          "Unable to update video."
-        );
-      }
-
-      return mapVideo(data);
+    if (error) {
+      throw dbError(
+        error,
+        "Failed to update video."
+      );
     }
 
-    const {
-      data,
-      error
-    } = await client
+    return mapVideo(data);
+  }
+
+  const { data, error } =
+    await db
       .from("videos")
       .insert(row)
       .select()
       .single();
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to create video."
-      );
-    }
-
-    return mapVideo(data);
-
-  } catch (error) {
-    console.error(
-      "[data.js] saveVideo failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to create video."
     );
-
-    throw error;
   }
+
+  return mapVideo(data);
 }
 
 
 async function deleteVideo(id) {
-  try {
-    const client = ensureSupabase();
+  const db = ensureSupabase();
 
-    const {
-      error
-    } = await client
+  const { error } =
+    await db
       .from("videos")
       .delete()
       .eq("id", id);
 
-    if (error) {
-      dbError(
-        error,
-        "Unable to delete video."
-      );
-    }
-
-    return true;
-
-  } catch (error) {
-    console.error(
-      "[data.js] deleteVideo failed:",
-      error
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to delete video."
     );
-
-    throw error;
   }
+
+  return true;
 }
 
 
 /* =========================================================
-   BUSINESS SETTINGS
-   Existing table:
-   id
-   business_name
-   phone
-   whatsapp
-   email
-   address
-   description
-   hours
-   map_url
-   facebook
-   instagram
-   youtube
-   about_text
-   footer_text
-   updated_at
+   SETTINGS / BUSINESS
    ========================================================= */
-
-const BUSINESS_DEFAULTS = {
-
-  id: 1,
-
-  business_name:
-    "Hazi Dada Travels",
-
-  phone:
-    "",
-
-  whatsapp:
-    "",
-
-  email:
-    "",
-
-  address:
-    "",
-
-  description:
-    "Travel with Hazi Dada Travels.",
-
-  hours:
-    "",
-
-  map_url:
-    "",
-
-  facebook:
-    "",
-
-  instagram:
-    "",
-
-  youtube:
-    "",
-
-  about_text:
-    "Travel with Hazi Dada Travels.",
-
-  footer_text:
-    "All rights reserved."
-};
-
 
 function normalizeSettings(row) {
 
-  const source =
-    row || {};
+  if (!row) {
+    return {
+      ...BUSINESS_DEFAULTS
+    };
+  }
 
   return {
 
     id:
-      source.id ?? 1,
+      row.id || 1,
 
-    business_name:
-      source.business_name ||
-      BUSINESS_DEFAULTS.business_name,
+    name:
+      row.business_name ||
+      BUSINESS_DEFAULTS.name,
 
     phone:
-      source.phone ||
-      BUSINESS_DEFAULTS.phone,
+      row.phone || "",
 
     whatsapp:
-      source.whatsapp ||
-      BUSINESS_DEFAULTS.whatsapp,
+      row.whatsapp || "",
 
     email:
-      source.email ||
-      BUSINESS_DEFAULTS.email,
+      row.email || "",
 
     address:
-      source.address ||
-      BUSINESS_DEFAULTS.address,
+      row.address || "",
 
     description:
-      source.description ||
+      row.description ||
       BUSINESS_DEFAULTS.description,
 
     hours:
-      source.hours ||
-      BUSINESS_DEFAULTS.hours,
+      row.hours || "",
 
-    map_url:
-      source.map_url ||
-      BUSINESS_DEFAULTS.map_url,
+    mapUrl:
+      row.map_url || "",
 
     facebook:
-      source.facebook ||
-      BUSINESS_DEFAULTS.facebook,
+      row.facebook || "",
 
     instagram:
-      source.instagram ||
-      BUSINESS_DEFAULTS.instagram,
+      row.instagram || "",
 
     youtube:
-      source.youtube ||
-      BUSINESS_DEFAULTS.youtube,
+      row.youtube || "",
 
-    about_text:
-      source.about_text ||
-      BUSINESS_DEFAULTS.about_text,
+    aboutText:
+      row.about_text || "",
 
-    footer_text:
-      source.footer_text ||
-      BUSINESS_DEFAULTS.footer_text,
+    footerText:
+      row.footer_text ||
+      BUSINESS_DEFAULTS.footerText,
 
-    updated_at:
-      source.updated_at || null
+    updatedAt:
+      row.updated_at || ""
   };
 }
 
 
-function settingsRowFromUI(settings) {
-
-  const s =
-    normalizeSettings(settings);
+function settingsRowFromUI(settings = {}) {
 
   return {
 
-    id: 1,
+    id:
+      settings.id || 1,
 
     business_name:
-      s.business_name,
+      settings.name ||
+      settings.business_name ||
+      BUSINESS_DEFAULTS.name,
 
     phone:
-      s.phone,
+      settings.phone || "",
 
     whatsapp:
-      s.whatsapp,
+      settings.whatsapp || "",
 
     email:
-      s.email,
+      settings.email || "",
 
     address:
-      s.address,
+      settings.address || "",
 
     description:
-      s.description,
+      settings.description || "",
 
     hours:
-      s.hours,
+      settings.hours || "",
 
     map_url:
-      s.map_url,
+      settings.mapUrl ||
+      settings.map_url ||
+      "",
 
     facebook:
-      s.facebook,
+      settings.facebook || "",
 
     instagram:
-      s.instagram,
+      settings.instagram || "",
 
     youtube:
-      s.youtube,
+      settings.youtube || "",
 
     about_text:
-      s.about_text,
+      settings.aboutText ||
+      settings.about_text ||
+      "",
 
     footer_text:
-      s.footer_text
+      settings.footerText ||
+      settings.footer_text ||
+      ""
   };
 }
 
 
 /*
-   Synchronous getter.
-
-   This is intentional because app.js uses getBusiness()
-   while rendering the homepage/footer.
+  Synchronous function used by app.js.
+  This MUST stay synchronous because the current
+  app.js calls getBusiness() without await.
 */
 
 function getBusiness() {
@@ -1947,72 +1787,11 @@ function getBusiness() {
     return BUSINESS_CACHE;
   }
 
-  BUSINESS_CACHE =
-    normalizeSettings(
-      BUSINESS_DEFAULTS
-    );
+  BUSINESS_CACHE = {
+    ...BUSINESS_DEFAULTS
+  };
 
   return BUSINESS_CACHE;
-}
-
-
-async function refreshBusinessCache() {
-
-  try {
-
-    const client =
-      ensureSupabase();
-
-    const {
-      data,
-      error
-    } = await client
-      .from("settings")
-      .select("*")
-      .eq("id", 1)
-      .maybeSingle();
-
-    if (error) {
-      console.error(
-        "[data.js] Business settings refresh failed:",
-        error
-      );
-
-      return BUSINESS_CACHE;
-    }
-
-    if (data) {
-
-      BUSINESS_CACHE =
-        normalizeSettings(data);
-
-    } else if (!BUSINESS_CACHE) {
-
-      BUSINESS_CACHE =
-        normalizeSettings(
-          BUSINESS_DEFAULTS
-        );
-    }
-
-    return BUSINESS_CACHE;
-
-  } catch (error) {
-
-    console.error(
-      "[data.js] Business settings refresh failed:",
-      error
-    );
-
-    if (!BUSINESS_CACHE) {
-
-      BUSINESS_CACHE =
-        normalizeSettings(
-          BUSINESS_DEFAULTS
-        );
-    }
-
-    return BUSINESS_CACHE;
-  }
 }
 
 
@@ -2021,20 +1800,67 @@ function getSettings() {
 }
 
 
-async function saveSettings(settings) {
+async function refreshBusinessCache() {
 
   try {
 
-    const client =
+    const db =
       ensureSupabase();
 
-    const row =
-      settingsRowFromUI(settings);
+    const { data, error } =
+      await db
+        .from("settings")
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle();
 
-    const {
-      data,
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      BUSINESS_CACHE =
+        normalizeSettings(data);
+    }
+
+    return BUSINESS_CACHE;
+
+  } catch (error) {
+
+    /*
+      Settings are supplementary.
+      A settings failure must NOT stop
+      the public homepage from rendering.
+    */
+
+    console.error(
+      "[data.js] Business settings refresh failed:",
       error
-    } = await client
+    );
+
+    if (!BUSINESS_CACHE) {
+      BUSINESS_CACHE = {
+        ...BUSINESS_DEFAULTS
+      };
+    }
+
+    return BUSINESS_CACHE;
+  }
+}
+
+
+async function saveSettings(settings) {
+
+  const db =
+    ensureSupabase();
+
+  const row =
+    settingsRowFromUI(
+      settings
+    );
+
+  const { data, error } =
+    await db
       .from("settings")
       .upsert(row, {
         onConflict: "id"
@@ -2042,58 +1868,43 @@ async function saveSettings(settings) {
       .select()
       .single();
 
-    if (error) {
+  if (error) {
+    throw dbError(
+      error,
+      "Failed to save settings."
+    );
+  }
 
-      dbError(
-        error,
-        "Unable to save settings."
+  BUSINESS_CACHE =
+    normalizeSettings(data);
+
+  return BUSINESS_CACHE;
+}
+
+
+/* =========================================================
+   INITIALIZE DATA LAYER
+   ========================================================= */
+
+function initDataLayer() {
+
+  /*
+    Load settings in the background.
+    Homepage does not wait for this.
+  */
+
+  refreshBusinessCache()
+    .catch(error => {
+      console.error(
+        "[data.js] Settings initialization failed:",
+        error
       );
-    }
-
-    BUSINESS_CACHE =
-      normalizeSettings(data);
-
-    return BUSINESS_CACHE;
-
-  } catch (error) {
-
-    console.error(
-      "[data.js] saveSettings failed:",
-      error
-    );
-
-    throw error;
-  }
+    });
 }
 
 
-/* =========================================================
-   DATA LAYER INITIALIZATION
-   ========================================================= */
-
-async function initDataLayer() {
-
-  try {
-
-    /*
-      Refresh business settings in the background.
-      Homepage can render immediately using defaults.
-    */
-
-    await refreshBusinessCache();
-
-  } catch (error) {
-
-    console.error(
-      "[data.js] Data layer initialization failed:",
-      error
-    );
-  }
-}
-
-
-/* =========================================================
-   START DATA LAYER
-   ========================================================= */
+/* ---------------------------------------------------------
+   START
+   --------------------------------------------------------- */
 
 initDataLayer();
