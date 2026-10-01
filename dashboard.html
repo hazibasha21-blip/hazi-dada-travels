@@ -1,886 +1,266 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard | Hazi Dada Travels Admin</title>
-<meta name="robots" content="noindex, nofollow">
-<link rel="icon" href="logo.png" type="image/png">
-
-<script>
-document.documentElement.style.visibility = "hidden";
-</script>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Dashboard | Hazi Dada Travels Admin</title><meta name="robots" content="noindex, nofollow"><link rel="icon" href="logo.png" type="image/png">
 <link rel="stylesheet" href="admin.css">
-</head>
+</head><body class="admin-body"><div class="admin-shell">  <!-- SIDEBAR -->  <aside class="admin-sidebar"><div class="a-brand">
+  <img src="logo.png" alt="Hazi Dada Travels logo">
+  <span>Hazi Dada Travels</span>
+</div>
 
-<body class="admin-body">
+<nav>
+  <a href="#" data-panel="dashboard" class="active">📊 Dashboard</a>
+  <a href="#" data-panel="trips">🧳 Trips</a>
+  <a href="#" data-panel="vehicles">🚌 Vehicles</a>
+  <a href="#" data-panel="gallery">🖼️ Gallery</a>
+  <a href="#" data-panel="videos">▶️ Videos</a>
+  <a href="#" data-panel="reviews">⭐ Reviews</a>
+  <a href="#" data-panel="enquiries">📩 Enquiries</a>
+  <a href="#" data-panel="settings">⚙️ Settings</a>
+</nav>
 
-<div class="admin-shell">
+<div class="a-logout">
+  <button
+    type="button"
+    class="a-btn a-btn-outline a-btn-block a-logout-btn"
+    style="color:#fff;border-color:rgba(255,255,255,.3);background:transparent;">
+    Logout
+  </button>
+</div>
 
-  <!-- =====================================================
-       SIDEBAR
-       ===================================================== -->
-  <aside class="admin-sidebar">
+  </aside>  <!-- MAIN -->  <div style="flex:1;min-width:0;"><!-- TOP BAR -->
+<div class="admin-topbar">
 
-    <div class="a-brand">
-      <img src="logo.png" alt="Hazi Dada Travels logo">
-      <span>Hazi Dada Travels</span>
+  <strong>Admin Panel</strong>
+
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+
+    <a
+      href="index.html"
+      class="a-btn a-btn-outline a-btn-small">
+      View Website
+    </a>
+
+    <button
+      type="button"
+      class="a-btn a-btn-outline a-btn-small a-logout-btn">
+      Logout
+    </button>
+
+  </div>
+
+</div>
+
+
+<!-- MOBILE NAV -->
+<nav class="admin-mobile-tabs">
+
+  <a href="#" data-panel="dashboard" class="active">Dashboard</a>
+  <a href="#" data-panel="trips">Trips</a>
+  <a href="#" data-panel="vehicles">Vehicles</a>
+  <a href="#" data-panel="gallery">Gallery</a>
+  <a href="#" data-panel="videos">Videos</a>
+  <a href="#" data-panel="reviews">Reviews</a>
+  <a href="#" data-panel="enquiries">Enquiries</a>
+  <a href="#" data-panel="settings">Settings</a>
+
+</nav>
+
+
+<!-- CONTENT -->
+<main class="admin-main">
+
+  <div class="a-banner">
+    Manage your trips, vehicles, gallery, videos, reviews,
+    enquiries and business settings from this Admin Panel.
+  </div>
+
+
+  <!-- DASHBOARD -->
+  <section id="panel-dashboard" class="admin-panel active">
+
+    <div class="a-panel-header">
+      <h1>Dashboard</h1>
     </div>
 
-    <nav>
-      <a href="#" data-panel="dashboard" class="active">📊 Dashboard</a>
-      <a href="#" data-panel="trips">🧳 Trips</a>
-      <a href="#" data-panel="vehicles">🚌 Vehicles</a>
-      <a href="#" data-panel="gallery">🖼️ Gallery</a>
-      <a href="#" data-panel="videos">▶️ Videos</a>
-      <a href="#" data-panel="reviews">⭐ Reviews</a>
-      <a href="#" data-panel="enquiries">📩 Enquiries</a>
-      <a href="#" data-panel="settings">⚙️ Settings</a>
-    </nav>
 
-    <div class="a-logout">
+    <div class="a-stat-grid">
+
+      <div class="a-stat-card">
+        <div class="a-stat-value" id="stat-trips">0</div>
+        <div class="a-stat-label">Total Trips</div>
+      </div>
+
+      <div class="a-stat-card">
+        <div class="a-stat-value" id="stat-vehicles">0</div>
+        <div class="a-stat-label">Total Vehicles</div>
+      </div>
+
+      <div class="a-stat-card">
+        <div class="a-stat-value" id="stat-gallery">0</div>
+        <div class="a-stat-label">Gallery Items</div>
+      </div>
+
+      <div class="a-stat-card">
+        <div class="a-stat-value" id="stat-videos">0</div>
+        <div class="a-stat-label">Videos</div>
+      </div>
+
+      <div class="a-stat-card">
+        <div class="a-stat-value" id="stat-reviews">0</div>
+        <div class="a-stat-label">Reviews</div>
+      </div>
+
+      <div class="a-stat-card">
+        <div class="a-stat-value" id="stat-enquiries">0</div>
+        <div class="a-stat-label">Enquiries</div>
+      </div>
+
+    </div>
+
+
+    <div class="a-item-actions">
+
       <button
         type="button"
-        class="a-btn a-btn-outline a-btn-block a-logout-btn"
-        style="color:#fff;border-color:rgba(255,255,255,.3);background:transparent;">
-        Logout
+        class="a-btn a-btn-primary"
+        data-quick="trip">
+        + Add Trip
       </button>
-    </div>
-
-  </aside>
-
-
-  <!-- =====================================================
-       MAIN AREA
-       ===================================================== -->
-  <div style="flex:1;min-width:0;">
-
-    <!-- TOP BAR -->
-    <div class="admin-topbar">
-
-      <strong>Admin Panel</strong>
-
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-        <a href="index.html" class="a-btn a-btn-outline a-btn-small">
-          View Website
-        </a>
-
-        <button
-          type="button"
-          class="a-btn a-btn-outline a-btn-small a-logout-btn">
-          Logout
-        </button>
-      </div>
-
-    </div>
-
-
-    <!-- MOBILE NAVIGATION -->
-    <nav class="admin-mobile-tabs">
-
-      <a href="#" data-panel="dashboard" class="active">Dashboard</a>
-      <a href="#" data-panel="trips">Trips</a>
-      <a href="#" data-panel="vehicles">Vehicles</a>
-      <a href="#" data-panel="gallery">Gallery</a>
-      <a href="#" data-panel="videos">Videos</a>
-      <a href="#" data-panel="reviews">Reviews</a>
-      <a href="#" data-panel="enquiries">Enquiries</a>
-      <a href="#" data-panel="settings">Settings</a>
-
-    </nav>
-
-
-    <!-- ===================================================
-         MAIN CONTENT
-         =================================================== -->
-    <main class="admin-main">
-
-      <div class="a-banner">
-        Trips, Vehicles, Gallery, Reviews and Enquiries are saved to Supabase.
-        Videos and Settings currently use browser storage.
-      </div>
-
-
-      <!-- =================================================
-           DASHBOARD
-           ================================================= -->
-      <section id="panel-dashboard" class="admin-panel active">
-
-        <div class="a-panel-header">
-          <h1>Dashboard</h1>
-        </div>
-
-
-        <div class="a-stat-grid">
-
-          <div class="a-stat-card">
-            <div class="a-stat-value" id="stat-trips">0</div>
-            <div class="a-stat-label">Total Trips</div>
-          </div>
-
-          <div class="a-stat-card">
-            <div class="a-stat-value" id="stat-vehicles">0</div>
-            <div class="a-stat-label">Total Vehicles</div>
-          </div>
-
-          <div class="a-stat-card">
-            <div class="a-stat-value" id="stat-gallery">0</div>
-            <div class="a-stat-label">Gallery Items</div>
-          </div>
-
-          <div class="a-stat-card">
-            <div class="a-stat-value" id="stat-videos">0</div>
-            <div class="a-stat-label">Videos</div>
-          </div>
-
-          <div class="a-stat-card">
-            <div class="a-stat-value" id="stat-reviews">0</div>
-            <div class="a-stat-label">Reviews</div>
-          </div>
-
-          <div class="a-stat-card">
-            <div class="a-stat-value" id="stat-enquiries">0</div>
-            <div class="a-stat-label">Enquiries</div>
-          </div>
-
-        </div>
-
-
-        <div class="a-item-actions">
-
-          <button
-            type="button"
-            class="a-btn a-btn-primary"
-            data-quick="trip">
-            + Add Trip
-          </button>
-
-          <button
-            type="button"
-            class="a-btn a-btn-primary"
-            data-quick="vehicle">
-            + Add Vehicle
-          </button>
-
-          <button
-            type="button"
-            class="a-btn a-btn-primary"
-            data-quick="gallery">
-            + Add Photo
-          </button>
-
-          <button
-            type="button"
-            class="a-btn a-btn-primary"
-            data-quick="video">
-            + Add Video
-          </button>
-
-          <button
-            type="button"
-            class="a-btn a-btn-primary"
-            data-quick="review">
-            + Add Review
-          </button>
-
-        </div>
-
-
-        <div class="a-recent">
-
-          <div class="a-recent-box">
-            <h2>Recent Enquiries</h2>
-            <div id="recent-enquiries"></div>
-          </div>
-
-          <div class="a-recent-box">
-            <h2>Recent Reviews</h2>
-            <div id="recent-reviews"></div>
-          </div>
-
-          <div class="a-recent-box">
-            <h2>Recent Trips</h2>
-            <div id="recent-trips"></div>
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <!-- =================================================
-           TRIPS
-           ================================================= -->
-      <section id="panel-trips" class="admin-panel">
-
-        <div class="a-panel-header">
-
-          <h1>Trips</h1>
-
-          <button
-            type="button"
-            class="a-btn a-btn-primary"
-            id="add-trip-btn">
-            + Add Trip
-          </button>
-
-        </div>
-
-
-        <div class="a-toolbar">
-
-          <input
-            type="search"
-            id="trip-search"
-            placeholder="Search trips..."
-            aria-label="Search trips">
-
-        </div>
-
-
-        <div class="a-item-list" id="trips-list"></div>
-
-      </section>
-
-
-      <!-- =================================================
-           VEHICLES
-           ================================================= -->
-      <section id="panel-vehicles" class="admin-panel">
-
-        <div class="a-panel-header">
-
-          <h1>Vehicles</h1>
-
-          <button
-            type="button"
-            class="a-btn a-btn-primary"
-            id="add-vehicle-btn">
-            + Add Vehicle
-          </button>
-
-        </div>
-
-
-        <div class="a-item-list" id="vehicles-list"></div>
-
-      </section>
-
-
-      <!-- =================================================
-           GALLERY
-           ================================================= -->
-      <section id="panel-gallery" class="admin-panel">
-
-        <div class="a-panel-header">
-          <h1>Gallery</h1>
-        </div>
-
-
-        <form id="gallery-add-form" class="a-panel-card">
-
-          <div class="a-form-group">
-
-            <label for="g-image">
-              Image
-            </label>
-
-            <input
-              id="g-image"
-              type="file"
-              name="image"
-              accept="image/*">
-
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="g-caption">
-              Caption
-            </label>
-
-            <input
-              id="g-caption"
-              type="text"
-              name="caption"
-              placeholder="Photo caption">
-
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="g-description">
-              Description (optional)
-            </label>
-
-            <textarea
-              id="g-description"
-              name="description"
-              placeholder="Optional description"></textarea>
-
-          </div>
-
-
-          <button
-            type="submit"
-            class="a-btn a-btn-primary a-btn-block">
-            + Add Image
-          </button>
-
-        </form>
-
-
-        <div class="a-item-list" id="gallery-list"></div>
-
-      </section>
-
-
-      <!-- =================================================
-           VIDEOS
-           ================================================= -->
-      <section id="panel-videos" class="admin-panel">
-
-        <div class="a-panel-header">
-
-          <h1>Videos</h1>
-
-          <button
-            type="button"
-            class="a-btn a-btn-primary"
-            id="add-video-btn">
-            + Add Video
-          </button>
-
-        </div>
-
-
-        <div class="a-item-list" id="videos-list"></div>
-
-      </section>
-
-
-      <!-- =================================================
-           REVIEWS
-           ================================================= -->
-      <section id="panel-reviews" class="admin-panel">
-
-        <div class="a-panel-header">
-
-          <h1>Reviews</h1>
-
-          <button
-            type="button"
-            class="a-btn a-btn-primary"
-            id="add-review-btn">
-            + Add Review
-          </button>
-
-        </div>
-
-
-        <div class="a-item-list" id="reviews-list"></div>
-
-      </section>
-
-
-      <!-- =================================================
-           ENQUIRIES
-           ================================================= -->
-      <section id="panel-enquiries" class="admin-panel">
-
-        <div class="a-panel-header">
-          <h1>Enquiries</h1>
-        </div>
-
-
-        <div class="a-toolbar">
-
-          <select
-            id="enquiry-filter"
-            aria-label="Filter by status">
-
-            <option value="">All statuses</option>
-            <option value="New">New</option>
-            <option value="Contacted">Contacted</option>
-            <option value="Confirmed">Confirmed</option>
-            <option value="Closed">Closed</option>
-
-          </select>
-
-        </div>
-
-
-        <div class="a-item-list" id="enquiries-list"></div>
-
-      </section>
-
-
-      <!-- =================================================
-           SETTINGS
-           ================================================= -->
-      <section id="panel-settings" class="admin-panel">
-
-        <div class="a-panel-header">
-          <h1>Settings</h1>
-        </div>
-
-
-        <form id="settings-form" class="a-panel-card">
-
-          <div class="a-form-group">
-            <label for="settings-phone">Phone</label>
-
-            <input
-              id="settings-phone"
-              type="text"
-              name="phone">
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="settings-whatsapp">
-              WhatsApp
-              <span class="a-item-meta">
-                digits with country code, no +
-              </span>
-            </label>
-
-            <input
-              id="settings-whatsapp"
-              type="text"
-              name="whatsapp">
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="settings-email">
-              Email
-            </label>
-
-            <input
-              id="settings-email"
-              type="email"
-              name="email">
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="settings-address">
-              Address
-            </label>
-
-            <textarea
-              id="settings-address"
-              name="address"></textarea>
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="settings-hours">
-              Business Hours
-            </label>
-
-            <input
-              id="settings-hours"
-              type="text"
-              name="hours">
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="settings-map">
-              Map URL
-            </label>
-
-            <input
-              id="settings-map"
-              type="text"
-              name="mapUrl">
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="settings-facebook">
-              Facebook
-            </label>
-
-            <input
-              id="settings-facebook"
-              type="text"
-              name="facebook">
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="settings-instagram">
-              Instagram
-            </label>
-
-            <input
-              id="settings-instagram"
-              type="text"
-              name="instagram">
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="settings-youtube">
-              YouTube
-            </label>
-
-            <input
-              id="settings-youtube"
-              type="text"
-              name="youtube">
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="settings-about">
-              About Text
-            </label>
-
-            <textarea
-              id="settings-about"
-              name="aboutText"></textarea>
-          </div>
-
-
-          <div class="a-form-group">
-
-            <label for="settings-footer">
-              Footer Text
-            </label>
-
-            <input
-              id="settings-footer"
-              type="text"
-              name="footerText">
-          </div>
-
-
-          <button
-            type="submit"
-            class="a-btn a-btn-primary a-btn-block">
-            Save Settings
-          </button>
-
-
-          <p class="a-item-meta">
-            Settings currently use browser storage.
-          </p>
-
-        </form>
-
-
-        <!-- =================================================
-             SECURITY / CHANGE PASSWORD
-             ================================================= -->
-        <div
-          class="a-panel-card"
-          style="margin-top:1rem;">
-
-          <div class="a-panel-header">
-            <h2>Security</h2>
-          </div>
-
-          <p class="a-item-meta">
-            Change the password used to access the Admin Panel.
-          </p>
-
-
-          <form
-            id="change-password-form"
-            novalidate>
-
-            <div class="a-form-group">
-
-              <label for="current-admin-password">
-                Current Password
-              </label>
-
-              <input
-                id="current-admin-password"
-                type="password"
-                name="currentPassword"
-                autocomplete="current-password"
-                required>
-
-            </div>
-
-
-            <div class="a-form-group">
-
-              <label for="new-admin-password">
-                New Password
-              </label>
-
-              <input
-                id="new-admin-password"
-                type="password"
-                name="newPassword"
-                autocomplete="new-password"
-                minlength="8"
-                required>
-
-              <span class="a-item-meta">
-                Use at least 8 characters.
-              </span>
-
-            </div>
-
-
-            <div class="a-form-group">
-
-              <label for="confirm-admin-password">
-                Confirm New Password
-              </label>
-
-              <input
-                id="confirm-admin-password"
-                type="password"
-                name="confirmPassword"
-                autocomplete="new-password"
-                minlength="8"
-                required>
-
-            </div>
-
-
-            <p
-              class="a-msg error"
-              id="change-password-error"
-              style="display:none;">
-            </p>
-
-
-            <p
-              class="a-msg success"
-              id="change-password-success"
-              style="display:none;">
-            </p>
-
-
-            <button
-              type="submit"
-              class="a-btn a-btn-primary">
-              Change Password
-            </button>
-
-          </form>
-
-        </div>
-
-      </section>
-
-    </main>
-
-  </div>
-
-</div>
-
-
-<!-- =======================================================
-     TRIP MODAL
-     ======================================================= -->
-<div class="a-modal-overlay" id="trip-modal">
-
-  <div class="a-modal-box">
-
-    <button
-      type="button"
-      class="a-modal-close"
-      data-close="trip-modal"
-      aria-label="Close">
-      &times;
-    </button>
-
-
-    <h2 id="trip-modal-title">
-      Add Trip
-    </h2>
-
-
-    <form id="trip-form" novalidate>
-
-      <div class="a-form-group">
-
-        <label for="trip-image-input">
-          Main Image
-        </label>
-
-        <img
-          id="trip-image-preview"
-          src=""
-          alt=""
-          style="width:110px;height:76px;object-fit:cover;border-radius:8px;display:block;margin-bottom:.5rem;">
-
-        <input
-          type="file"
-          id="trip-image-input"
-          accept="image/*">
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label for="trip-name">
-          Trip Name
-        </label>
-
-        <input
-          id="trip-name"
-          type="text"
-          name="name"
-          required>
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label for="trip-destination">
-          Destination
-        </label>
-
-        <input
-          id="trip-destination"
-          type="text"
-          name="destination"
-          required>
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label for="trip-duration">
-          Duration
-        </label>
-
-        <input
-          id="trip-duration"
-          type="text"
-          name="duration"
-          placeholder="e.g. 2 Days / 1 Night">
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label for="trip-price">
-          Price
-        </label>
-
-        <input
-          id="trip-price"
-          type="text"
-          name="price"
-          placeholder="e.g. ₹5,999">
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label for="trip-description">
-          Description
-        </label>
-
-        <textarea
-          id="trip-description"
-          name="description"
-          placeholder="Trip description"></textarea>
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label>
-          Available Vehicles
-        </label>
-
-        <div
-          class="a-checkbox-list"
-          id="trip-vehicle-checkboxes">
-        </div>
-
-      </div>
-
-
-      <p
-        class="a-msg error"
-        id="trip-error"
-        style="display:none;">
-      </p>
-
 
       <button
-        type="submit"
-        class="a-btn a-btn-primary a-btn-block">
-        Save Trip
+        type="button"
+        class="a-btn a-btn-primary"
+        data-quick="vehicle">
+        + Add Vehicle
       </button>
 
-    </form>
+      <button
+        type="button"
+        class="a-btn a-btn-primary"
+        data-quick="gallery">
+        + Add Photo
+      </button>
 
-  </div>
+      <button
+        type="button"
+        class="a-btn a-btn-primary"
+        data-quick="video">
+        + Add Video
+      </button>
 
-</div>
+      <button
+        type="button"
+        class="a-btn a-btn-primary"
+        data-quick="review">
+        + Add Review
+      </button>
 
-
-<!-- =======================================================
-     VEHICLE MODAL
-     ======================================================= -->
-<div class="a-modal-overlay" id="vehicle-modal">
-
-  <div class="a-modal-box">
-
-    <button
-      type="button"
-      class="a-modal-close"
-      data-close="vehicle-modal"
-      aria-label="Close">
-      &times;
-    </button>
-
-
-    <h2 id="vehicle-modal-title">
-      Add Vehicle
-    </h2>
+    </div>
 
 
-    <form id="vehicle-form" novalidate>
+    <div class="a-recent">
+
+      <div class="a-recent-box">
+        <h2>Recent Enquiries</h2>
+        <div id="recent-enquiries"></div>
+      </div>
+
+      <div class="a-recent-box">
+        <h2>Recent Reviews</h2>
+        <div id="recent-reviews"></div>
+      </div>
+
+      <div class="a-recent-box">
+        <h2>Recent Trips</h2>
+        <div id="recent-trips"></div>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- TRIPS -->
+  <section id="panel-trips" class="admin-panel">
+
+    <div class="a-panel-header">
+
+      <h1>Trips</h1>
+
+      <button
+        type="button"
+        class="a-btn a-btn-primary"
+        id="add-trip-btn">
+        + Add Trip
+      </button>
+
+    </div>
+
+    <div class="a-toolbar">
+
+      <input
+        type="search"
+        id="trip-search"
+        placeholder="Search trips..."
+        aria-label="Search trips">
+
+    </div>
+
+    <div
+      class="a-item-list"
+      id="trips-list">
+    </div>
+
+  </section>
+
+
+  <!-- VEHICLES -->
+  <section id="panel-vehicles" class="admin-panel">
+
+    <div class="a-panel-header">
+
+      <h1>Vehicles</h1>
+
+      <button
+        type="button"
+        class="a-btn a-btn-primary"
+        id="add-vehicle-btn">
+        + Add Vehicle
+      </button>
+
+    </div>
+
+    <div
+      class="a-item-list"
+      id="vehicles-list">
+    </div>
+
+  </section>
+
+
+  <!-- GALLERY -->
+  <section id="panel-gallery" class="admin-panel">
+
+    <div class="a-panel-header">
+      <h1>Gallery</h1>
+    </div>
+
+
+    <form
+      id="gallery-add-form"
+      class="a-panel-card">
 
       <div class="a-form-group">
 
-        <label for="vehicle-image-input">
+        <label for="g-image">
           Image
         </label>
 
-        <img
-          id="vehicle-image-preview"
-          src=""
-          alt=""
-          style="width:110px;height:76px;object-fit:cover;border-radius:8px;display:block;margin-bottom:.5rem;">
-
         <input
+          id="g-image"
           type="file"
-          id="vehicle-image-input"
+          name="image"
           accept="image/*">
 
       </div>
@@ -888,337 +268,912 @@ document.documentElement.style.visibility = "hidden";
 
       <div class="a-form-group">
 
-        <label for="vehicle-name">
-          Vehicle Name
+        <label for="g-caption">
+          Caption
         </label>
 
         <input
-          id="vehicle-name"
+          id="g-caption"
           type="text"
-          name="name"
-          required>
+          name="caption"
+          placeholder="Photo caption">
 
       </div>
 
 
       <div class="a-form-group">
 
-        <label for="vehicle-type">
-          Type
-        </label>
-
-        <input
-          id="vehicle-type"
-          type="text"
-          name="type"
-          placeholder="e.g. Bus / Tempo Traveller">
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label for="vehicle-capacity">
-          Capacity
-          <span class="a-item-meta">
-            number of seats
-          </span>
-        </label>
-
-        <input
-          id="vehicle-capacity"
-          type="text"
-          name="capacity"
-          placeholder="e.g. 32"
-          inputmode="numeric">
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label for="vehicle-registration">
-          Registration Number
-        </label>
-
-        <input
-          id="vehicle-registration"
-          type="text"
-          name="registration"
-          placeholder="e.g. AP 39 XX 1234">
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label for="vehicle-available">
-          Availability
-        </label>
-
-        <select
-          id="vehicle-available"
-          name="available">
-
-          <option value="true">
-            Available
-          </option>
-
-          <option value="false">
-            Unavailable
-          </option>
-
-        </select>
-
-      </div>
-
-
-      <p
-        class="a-msg error"
-        id="vehicle-error"
-        style="display:none;">
-      </p>
-
-
-      <button
-        type="submit"
-        class="a-btn a-btn-primary a-btn-block">
-        Save Vehicle
-      </button>
-
-    </form>
-
-  </div>
-
-</div>
-
-
-<!-- =======================================================
-     VIDEO MODAL
-     ======================================================= -->
-<div class="a-modal-overlay" id="video-modal">
-
-  <div class="a-modal-box">
-
-    <button
-      type="button"
-      class="a-modal-close"
-      data-close="video-modal"
-      aria-label="Close">
-      &times;
-    </button>
-
-
-    <h2 id="video-modal-title">
-      Add Video
-    </h2>
-
-
-    <form id="video-form" novalidate>
-
-      <div class="a-form-group">
-
-        <label for="video-title">
-          Title
-        </label>
-
-        <input
-          id="video-title"
-          type="text"
-          name="title"
-          required>
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label for="video-description">
+        <label for="g-description">
           Description
         </label>
 
         <textarea
-          id="video-description"
-          name="description"></textarea>
+          id="g-description"
+          name="description"
+          placeholder="Optional description"></textarea>
 
       </div>
-
-
-      <div class="a-form-group">
-
-        <label for="video-youtube">
-          YouTube ID or URL
-        </label>
-
-        <input
-          id="video-youtube"
-          type="text"
-          name="youtube"
-          placeholder="YouTube URL or 11-character ID">
-
-      </div>
-
-
-      <p
-        class="a-msg error"
-        id="video-error"
-        style="display:none;">
-      </p>
 
 
       <button
         type="submit"
         class="a-btn a-btn-primary a-btn-block">
-        Save Video
+        + Add Image
       </button>
 
     </form>
 
-  </div>
 
-</div>
+    <div
+      class="a-item-list"
+      id="gallery-list">
+    </div>
 
-
-<!-- =======================================================
-     REVIEW MODAL
-     ======================================================= -->
-<div class="a-modal-overlay" id="review-modal">
-
-  <div class="a-modal-box">
-
-    <button
-      type="button"
-      class="a-modal-close"
-      data-close="review-modal"
-      aria-label="Close">
-      &times;
-    </button>
+  </section>
 
 
-    <h2 id="review-modal-title">
-      Add Review
-    </h2>
+  <!-- VIDEOS -->
+  <section id="panel-videos" class="admin-panel">
+
+    <div class="a-panel-header">
+
+      <h1>Videos</h1>
+
+      <button
+        type="button"
+        class="a-btn a-btn-primary"
+        id="add-video-btn">
+        + Add Video
+      </button>
+
+    </div>
 
 
-    <form id="review-form-admin" novalidate>
+    <div
+      class="a-item-list"
+      id="videos-list">
+    </div>
+
+  </section>
+
+
+  <!-- REVIEWS -->
+  <section id="panel-reviews" class="admin-panel">
+
+    <div class="a-panel-header">
+
+      <h1>Reviews</h1>
+
+      <button
+        type="button"
+        class="a-btn a-btn-primary"
+        id="add-review-btn">
+        + Add Review
+      </button>
+
+    </div>
+
+
+    <div
+      class="a-item-list"
+      id="reviews-list">
+    </div>
+
+  </section>
+
+
+  <!-- ENQUIRIES -->
+  <section id="panel-enquiries" class="admin-panel">
+
+    <div class="a-panel-header">
+      <h1>Enquiries</h1>
+    </div>
+
+
+    <div class="a-toolbar">
+
+      <select
+        id="enquiry-filter"
+        aria-label="Filter by status">
+
+        <option value="">All statuses</option>
+        <option value="New">New</option>
+        <option value="Contacted">Contacted</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Closed">Closed</option>
+
+      </select>
+
+    </div>
+
+
+    <div
+      class="a-item-list"
+      id="enquiries-list">
+    </div>
+
+  </section>
+
+
+  <!-- SETTINGS -->
+  <section id="panel-settings" class="admin-panel">
+
+    <div class="a-panel-header">
+      <h1>Settings</h1>
+    </div>
+
+
+    <form
+      id="settings-form"
+      class="a-panel-card">
 
       <div class="a-form-group">
-
-        <label for="review-name">
-          Customer Name
-        </label>
+        <label for="settings-phone">Phone</label>
 
         <input
-          id="review-name"
+          id="settings-phone"
           type="text"
-          name="name"
-          required>
-
+          name="phone">
       </div>
 
 
       <div class="a-form-group">
 
-        <label for="review-rating">
-          Rating
-        </label>
-
-        <select
-          id="review-rating"
-          name="rating">
-
-          <option value="5">★★★★★ (5)</option>
-          <option value="4">★★★★☆ (4)</option>
-          <option value="3">★★★☆☆ (3)</option>
-          <option value="2">★★☆☆☆ (2)</option>
-          <option value="1">★☆☆☆☆ (1)</option>
-
-        </select>
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label for="review-text">
-          Review
-        </label>
-
-        <textarea
-          id="review-text"
-          name="review"
-          required></textarea>
-
-      </div>
-
-
-      <div class="a-form-group">
-
-        <label for="review-approved">
-          Approved
+        <label for="settings-whatsapp">
+          WhatsApp
           <span class="a-item-meta">
-            visible on the public site
+            digits with country code, no +
           </span>
         </label>
 
-        <select
-          id="review-approved"
-          name="approved">
-
-          <option value="true">
-            Yes
-          </option>
-
-          <option value="false">
-            No — pending approval
-          </option>
-
-        </select>
+        <input
+          id="settings-whatsapp"
+          type="text"
+          name="whatsapp">
 
       </div>
 
 
-      <p
-        class="a-msg error"
-        id="review-error"
-        style="display:none;">
-      </p>
+      <div class="a-form-group">
+
+        <label for="settings-email">
+          Email
+        </label>
+
+        <input
+          id="settings-email"
+          type="email"
+          name="email">
+
+      </div>
+
+
+      <div class="a-form-group">
+
+        <label for="settings-address">
+          Address
+        </label>
+
+        <textarea
+          id="settings-address"
+          name="address"></textarea>
+
+      </div>
+
+
+      <div class="a-form-group">
+
+        <label for="settings-hours">
+          Business Hours
+        </label>
+
+        <input
+          id="settings-hours"
+          type="text"
+          name="hours">
+
+      </div>
+
+
+      <div class="a-form-group">
+
+        <label for="settings-map">
+          Map URL
+        </label>
+
+        <input
+          id="settings-map"
+          type="text"
+          name="mapUrl">
+
+      </div>
+
+
+      <div class="a-form-group">
+
+        <label for="settings-facebook">
+          Facebook
+        </label>
+
+        <input
+          id="settings-facebook"
+          type="text"
+          name="facebook">
+
+      </div>
+
+
+      <div class="a-form-group">
+
+        <label for="settings-instagram">
+          Instagram
+        </label>
+
+        <input
+          id="settings-instagram"
+          type="text"
+          name="instagram">
+
+      </div>
+
+
+      <div class="a-form-group">
+
+        <label for="settings-youtube">
+          YouTube
+        </label>
+
+        <input
+          id="settings-youtube"
+          type="text"
+          name="youtube">
+
+      </div>
+
+
+      <div class="a-form-group">
+
+        <label for="settings-about">
+          About Text
+        </label>
+
+        <textarea
+          id="settings-about"
+          name="aboutText"></textarea>
+
+      </div>
+
+
+      <div class="a-form-group">
+
+        <label for="settings-footer">
+          Footer Text
+        </label>
+
+        <input
+          id="settings-footer"
+          type="text"
+          name="footerText">
+
+      </div>
 
 
       <button
         type="submit"
         class="a-btn a-btn-primary a-btn-block">
-        Save Review
+        Save Settings
       </button>
 
     </form>
 
+
+    <!-- SECURITY -->
+    <div
+      class="a-panel-card"
+      style="margin-top:1rem;">
+
+      <div class="a-panel-header">
+        <h2>Security</h2>
+      </div>
+
+      <p class="a-item-meta">
+        Change the password used to access the Admin Panel.
+      </p>
+
+
+      <form
+        id="change-password-form"
+        novalidate>
+
+        <div class="a-form-group">
+
+          <label for="current-admin-password">
+            Current Password
+          </label>
+
+          <input
+            id="current-admin-password"
+            type="password"
+            name="currentPassword"
+            autocomplete="current-password"
+            required>
+
+        </div>
+
+
+        <div class="a-form-group">
+
+          <label for="new-admin-password">
+            New Password
+          </label>
+
+          <input
+            id="new-admin-password"
+            type="password"
+            name="newPassword"
+            autocomplete="new-password"
+            minlength="8"
+            required>
+
+          <span class="a-item-meta">
+            Use at least 8 characters.
+          </span>
+
+        </div>
+
+
+        <div class="a-form-group">
+
+          <label for="confirm-admin-password">
+            Confirm New Password
+          </label>
+
+          <input
+            id="confirm-admin-password"
+            type="password"
+            name="confirmPassword"
+            autocomplete="new-password"
+            minlength="8"
+            required>
+
+        </div>
+
+
+        <p
+          class="a-msg error"
+          id="change-password-error"
+          style="display:none;">
+        </p>
+
+
+        <p
+          class="a-msg success"
+          id="change-password-success"
+          style="display:none;">
+        </p>
+
+
+        <button
+          type="submit"
+          class="a-btn a-btn-primary">
+          Change Password
+        </button>
+
+      </form>
+
+    </div>
+
+  </section>
+
+</main>
+
+  </div></div><!-- TRIP MODAL --><div
+  class="a-modal-overlay"
+  id="trip-modal">  <div class="a-modal-box"><button
+  type="button"
+  class="a-modal-close"
+  data-close="trip-modal"
+  aria-label="Close">
+  &times;
+</button>
+
+
+<h2 id="trip-modal-title">
+  Add Trip
+</h2>
+
+
+<form
+  id="trip-form"
+  novalidate>
+
+  <div class="a-form-group">
+
+    <label for="trip-image-input">
+      Main Image
+    </label>
+
+    <img
+      id="trip-image-preview"
+      src=""
+      alt=""
+      style="width:110px;height:76px;object-fit:cover;border-radius:8px;display:block;margin-bottom:.5rem;">
+
+    <input
+      type="file"
+      id="trip-image-input"
+      accept="image/*">
+
   </div>
 
-</div>
+
+  <div class="a-form-group">
+
+    <label for="trip-name">
+      Trip Name
+    </label>
+
+    <input
+      id="trip-name"
+      type="text"
+      name="name"
+      required>
+
+  </div>
 
 
-<!-- =======================================================
-     SCRIPTS
-     ======================================================= -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <div class="a-form-group">
 
-<script src="supabase.js"></script>
-<script src="data.js"></script>
-<script src="admin.js"></script>
+    <label for="trip-destination">
+      Destination
+    </label>
 
-<script>
-document.addEventListener("DOMContentLoaded", async () => {
+    <input
+      id="trip-destination"
+      type="text"
+      name="destination"
+      required>
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="trip-duration">
+      Duration
+    </label>
+
+    <input
+      id="trip-duration"
+      type="text"
+      name="duration"
+      placeholder="e.g. 2 Days / 1 Night">
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="trip-price">
+      Price
+    </label>
+
+    <input
+      id="trip-price"
+      type="text"
+      name="price"
+      placeholder="e.g. ₹5,999">
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="trip-description">
+      Description
+    </label>
+
+    <textarea
+      id="trip-description"
+      name="description"
+      placeholder="Trip description"></textarea>
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label>
+      Available Vehicles
+    </label>
+
+    <div
+      class="a-checkbox-list"
+      id="trip-vehicle-checkboxes">
+    </div>
+
+  </div>
+
+
+  <p
+    class="a-msg error"
+    id="trip-error"
+    style="display:none;">
+  </p>
+
+
+  <button
+    type="submit"
+    class="a-btn a-btn-primary a-btn-block">
+    Save Trip
+  </button>
+
+</form>
+
+  </div></div><!-- VEHICLE MODAL --><div
+  class="a-modal-overlay"
+  id="vehicle-modal">  <div class="a-modal-box"><button
+  type="button"
+  class="a-modal-close"
+  data-close="vehicle-modal"
+  aria-label="Close">
+  &times;
+</button>
+
+
+<h2 id="vehicle-modal-title">
+  Add Vehicle
+</h2>
+
+
+<form
+  id="vehicle-form"
+  novalidate>
+
+  <div class="a-form-group">
+
+    <label for="vehicle-image-input">
+      Image
+    </label>
+
+    <img
+      id="vehicle-image-preview"
+      src=""
+      alt=""
+      style="width:110px;height:76px;object-fit:cover;border-radius:8px;display:block;margin-bottom:.5rem;">
+
+    <input
+      type="file"
+      id="vehicle-image-input"
+      accept="image/*">
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="vehicle-name">
+      Vehicle Name
+    </label>
+
+    <input
+      id="vehicle-name"
+      type="text"
+      name="name"
+      required>
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="vehicle-type">
+      Type
+    </label>
+
+    <input
+      id="vehicle-type"
+      type="text"
+      name="type"
+      placeholder="e.g. Bus / Tempo Traveller">
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="vehicle-capacity">
+      Capacity
+    </label>
+
+    <input
+      id="vehicle-capacity"
+      type="text"
+      name="capacity"
+      placeholder="e.g. 32"
+      inputmode="numeric">
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="vehicle-registration">
+      Registration Number
+    </label>
+
+    <input
+      id="vehicle-registration"
+      type="text"
+      name="registration"
+      placeholder="e.g. AP 39 XX 1234">
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="vehicle-available">
+      Availability
+    </label>
+
+    <select
+      id="vehicle-available"
+      name="available">
+
+      <option value="true">Available</option>
+      <option value="false">Unavailable</option>
+
+    </select>
+
+  </div>
+
+
+  <p
+    class="a-msg error"
+    id="vehicle-error"
+    style="display:none;">
+  </p>
+
+
+  <button
+    type="submit"
+    class="a-btn a-btn-primary a-btn-block">
+    Save Vehicle
+  </button>
+
+</form>
+
+  </div></div><!-- VIDEO MODAL --><div
+  class="a-modal-overlay"
+  id="video-modal">  <div class="a-modal-box"><button
+  type="button"
+  class="a-modal-close"
+  data-close="video-modal"
+  aria-label="Close">
+  &times;
+</button>
+
+
+<h2 id="video-modal-title">
+  Add Video
+</h2>
+
+
+<form
+  id="video-form"
+  novalidate>
+
+  <div class="a-form-group">
+
+    <label for="video-title">
+      Title
+    </label>
+
+    <input
+      id="video-title"
+      type="text"
+      name="title"
+      required>
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="video-description">
+      Description
+    </label>
+
+    <textarea
+      id="video-description"
+      name="description"></textarea>
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="video-youtube">
+      YouTube ID or URL
+    </label>
+
+    <input
+      id="video-youtube"
+      type="text"
+      name="youtube"
+      placeholder="YouTube URL or 11-character ID">
+
+  </div>
+
+
+  <p
+    class="a-msg error"
+    id="video-error"
+    style="display:none;">
+  </p>
+
+
+  <button
+    type="submit"
+    class="a-btn a-btn-primary a-btn-block">
+    Save Video
+  </button>
+
+</form>
+
+  </div></div><!-- REVIEW MODAL --><div
+  class="a-modal-overlay"
+  id="review-modal">  <div class="a-modal-box"><button
+  type="button"
+  class="a-modal-close"
+  data-close="review-modal"
+  aria-label="Close">
+  &times;
+</button>
+
+
+<h2 id="review-modal-title">
+  Add Review
+</h2>
+
+
+<form
+  id="review-form-admin"
+  novalidate>
+
+  <div class="a-form-group">
+
+    <label for="review-name">
+      Customer Name
+    </label>
+
+    <input
+      id="review-name"
+      type="text"
+      name="name"
+      required>
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="review-rating">
+      Rating
+    </label>
+
+    <select
+      id="review-rating"
+      name="rating">
+
+      <option value="5">★★★★★ (5)</option>
+      <option value="4">★★★★☆ (4)</option>
+      <option value="3">★★★☆☆ (3)</option>
+      <option value="2">★★☆☆☆ (2)</option>
+      <option value="1">★☆☆☆☆ (1)</option>
+
+    </select>
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="review-text">
+      Review
+    </label>
+
+    <textarea
+      id="review-text"
+      name="review"
+      required></textarea>
+
+  </div>
+
+
+  <div class="a-form-group">
+
+    <label for="review-approved">
+      Approved
+      <span class="a-item-meta">
+        visible on the public site
+      </span>
+    </label>
+
+    <select
+      id="review-approved"
+      name="approved">
+
+      <option value="true">
+        Yes
+      </option>
+
+      <option value="false">
+        No — pending approval
+      </option>
+
+    </select>
+
+  </div>
+
+
+  <p
+    class="a-msg error"
+    id="review-error"
+    style="display:none;">
+  </p>
+
+
+  <button
+    type="submit"
+    class="a-btn a-btn-primary a-btn-block">
+    Save Review
+  </button>
+
+</form>
+
+  </div></div><!-- SUPABASE --><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><!-- PROJECT FILES --><script src="supabase.js"></script><script src="data.js"></script><script src="admin.js"></script><!-- ADMIN STARTUP --><script>
+document.addEventListener("DOMContentLoaded", function () {
+
   try {
-    if (await requireAdminAuth()) {
-      initAdmin();
-    }
-  } catch (error) {
-    console.error("Admin initialization failed:", error);
-    document.documentElement.style.visibility = "";
-  }
-});
-</script>
 
-</body>
+    if (typeof requireAdminAuth !== "function") {
+      console.error("requireAdminAuth() is missing.");
+      return;
+    }
+
+    if (typeof initAdmin !== "function") {
+      console.error("initAdmin() is missing.");
+      return;
+    }
+
+    Promise.resolve(requireAdminAuth())
+      .then(function (allowed) {
+
+        if (allowed) {
+          return Promise.resolve(initAdmin());
+        }
+
+      })
+      .catch(function (error) {
+
+        console.error(
+          "Admin startup error:",
+          error
+        );
+
+      });
+
+  } catch (error) {
+
+    console.error(
+      "Admin startup failed:",
+      error
+    );
+
+  }
+
+});
+</script></body>
 </html>
