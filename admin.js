@@ -2,6 +2,21 @@
    HAZI DADA TRAVELS
    ADMIN.JS
    SYNCED WITH CURRENT DASHBOARD + DATA.JS
+
+   Includes:
+   - Supabase Admin Authentication
+   - Admin Password Change
+   - Dashboard Statistics
+   - Dashboard Recent Enquiries
+   - Dashboard Recent Reviews
+   - Dashboard Recent Trips
+   - Trips CRUD
+   - Vehicles CRUD
+   - Gallery CRUD
+   - Videos CRUD
+   - Reviews CRUD
+   - Enquiries Management
+   - Settings Management
    ========================================================= */
 
 const ADMIN_USER_ID =
@@ -696,6 +711,255 @@ async function requireAdminAuth() {
 
 
 /* =========================================================
+   CHANGE ADMIN PASSWORD
+   ========================================================= */
+
+async function changeAdminPassword(
+  currentPassword,
+  newPassword
+) {
+
+  if (
+    !currentPassword ||
+    !newPassword
+  ) {
+    throw new Error(
+      "Current password and new password are required."
+    );
+  }
+
+  if (
+    newPassword.length < 8
+  ) {
+    throw new Error(
+      "New password must be at least 8 characters long."
+    );
+  }
+
+  if (
+    currentPassword === newPassword
+  ) {
+    throw new Error(
+      "New password must be different from your current password."
+    );
+  }
+
+  const client =
+    authClient();
+
+  const {
+    data: sessionData,
+    error: sessionError
+  } =
+    await client.auth.getSession();
+
+  if (sessionError) {
+    throw sessionError;
+  }
+
+  const session =
+    sessionData?.session;
+
+  const user =
+    session?.user;
+
+  if (!user?.email) {
+    throw new Error(
+      "Admin session is unavailable."
+    );
+  }
+
+  if (
+    String(user.id) !==
+    ADMIN_USER_ID
+  ) {
+    throw new Error(
+      "Unauthorized admin account."
+    );
+  }
+
+  /*
+   Verify the existing password first.
+  */
+
+  const {
+    data: loginData,
+    error: loginError
+  } =
+    await client.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword
+    });
+
+  if (loginError) {
+    throw new Error(
+      "Current password is incorrect."
+    );
+  }
+
+  if (
+    !loginData?.user ||
+    String(loginData.user.id) !==
+      ADMIN_USER_ID
+  ) {
+    throw new Error(
+      "Unauthorized admin account."
+    );
+  }
+
+  /*
+   Update Supabase Auth password.
+  */
+
+  const {
+    error: updateError
+  } =
+    await client.auth.updateUser({
+      password: newPassword
+    });
+
+  if (updateError) {
+    throw updateError;
+  }
+
+  return true;
+}
+
+
+async function saveChangePasswordForm(
+  event
+) {
+
+  event.preventDefault();
+
+  const currentPassword =
+    getFieldValue(
+      "current-admin-password"
+    );
+
+  const newPassword =
+    getFieldValue(
+      "new-admin-password"
+    );
+
+  const confirmPassword =
+    getFieldValue(
+      "confirm-admin-password"
+    );
+
+  showError(
+    "change-password-error",
+    ""
+  );
+
+  const success =
+    $a(
+      "change-password-success"
+    );
+
+  if (success) {
+    success.textContent = "";
+    success.style.display = "none";
+  }
+
+  if (!currentPassword) {
+
+    showError(
+      "change-password-error",
+      "Please enter your current password."
+    );
+
+    return;
+  }
+
+  if (!newPassword) {
+
+    showError(
+      "change-password-error",
+      "Please enter a new password."
+    );
+
+    return;
+  }
+
+  if (
+    newPassword.length < 8
+  ) {
+
+    showError(
+      "change-password-error",
+      "New password must be at least 8 characters long."
+    );
+
+    return;
+  }
+
+  if (
+    newPassword !==
+    confirmPassword
+  ) {
+
+    showError(
+      "change-password-error",
+      "New password and confirmation do not match."
+    );
+
+    return;
+  }
+
+  try {
+
+    await changeAdminPassword(
+      currentPassword,
+      newPassword
+    );
+
+    if (success) {
+      success.textContent =
+        "Password changed successfully.";
+
+      success.style.display =
+        "block";
+    }
+
+    const form =
+      $a(
+        "change-password-form"
+      );
+
+    if (form) {
+      form.reset();
+    }
+
+    adminToast(
+      "Admin password changed successfully.",
+      "success"
+    );
+
+  } catch (error) {
+
+    console.error(
+      "CHANGE PASSWORD ERROR:",
+      error
+    );
+
+    const message =
+      readableError(error);
+
+    showError(
+      "change-password-error",
+      message
+    );
+
+    adminToast(
+      message,
+      "error"
+    );
+  }
+}
+
+
+/* =========================================================
    PANEL LOADERS
    ========================================================= */
 
@@ -730,31 +994,38 @@ PANEL_LOADERS.dashboard =
         enquiriesResult
       ] = results;
 
-      const getLength =
+      const getArray =
         result =>
           result.status === "fulfilled" &&
           Array.isArray(result.value)
-            ? result.value.length
-            : 0;
+            ? result.value
+            : [];
+
+      const trips =
+        getArray(tripsResult);
+
+      const vehicles =
+        getArray(vehiclesResult);
+
+      const gallery =
+        getArray(galleryResult);
+
+      const videos =
+        getArray(videosResult);
+
+      const reviews =
+        getArray(reviewsResult);
+
+      const enquiries =
+        getArray(enquiriesResult);
 
       const values = {
-        trips:
-          getLength(tripsResult),
-
-        vehicles:
-          getLength(vehiclesResult),
-
-        gallery:
-          getLength(galleryResult),
-
-        videos:
-          getLength(videosResult),
-
-        reviews:
-          getLength(reviewsResult),
-
-        enquiries:
-          getLength(enquiriesResult)
+        trips: trips.length,
+        vehicles: vehicles.length,
+        gallery: gallery.length,
+        videos: videos.length,
+        reviews: reviews.length,
+        enquiries: enquiries.length
       };
 
       const setText =
@@ -798,6 +1069,300 @@ PANEL_LOADERS.dashboard =
         "stat-enquiries",
         values.enquiries
       );
+
+
+      /* =====================================================
+         RECENT ENQUIRIES
+         ===================================================== */
+
+      const recentEnquiries =
+        $a("recent-enquiries");
+
+      if (recentEnquiries) {
+
+        const recent =
+          [...enquiries]
+            .sort(
+              (a, b) =>
+                String(
+                  b.created_at || ""
+                ).localeCompare(
+                  String(
+                    a.created_at || ""
+                  )
+                )
+            )
+            .slice(0, 5);
+
+        if (!recent.length) {
+
+          recentEnquiries.innerHTML =
+            empty(
+              "No recent enquiries."
+            );
+
+        } else {
+
+          recentEnquiries.innerHTML =
+            recent
+              .map(enquiry => {
+
+                return `
+                  <div
+                    class="a-item-card"
+                    data-recent-panel="enquiries"
+                    style="cursor:pointer;">
+
+                    <div class="a-item-info">
+
+                      <h3>
+                        ${ea(
+                          enquiry.name ||
+                          "Unnamed"
+                        )}
+                      </h3>
+
+                      <p>
+                        ${
+                          enquiry.trip
+                            ? ea(
+                                enquiry.trip
+                              )
+                            : "General enquiry"
+                        }
+                      </p>
+
+                      ${
+                        enquiry.phone
+                          ? `
+                            <p>
+                              📞
+                              ${ea(
+                                enquiry.phone
+                              )}
+                            </p>
+                          `
+                          : ""
+                      }
+
+                      <span class="a-badge">
+                        ${ea(
+                          enquiry.status ||
+                          "New"
+                        )}
+                      </span>
+
+                      <p>
+                        ${ea(
+                          fmtDate(
+                            enquiry.created_at
+                          )
+                        )}
+                      </p>
+
+                    </div>
+
+                  </div>
+                `;
+              })
+              .join("");
+        }
+      }
+
+
+      /* =====================================================
+         RECENT REVIEWS
+         ===================================================== */
+
+      const recentReviews =
+        $a("recent-reviews");
+
+      if (recentReviews) {
+
+        const recent =
+          [...reviews]
+            .sort(
+              (a, b) =>
+                String(
+                  b.created_at || ""
+                ).localeCompare(
+                  String(
+                    a.created_at || ""
+                  )
+                )
+            )
+            .slice(0, 5);
+
+        if (!recent.length) {
+
+          recentReviews.innerHTML =
+            empty(
+              "No recent reviews."
+            );
+
+        } else {
+
+          recentReviews.innerHTML =
+            recent
+              .map(review => {
+
+                return `
+                  <div
+                    class="a-item-card"
+                    data-recent-panel="reviews"
+                    style="cursor:pointer;">
+
+                    <div class="a-item-info">
+
+                      <h3>
+                        ${ea(
+                          review.name ||
+                          "Anonymous"
+                        )}
+
+                        <span
+                          style="color:#ffb020;">
+                          ${starsA(
+                            review.rating
+                          )}
+                        </span>
+                      </h3>
+
+                      <p>
+                        ${ea(
+                          review.review ||
+                          review.comment ||
+                          ""
+                        )}
+                      </p>
+
+                      <span class="a-badge">
+                        ${
+                          review.approved
+                            ? "Visible"
+                            : "Pending"
+                        }
+                      </span>
+
+                      <p>
+                        ${ea(
+                          fmtDate(
+                            review.created_at
+                          )
+                        )}
+                      </p>
+
+                    </div>
+
+                  </div>
+                `;
+              })
+              .join("");
+        }
+      }
+
+
+      /* =====================================================
+         RECENT TRIPS
+         ===================================================== */
+
+      const recentTrips =
+        $a("recent-trips");
+
+      if (recentTrips) {
+
+        const recent =
+          [...trips]
+            .sort(
+              (a, b) =>
+                String(
+                  b.created_at || ""
+                ).localeCompare(
+                  String(
+                    a.created_at || ""
+                  )
+                )
+            )
+            .slice(0, 5);
+
+        if (!recent.length) {
+
+          recentTrips.innerHTML =
+            empty(
+              "No recent trips."
+            );
+
+        } else {
+
+          recentTrips.innerHTML =
+            recent
+              .map(trip => {
+
+                return `
+                  <div
+                    class="a-item-card"
+                    data-recent-panel="trips"
+                    style="cursor:pointer;">
+
+                    <div class="a-item-info">
+
+                      <h3>
+                        ${ea(
+                          trip.name ||
+                          "Unnamed Trip"
+                        )}
+                      </h3>
+
+                      <p>
+                        📍
+                        ${ea(
+                          trip.destination ||
+                          ""
+                        )}
+                      </p>
+
+                      ${
+                        trip.duration
+                          ? `
+                            <p>
+                              Duration:
+                              ${ea(
+                                trip.duration
+                              )}
+                            </p>
+                          `
+                          : ""
+                      }
+
+                      ${
+                        trip.price
+                          ? `
+                            <p>
+                              Price:
+                              ${ea(
+                                trip.price
+                              )}
+                            </p>
+                          `
+                          : ""
+                      }
+
+                      <p>
+                        ${ea(
+                          fmtDate(
+                            trip.created_at
+                          )
+                        )}
+                      </p>
+
+                    </div>
+
+                  </div>
+                `;
+              })
+              .join("");
+        }
+      }
 
     } catch (error) {
 
@@ -886,7 +1451,8 @@ PANEL_LOADERS.trips =
                 <img
                   src="${ea(
                     imgFallback(
-                      trip.image
+                      trip.image ||
+                      trip.image_url
                     )
                   )}"
                   alt=""
@@ -1075,7 +1641,9 @@ async function openTripModal(id) {
     );
 
     tripImageDraft =
-      trip?.image || "";
+      trip?.image ||
+      trip?.image_url ||
+      "";
 
     const preview =
       $a("trip-image-preview");
@@ -1236,11 +1804,6 @@ async function saveTripForm(event) {
       .filter(
         Number.isFinite
       );
-
-  /*
-   IMPORTANT:
-   This payload exactly matches data.js saveTrip().
-  */
 
   const payload = {
     name,
@@ -1747,7 +2310,8 @@ PANEL_LOADERS.gallery =
                 <img
                   src="${ea(
                     imgFallback(
-                      item.image_url
+                      item.image_url ||
+                      item.media_url
                     )
                   )}"
                   alt=""
@@ -1758,6 +2322,7 @@ PANEL_LOADERS.gallery =
                   <h3>
                     ${ea(
                       item.caption ||
+                      item.title ||
                       "No caption"
                     )}
                   </h3>
@@ -2350,11 +2915,6 @@ async function openReviewModal(id) {
               Number(id)
           )
         : null;
-
-    /*
-      Supports both IDs so the admin code
-      works with the current dashboard.
-    */
 
     const form =
       $a("review-form-admin") ||
@@ -2953,7 +3513,7 @@ function initAdmin() {
 
       const target =
         event.target.closest(
-          "button, a"
+          "button, a, [data-recent-panel]"
         );
 
       if (!target) {
@@ -2962,6 +3522,20 @@ function initAdmin() {
 
       const data =
         target.dataset;
+
+
+      /* RECENT DASHBOARD ITEMS */
+
+      if (data.recentPanel) {
+
+        event.preventDefault();
+
+        showPanel(
+          data.recentPanel
+        );
+
+        return;
+      }
 
 
       /* PANEL */
@@ -3775,6 +4349,24 @@ function initAdmin() {
     galleryForm.addEventListener(
       "submit",
       saveGalleryForm
+    );
+  }
+
+
+  /* =======================================================
+     CHANGE PASSWORD FORM
+     ======================================================= */
+
+  const changePasswordForm =
+    $a(
+      "change-password-form"
+    );
+
+  if (changePasswordForm) {
+
+    changePasswordForm.addEventListener(
+      "submit",
+      saveChangePasswordForm
     );
   }
 
