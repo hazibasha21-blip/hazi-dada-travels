@@ -149,33 +149,38 @@ document.documentElement.style.visibility = "hidden";
 
         <div class="a-item-actions">
 
-          <button type="button"
-                  class="a-btn a-btn-primary"
-                  data-quick="trip">
+          <button
+            type="button"
+            class="a-btn a-btn-primary"
+            data-quick="trip">
             + Add Trip
           </button>
 
-          <button type="button"
-                  class="a-btn a-btn-primary"
-                  data-quick="vehicle">
+          <button
+            type="button"
+            class="a-btn a-btn-primary"
+            data-quick="vehicle">
             + Add Vehicle
           </button>
 
-          <button type="button"
-                  class="a-btn a-btn-primary"
-                  data-quick="gallery">
+          <button
+            type="button"
+            class="a-btn a-btn-primary"
+            data-quick="gallery">
             + Add Photo
           </button>
 
-          <button type="button"
-                  class="a-btn a-btn-primary"
-                  data-quick="video">
+          <button
+            type="button"
+            class="a-btn a-btn-primary"
+            data-quick="video">
             + Add Video
           </button>
 
-          <button type="button"
-                  class="a-btn a-btn-primary"
-                  data-quick="review">
+          <button
+            type="button"
+            class="a-btn a-btn-primary"
+            data-quick="review">
             + Add Review
           </button>
 
@@ -427,6 +432,7 @@ document.documentElement.style.visibility = "hidden";
 
           <div class="a-form-group">
             <label for="settings-phone">Phone</label>
+
             <input
               id="settings-phone"
               type="text"
@@ -435,6 +441,7 @@ document.documentElement.style.visibility = "hidden";
 
 
           <div class="a-form-group">
+
             <label for="settings-whatsapp">
               WhatsApp
               <span class="a-item-meta">
@@ -450,7 +457,10 @@ document.documentElement.style.visibility = "hidden";
 
 
           <div class="a-form-group">
-            <label for="settings-email">Email</label>
+
+            <label for="settings-email">
+              Email
+            </label>
 
             <input
               id="settings-email"
@@ -460,7 +470,10 @@ document.documentElement.style.visibility = "hidden";
 
 
           <div class="a-form-group">
-            <label for="settings-address">Address</label>
+
+            <label for="settings-address">
+              Address
+            </label>
 
             <textarea
               id="settings-address"
@@ -469,7 +482,10 @@ document.documentElement.style.visibility = "hidden";
 
 
           <div class="a-form-group">
-            <label for="settings-hours">Business Hours</label>
+
+            <label for="settings-hours">
+              Business Hours
+            </label>
 
             <input
               id="settings-hours"
@@ -479,7 +495,10 @@ document.documentElement.style.visibility = "hidden";
 
 
           <div class="a-form-group">
-            <label for="settings-map">Map URL</label>
+
+            <label for="settings-map">
+              Map URL
+            </label>
 
             <input
               id="settings-map"
@@ -489,7 +508,10 @@ document.documentElement.style.visibility = "hidden";
 
 
           <div class="a-form-group">
-            <label for="settings-facebook">Facebook</label>
+
+            <label for="settings-facebook">
+              Facebook
+            </label>
 
             <input
               id="settings-facebook"
@@ -499,7 +521,10 @@ document.documentElement.style.visibility = "hidden";
 
 
           <div class="a-form-group">
-            <label for="settings-instagram">Instagram</label>
+
+            <label for="settings-instagram">
+              Instagram
+            </label>
 
             <input
               id="settings-instagram"
@@ -509,7 +534,10 @@ document.documentElement.style.visibility = "hidden";
 
 
           <div class="a-form-group">
-            <label for="settings-youtube">YouTube</label>
+
+            <label for="settings-youtube">
+              YouTube
+            </label>
 
             <input
               id="settings-youtube"
@@ -519,6 +547,7 @@ document.documentElement.style.visibility = "hidden";
 
 
           <div class="a-form-group">
+
             <label for="settings-about">
               About Text
             </label>
@@ -530,6 +559,7 @@ document.documentElement.style.visibility = "hidden";
 
 
           <div class="a-form-group">
+
             <label for="settings-footer">
               Footer Text
             </label>
@@ -553,6 +583,105 @@ document.documentElement.style.visibility = "hidden";
           </p>
 
         </form>
+
+
+        <!-- =================================================
+             SECURITY / CHANGE PASSWORD
+             ================================================= -->
+        <div
+          class="a-panel-card"
+          style="margin-top:1rem;">
+
+          <div class="a-panel-header">
+            <h2>Security</h2>
+          </div>
+
+          <p class="a-item-meta">
+            Change the password used to access the Admin Panel.
+          </p>
+
+
+          <form
+            id="change-password-form"
+            novalidate>
+
+            <div class="a-form-group">
+
+              <label for="current-admin-password">
+                Current Password
+              </label>
+
+              <input
+                id="current-admin-password"
+                type="password"
+                name="currentPassword"
+                autocomplete="current-password"
+                required>
+
+            </div>
+
+
+            <div class="a-form-group">
+
+              <label for="new-admin-password">
+                New Password
+              </label>
+
+              <input
+                id="new-admin-password"
+                type="password"
+                name="newPassword"
+                autocomplete="new-password"
+                minlength="8"
+                required>
+
+              <span class="a-item-meta">
+                Use at least 8 characters.
+              </span>
+
+            </div>
+
+
+            <div class="a-form-group">
+
+              <label for="confirm-admin-password">
+                Confirm New Password
+              </label>
+
+              <input
+                id="confirm-admin-password"
+                type="password"
+                name="confirmPassword"
+                autocomplete="new-password"
+                minlength="8"
+                required>
+
+            </div>
+
+
+            <p
+              class="a-msg error"
+              id="change-password-error"
+              style="display:none;">
+            </p>
+
+
+            <p
+              class="a-msg success"
+              id="change-password-success"
+              style="display:none;">
+            </p>
+
+
+            <button
+              type="submit"
+              class="a-btn a-btn-primary">
+              Change Password
+            </button>
+
+          </form>
+
+        </div>
 
       </section>
 
