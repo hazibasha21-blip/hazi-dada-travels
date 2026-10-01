@@ -1,22 +1,6 @@
 /* =========================================================
    HAZI DADA TRAVELS
-   ADMIN.JS
-   SYNCED WITH CURRENT DASHBOARD + DATA.JS
-
-   Includes:
-   - Supabase Admin Authentication
-   - Admin Password Change
-   - Dashboard Statistics
-   - Dashboard Recent Enquiries
-   - Dashboard Recent Reviews
-   - Dashboard Recent Trips
-   - Trips CRUD
-   - Vehicles CRUD
-   - Gallery CRUD
-   - Videos CRUD
-   - Reviews CRUD
-   - Enquiries Management
-   - Settings Management
+   ADMIN PANEL CONTROLLER
    ========================================================= */
 
 const ADMIN_USER_ID =
@@ -24,55 +8,34 @@ const ADMIN_USER_ID =
 
 
 /* =========================================================
-   HELPERS
+   BASIC HELPERS
    ========================================================= */
 
-const $a = id => document.getElementById(id);
-
+function $a(id) {
+  return document.getElementById(id);
+}
 
 function getFieldValue(id) {
-  const element = $a(id);
-
-  if (!element) {
-    console.warn("Missing field:", id);
-    return "";
-  }
-
-  return element.value || "";
+  const el = $a(id);
+  return el ? String(el.value || "").trim() : "";
 }
-
 
 function setFieldValue(id, value) {
-  const element = $a(id);
-
-  if (!element) {
-    return;
+  const el = $a(id);
+  if (el) {
+    el.value = value ?? "";
   }
-
-  element.value =
-    value === undefined || value === null
-      ? ""
-      : value;
 }
 
-
-function setFieldChecked(id, value) {
-  const element = $a(id);
-
-  if (!element) {
-    return;
+function setChecked(id, value) {
+  const el = $a(id);
+  if (el) {
+    el.checked = !!value;
   }
-
-  element.checked = !!value;
 }
-
 
 function ea(value) {
-  return String(
-    value === undefined || value === null
-      ? ""
-      : value
-  )
+  return String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -80,116 +43,92 @@ function ea(value) {
     .replace(/'/g, "&#039;");
 }
 
-
 function fallbackImage() {
-  if (
-    typeof PLACEHOLDER_FALLBACK !== "undefined" &&
-    PLACEHOLDER_FALLBACK
-  ) {
-    return PLACEHOLDER_FALLBACK;
-  }
-
   return "";
 }
 
-
-function imgFallback(src) {
-  return src || fallbackImage();
-}
-
-
 function showError(id, message) {
-  const element = $a(id);
+  const el = $a(id);
 
-  if (!element) {
-    console.warn("Missing error element:", id);
+  if (!el) {
     return;
   }
 
-  element.textContent = message || "";
-  element.style.display =
-    message ? "block" : "none";
+  el.textContent = message || "";
+  el.style.display = message ? "block" : "none";
 }
 
+function clearError(id) {
+  showError(id, "");
+}
 
-function adminToast(message, type = "info") {
-  let container =
-    document.querySelector(
-      ".a-toast-container"
-    );
+function adminToast(message, type = "success") {
+  let toast = $a("admin-toast");
 
-  if (!container) {
-    container =
-      document.createElement("div");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "admin-toast";
 
-    container.className =
-      "a-toast-container";
+    toast.style.position = "fixed";
+    toast.style.right = "20px";
+    toast.style.bottom = "20px";
+    toast.style.zIndex = "99999";
+    toast.style.padding = "14px 18px";
+    toast.style.borderRadius = "12px";
+    toast.style.fontSize = "14px";
+    toast.style.fontWeight = "600";
+    toast.style.maxWidth = "90vw";
+    toast.style.boxShadow = "0 10px 30px rgba(0,0,0,.25)";
 
-    document.body.appendChild(container);
+    document.body.appendChild(toast);
   }
 
-  const toast =
-    document.createElement("div");
+  toast.textContent = message || "";
 
-  toast.className =
-    "a-toast " + type;
+  if (type === "error") {
+    toast.style.background = "#dc2626";
+    toast.style.color = "#fff";
+  } else {
+    toast.style.background = "#16a34a";
+    toast.style.color = "#fff";
+  }
 
-  toast.textContent =
-    message;
+  clearTimeout(window.__adminToastTimer);
 
-  container.appendChild(toast);
-
-  requestAnimationFrame(() => {
-    toast.classList.add("show");
-  });
-
-  setTimeout(() => {
-    toast.classList.remove("show");
-
+  window.__adminToastTimer =
     setTimeout(() => {
       toast.remove();
-    }, 300);
-  }, 3500);
+    }, 3500);
 }
-
 
 function readableError(error) {
   if (!error) {
-    return "Unknown error.";
+    return "Something went wrong.";
+  }
+
+  if (typeof error === "string") {
+    return error;
   }
 
   if (error.message) {
-    return String(error.message);
+    return error.message;
   }
 
-  if (error.details) {
-    return String(error.details);
+  if (error.error_description) {
+    return error.error_description;
   }
 
-  if (error.hint) {
-    return String(error.hint);
-  }
-
-  return String(error);
+  return "Something went wrong.";
 }
 
-
-async function guard(fn, fallback) {
+async function guard(callback) {
   try {
-    return await fn();
+    return await callback();
   } catch (error) {
-    console.error(
-      "Admin operation failed:",
-      error
-    );
-
-    const message =
-      readableError(error) ||
-      fallback ||
-      "Something went wrong.";
+    console.error("[admin.js]", error);
 
     adminToast(
-      message,
+      readableError(error),
       "error"
     );
 
@@ -197,73 +136,52 @@ async function guard(fn, fallback) {
   }
 }
 
-
-function openModal(id) {
-  const modal = $a(id);
-
-  if (modal) {
-    modal.classList.add("open");
-  }
-}
-
-
-function closeModal(id) {
-  const modal = $a(id);
-
-  if (modal) {
-    modal.classList.remove("open");
-  }
-}
-
-
-function fmtDate(value) {
-  if (!value) return "";
-
-  try {
-    return new Date(value)
-      .toLocaleString();
-  } catch (error) {
+function formatDate(value) {
+  if (!value) {
     return "";
   }
-}
 
-
-function starsA(value) {
-  const rating =
-    Number(value) || 0;
-
-  let result = "";
-
-  for (let i = 1; i <= 5; i++) {
-    result +=
-      i <= rating
-        ? "★"
-        : "☆";
+  try {
+    return new Date(value).toLocaleString(
+      "en-IN",
+      {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }
+    );
+  } catch {
+    return String(value);
   }
-
-  return result;
 }
 
+function starsA(rating) {
+  const count = Math.max(
+    0,
+    Math.min(5, Number(rating) || 0)
+  );
+
+  return "★".repeat(count) +
+    "☆".repeat(5 - count);
+}
 
 function empty(message) {
   return `
     <div class="a-empty">
-      ${ea(message)}
+      ${ea(message || "No data available.")}
     </div>
   `;
 }
 
-
 function actionButton(
   label,
-  attribute,
-  className = ""
+  attributes = "",
+  extraClass = ""
 ) {
   return `
     <button
       type="button"
-      class="a-btn a-btn-small ${className}"
-      ${attribute}>
+      class="a-btn ${extraClass}"
+      ${attributes}>
       ${ea(label)}
     </button>
   `;
@@ -274,37 +192,26 @@ function actionButton(
    IMAGE READER
    ========================================================= */
 
-function readImage(
-  file,
-  maxDimension = 1200
-) {
+function readImageFile(file) {
   return new Promise(
     (resolve, reject) => {
 
       if (!file) {
-        resolve(null);
+        resolve("");
         return;
       }
 
-      if (
-        !file.type ||
-        !file.type.startsWith("image/")
-      ) {
+      if (!file.type.startsWith("image/")) {
         reject(
-          new Error(
-            "Please select an image file."
-          )
+          new Error("Please select a valid image file.")
         );
         return;
       }
 
-      if (
-        file.size >
-        8 * 1024 * 1024
-      ) {
+      if (file.size > 5 * 1024 * 1024) {
         reject(
           new Error(
-            "Image must be smaller than 8MB."
+            "Image must be smaller than 5 MB."
           )
         );
         return;
@@ -313,92 +220,13 @@ function readImage(
       const reader =
         new FileReader();
 
-      reader.onerror = () => {
+      reader.onload = () =>
+        resolve(reader.result);
+
+      reader.onerror = () =>
         reject(
-          new Error(
-            "Unable to read image."
-          )
+          new Error("Unable to read image.")
         );
-      };
-
-      reader.onload = () => {
-
-        const image =
-          new Image();
-
-        image.onerror = () => {
-          reject(
-            new Error(
-              "Unable to process image."
-            )
-          );
-        };
-
-        image.onload = () => {
-
-          const largest =
-            Math.max(
-              image.width,
-              image.height
-            );
-
-          const scale =
-            largest > maxDimension
-              ? maxDimension / largest
-              : 1;
-
-          const canvas =
-            document.createElement(
-              "canvas"
-            );
-
-          canvas.width =
-            Math.max(
-              1,
-              Math.round(
-                image.width * scale
-              )
-            );
-
-          canvas.height =
-            Math.max(
-              1,
-              Math.round(
-                image.height * scale
-              )
-            );
-
-          const context =
-            canvas.getContext("2d");
-
-          if (!context) {
-            reject(
-              new Error(
-                "Unable to process image."
-              )
-            );
-            return;
-          }
-
-          context.drawImage(
-            image,
-            0,
-            0,
-            canvas.width,
-            canvas.height
-          );
-
-          resolve(
-            canvas.toDataURL(
-              "image/jpeg",
-              0.82
-            )
-          );
-        };
-
-        image.src =
-          reader.result;
-      };
 
       reader.readAsDataURL(file);
     }
@@ -411,7 +239,6 @@ function readImage(
    ========================================================= */
 
 function authClient() {
-
   if (
     typeof supabaseClient === "undefined" ||
     !supabaseClient ||
@@ -425,333 +252,199 @@ function authClient() {
   return supabaseClient;
 }
 
-
 function authErrorMessage(error) {
   const message =
-    String(
-      error?.message || ""
-    ).toLowerCase();
+    String(error?.message || "");
 
-  const status =
-    error?.status;
+  const lower =
+    message.toLowerCase();
 
   if (
-    status === 429 ||
-    message.includes("rate limit") ||
-    message.includes("too many")
-  ) {
-    return "Too many attempts. Please wait and try again.";
-  }
-
-  if (
-    message.includes(
-      "email not confirmed"
-    )
-  ) {
-    return "Please confirm your email first.";
-  }
-
-  if (
-    message.includes(
-      "invalid login credentials"
-    ) ||
-    status === 400 ||
-    status === 401
+    lower.includes("invalid login") ||
+    lower.includes("invalid credentials")
   ) {
     return "Invalid email or password.";
   }
 
-  return (
-    error?.message ||
-    "Sign-in failed."
-  );
-}
+  if (
+    lower.includes("email not confirmed")
+  ) {
+    return "Please confirm the admin email address first.";
+  }
 
+  if (
+    lower.includes("password")
+  ) {
+    return message;
+  }
+
+  return message ||
+    "Authentication failed.";
+}
 
 async function adminLogin(
   email,
   password
 ) {
-  try {
+  const db = authClient();
 
-    if (!email || !password) {
-      return {
-        ok: false,
-        message:
-          "Email and password are required."
-      };
-    }
-
-    const loginPromise =
-      authClient()
-        .auth
-        .signInWithPassword({
-          email: String(email).trim(),
-          password: String(password)
-        });
-
-    const timeoutPromise =
-      new Promise(resolve => {
-        setTimeout(() => {
-          resolve({
-            data: null,
-            error: {
-              message:
-                "Login request timed out. Please check your internet connection."
-            }
-          });
-        }, 15000);
-      });
-
-    const result =
-      await Promise.race([
-        loginPromise,
-        timeoutPromise
-      ]);
-
-    const data =
-      result?.data;
-
-    const error =
-      result?.error;
-
-    if (error) {
-      return {
-        ok: false,
-        message:
-          authErrorMessage(error)
-      };
-    }
-
-    if (
-      !data ||
-      !data.session ||
-      !data.user
-    ) {
-      return {
-        ok: false,
-        message:
-          "Sign-in failed. No active session was created."
-      };
-    }
-
-    if (
-      String(data.user.id) !==
-      ADMIN_USER_ID
-    ) {
-
-      try {
-        await authClient()
-          .auth
-          .signOut();
-      } catch (e) {}
-
-      return {
-        ok: false,
-        message:
-          "This account is not authorized for the Admin Panel."
-      };
-    }
-
-    return {
-      ok: true
-    };
-
-  } catch (error) {
-
-    console.error(
-      "Login error:",
-      error
+  if (!email || !password) {
+    throw new Error(
+      "Email and password are required."
     );
-
-    return {
-      ok: false,
-      message:
-        authErrorMessage(error)
-    };
   }
-}
 
+  const result =
+    await Promise.race([
+      db.auth.signInWithPassword({
+        email,
+        password
+      }),
+
+      new Promise(
+        (_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  "Login request timed out. Please try again."
+                )
+              ),
+            15000
+          )
+      )
+    ]);
+
+  const {
+    data,
+    error
+  } = result;
+
+  if (error) {
+    throw new Error(
+      authErrorMessage(error)
+    );
+  }
+
+  if (!data?.session) {
+    throw new Error(
+      "Login session could not be created."
+    );
+  }
+
+  if (
+    data.user?.id !== ADMIN_USER_ID
+  ) {
+    await db.auth.signOut();
+
+    throw new Error(
+      "This account is not authorized for the Admin Panel."
+    );
+  }
+
+  return data;
+}
 
 async function isAdminLoggedIn() {
   try {
+    const db = authClient();
 
     const {
       data,
       error
-    } =
-      await authClient()
-        .auth
-        .getSession();
+    } = await db.auth.getSession();
 
-    if (
-      error ||
-      !data ||
-      !data.session ||
-      !data.session.user
-    ) {
+    if (error || !data?.session) {
       return false;
     }
 
     return (
-      String(
-        data.session.user.id
-      ) === ADMIN_USER_ID
+      data.session.user?.id ===
+      ADMIN_USER_ID
     );
-
-  } catch (error) {
-
+  } catch {
     return false;
   }
 }
 
-
-let _loggingOut = false;
-
-
 async function adminLogout() {
+  const db = authClient();
 
-  _loggingOut = true;
+  const {
+    error
+  } = await db.auth.signOut();
 
-  try {
-
-    await authClient()
-      .auth
-      .signOut();
-
-  } catch (error) {
-
-    console.error(
-      "Logout error:",
-      error
-    );
+  if (error) {
+    throw error;
   }
+
+  window.location.href =
+    "login.html";
 }
 
-
 async function requireAdminAuth() {
-
-  const goLogin =
-    () => {
-
-      document.documentElement
-        .style
-        .visibility = "";
-
-      location.replace(
-        "login.html"
-      );
-
-      return false;
-    };
-
   try {
-
-    const client =
-      authClient();
+    const db = authClient();
 
     const {
       data,
       error
-    } =
-      await client
-        .auth
-        .getSession();
+    } = await db.auth.getSession();
 
     if (
       error ||
-      !data ||
-      !data.session ||
-      !data.session.user
+      !data?.session ||
+      data.session.user?.id !== ADMIN_USER_ID
     ) {
-      return goLogin();
+      window.location.href =
+        "login.html";
+
+      return false;
     }
 
-    if (
-      String(
-        data.session.user.id
-      ) !== ADMIN_USER_ID
-    ) {
-
-      await client.auth.signOut();
-
-      return goLogin();
-    }
-
-    client.auth.onAuthStateChange(
-      event => {
+    db.auth.onAuthStateChange(
+      (event) => {
 
         if (
-          event === "SIGNED_OUT" &&
-          !_loggingOut
+          event === "SIGNED_OUT"
         ) {
-          location.replace(
-            "login.html"
-          );
+          window.location.href =
+            "login.html";
         }
       }
     );
-
-    document.documentElement
-      .style
-      .visibility = "";
 
     return true;
 
   } catch (error) {
 
     console.error(
-      "Auth check failed:",
+      "Admin authentication failed:",
       error
     );
 
-    return goLogin();
+    window.location.href =
+      "login.html";
+
+    return false;
   }
 }
 
 
 /* =========================================================
-   CHANGE ADMIN PASSWORD
+   PASSWORD CHANGE
    ========================================================= */
 
 async function changeAdminPassword(
   currentPassword,
   newPassword
 ) {
-
-  if (
-    !currentPassword ||
-    !newPassword
-  ) {
-    throw new Error(
-      "Current password and new password are required."
-    );
-  }
-
-  if (
-    newPassword.length < 8
-  ) {
-    throw new Error(
-      "New password must be at least 8 characters long."
-    );
-  }
-
-  if (
-    currentPassword === newPassword
-  ) {
-    throw new Error(
-      "New password must be different from your current password."
-    );
-  }
-
-  const client =
-    authClient();
+  const db = authClient();
 
   const {
     data: sessionData,
     error: sessionError
-  } =
-    await client.auth.getSession();
+  } = await db.auth.getSession();
 
   if (sessionError) {
     throw sessionError;
@@ -765,13 +458,12 @@ async function changeAdminPassword(
 
   if (!user?.email) {
     throw new Error(
-      "Admin session is unavailable."
+      "Admin session is not available."
     );
   }
 
   if (
-    String(user.id) !==
-    ADMIN_USER_ID
+    user.id !== ADMIN_USER_ID
   ) {
     throw new Error(
       "Unauthorized admin account."
@@ -779,14 +471,14 @@ async function changeAdminPassword(
   }
 
   /*
-   Verify the existing password first.
-  */
-
+   * Re-authenticate with the
+   * current password first.
+   */
   const {
     data: loginData,
     error: loginError
   } =
-    await client.auth.signInWithPassword({
+    await db.auth.signInWithPassword({
       email: user.email,
       password: currentPassword
     });
@@ -798,9 +490,8 @@ async function changeAdminPassword(
   }
 
   if (
-    !loginData?.user ||
-    String(loginData.user.id) !==
-      ADMIN_USER_ID
+    loginData?.user?.id !==
+    ADMIN_USER_ID
   ) {
     throw new Error(
       "Unauthorized admin account."
@@ -808,13 +499,13 @@ async function changeAdminPassword(
   }
 
   /*
-   Update Supabase Auth password.
-  */
-
+   * Update password using
+   * Supabase Auth.
+   */
   const {
     error: updateError
   } =
-    await client.auth.updateUser({
+    await db.auth.updateUser({
       password: newPassword
     });
 
@@ -825,12 +516,22 @@ async function changeAdminPassword(
   return true;
 }
 
-
 async function saveChangePasswordForm(
   event
 ) {
-
   event.preventDefault();
+
+  clearError(
+    "change-password-error"
+  );
+
+  const success =
+    $a("change-password-success");
+
+  if (success) {
+    success.textContent = "";
+    success.style.display = "none";
+  }
 
   const currentPassword =
     getFieldValue(
@@ -847,58 +548,31 @@ async function saveChangePasswordForm(
       "confirm-admin-password"
     );
 
-  showError(
-    "change-password-error",
-    ""
-  );
-
-  const success =
-    $a(
-      "change-password-success"
-    );
-
-  if (success) {
-    success.textContent = "";
-    success.style.display = "none";
-  }
-
-  if (!currentPassword) {
-
+  if (
+    !currentPassword ||
+    !newPassword ||
+    !confirmPassword
+  ) {
     showError(
       "change-password-error",
-      "Please enter your current password."
+      "Please fill in all password fields."
     );
 
     return;
   }
 
-  if (!newPassword) {
-
+  if (newPassword.length < 8) {
     showError(
       "change-password-error",
-      "Please enter a new password."
+      "New password must be at least 8 characters."
     );
 
     return;
   }
 
   if (
-    newPassword.length < 8
+    newPassword !== confirmPassword
   ) {
-
-    showError(
-      "change-password-error",
-      "New password must be at least 8 characters long."
-    );
-
-    return;
-  }
-
-  if (
-    newPassword !==
-    confirmPassword
-  ) {
-
     showError(
       "change-password-error",
       "New password and confirmation do not match."
@@ -907,11 +581,52 @@ async function saveChangePasswordForm(
     return;
   }
 
+  if (
+    currentPassword === newPassword
+  ) {
+    showError(
+      "change-password-error",
+      "New password must be different from the current password."
+    );
+
+    return;
+  }
+
+  const submitButton =
+    event.submitter ||
+    event.target.querySelector(
+      'button[type="submit"]'
+    );
+
+  const originalText =
+    submitButton?.textContent;
+
   try {
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent =
+        "Changing...";
+    }
 
     await changeAdminPassword(
       currentPassword,
       newPassword
+    );
+
+    setFieldValue(
+      "current-admin-password",
+      ""
+    );
+
+    setFieldValue(
+      "new-admin-password",
+      ""
+    );
+
+    setFieldValue(
+      "confirm-admin-password",
+      ""
     );
 
     if (success) {
@@ -922,15 +637,6 @@ async function saveChangePasswordForm(
         "block";
     }
 
-    const form =
-      $a(
-        "change-password-form"
-      );
-
-    if (form) {
-      form.reset();
-    }
-
     adminToast(
       "Admin password changed successfully.",
       "success"
@@ -939,22 +645,29 @@ async function saveChangePasswordForm(
   } catch (error) {
 
     console.error(
-      "CHANGE PASSWORD ERROR:",
+      "Password change error:",
       error
     );
 
-    const message =
-      readableError(error);
-
     showError(
       "change-password-error",
-      message
+      readableError(error)
     );
 
     adminToast(
-      message,
+      readableError(error),
       "error"
     );
+
+  } finally {
+
+    if (submitButton) {
+      submitButton.disabled = false;
+
+      submitButton.textContent =
+        originalText ||
+        "Change Password";
+    }
   }
 }
 
@@ -969,6 +682,239 @@ const PANEL_LOADERS = {};
 /* =========================================================
    DASHBOARD
    ========================================================= */
+
+function recentDateSort(a, b) {
+  const aTime =
+    new Date(
+      a?.created_at || 0
+    ).getTime();
+
+  const bTime =
+    new Date(
+      b?.created_at || 0
+    ).getTime();
+
+  return bTime - aTime;
+}
+
+function renderRecentEnquiries(items) {
+
+  const container =
+    $a("recent-enquiries");
+
+  if (!container) {
+    return;
+  }
+
+  if (!items.length) {
+    container.innerHTML =
+      empty("No enquiries yet.");
+
+    return;
+  }
+
+  container.innerHTML =
+    items
+      .slice(0, 5)
+      .map(item => {
+
+        return `
+          <div class="a-item-card">
+
+            <div class="a-item-info">
+
+              <h3>
+                ${ea(
+                  item.name ||
+                  "Unnamed customer"
+                )}
+              </h3>
+
+              <p>
+                ${ea(
+                  item.trip ||
+                  "General enquiry"
+                )}
+              </p>
+
+              <small>
+                ${ea(
+                  item.phone ||
+                  ""
+                )}
+                ${item.created_at
+                  ? " · " +
+                    ea(
+                      formatDate(
+                        item.created_at
+                      )
+                    )
+                  : ""}
+              </small>
+
+            </div>
+
+            <div class="a-item-actions">
+
+              ${actionButton(
+                "View Enquiries",
+                'data-recent-panel="enquiries"'
+              )}
+
+            </div>
+
+          </div>
+        `;
+
+      })
+      .join("");
+}
+
+function renderRecentReviews(items) {
+
+  const container =
+    $a("recent-reviews");
+
+  if (!container) {
+    return;
+  }
+
+  if (!items.length) {
+    container.innerHTML =
+      empty("No reviews yet.");
+
+    return;
+  }
+
+  container.innerHTML =
+    items
+      .slice(0, 5)
+      .map(review => {
+
+        return `
+          <div class="a-item-card">
+
+            <div class="a-item-info">
+
+              <h3>
+                ${ea(
+                  review.name ||
+                  "Anonymous"
+                )}
+
+                <span
+                  style="color:#ffb020;">
+                  ${starsA(
+                    review.rating
+                  )}
+                </span>
+              </h3>
+
+              <p>
+                ${ea(
+                  review.review ||
+                  review.comment ||
+                  ""
+                )}
+              </p>
+
+              <span class="a-badge">
+                ${review.approved
+                  ? "Visible"
+                  : "Pending"}
+              </span>
+
+            </div>
+
+            <div class="a-item-actions">
+
+              ${actionButton(
+                "View Reviews",
+                'data-recent-panel="reviews"'
+              )}
+
+            </div>
+
+          </div>
+        `;
+
+      })
+      .join("");
+}
+
+function renderRecentTrips(items) {
+
+  const container =
+    $a("recent-trips");
+
+  if (!container) {
+    return;
+  }
+
+  if (!items.length) {
+    container.innerHTML =
+      empty("No trips yet.");
+
+    return;
+  }
+
+  container.innerHTML =
+    items
+      .slice(0, 5)
+      .map(trip => {
+
+        return `
+          <div class="a-item-card">
+
+            <div class="a-item-info">
+
+              <h3>
+                ${ea(
+                  trip.name ||
+                  "Unnamed trip"
+                )}
+              </h3>
+
+              <p>
+                ${ea(
+                  trip.destination ||
+                  ""
+                )}
+              </p>
+
+              <small>
+                ${ea(
+                  trip.duration ||
+                  ""
+                )}
+
+                ${
+                  trip.price
+                    ? " · " +
+                      ea(
+                        trip.price
+                      )
+                    : ""
+                }
+              </small>
+
+            </div>
+
+            <div class="a-item-actions">
+
+              ${actionButton(
+                "View Trips",
+                'data-recent-panel="trips"'
+              )}
+
+            </div>
+
+          </div>
+        `;
+
+      })
+      .join("");
+}
 
 PANEL_LOADERS.dashboard =
   async function () {
@@ -996,37 +942,43 @@ PANEL_LOADERS.dashboard =
 
       const getArray =
         result =>
-          result.status === "fulfilled" &&
-          Array.isArray(result.value)
+          result.status ===
+            "fulfilled" &&
+          Array.isArray(
+            result.value
+          )
             ? result.value
             : [];
 
       const trips =
-        getArray(tripsResult);
+        getArray(
+          tripsResult
+        );
 
       const vehicles =
-        getArray(vehiclesResult);
+        getArray(
+          vehiclesResult
+        );
 
       const gallery =
-        getArray(galleryResult);
+        getArray(
+          galleryResult
+        );
 
       const videos =
-        getArray(videosResult);
+        getArray(
+          videosResult
+        );
 
       const reviews =
-        getArray(reviewsResult);
+        getArray(
+          reviewsResult
+        );
 
       const enquiries =
-        getArray(enquiriesResult);
-
-      const values = {
-        trips: trips.length,
-        vehicles: vehicles.length,
-        gallery: gallery.length,
-        videos: videos.length,
-        reviews: reviews.length,
-        enquiries: enquiries.length
-      };
+        getArray(
+          enquiriesResult
+        );
 
       const setText =
         (id, value) => {
@@ -1042,327 +994,51 @@ PANEL_LOADERS.dashboard =
 
       setText(
         "stat-trips",
-        values.trips
+        trips.length
       );
 
       setText(
         "stat-vehicles",
-        values.vehicles
+        vehicles.length
       );
 
       setText(
         "stat-gallery",
-        values.gallery
+        gallery.length
       );
 
       setText(
         "stat-videos",
-        values.videos
+        videos.length
       );
 
       setText(
         "stat-reviews",
-        values.reviews
+        reviews.length
       );
 
       setText(
         "stat-enquiries",
-        values.enquiries
+        enquiries.length
       );
 
+      renderRecentTrips(
+        [...trips].sort(
+          recentDateSort
+        )
+      );
 
-      /* =====================================================
-         RECENT ENQUIRIES
-         ===================================================== */
+      renderRecentReviews(
+        [...reviews].sort(
+          recentDateSort
+        )
+      );
 
-      const recentEnquiries =
-        $a("recent-enquiries");
-
-      if (recentEnquiries) {
-
-        const recent =
-          [...enquiries]
-            .sort(
-              (a, b) =>
-                String(
-                  b.created_at || ""
-                ).localeCompare(
-                  String(
-                    a.created_at || ""
-                  )
-                )
-            )
-            .slice(0, 5);
-
-        if (!recent.length) {
-
-          recentEnquiries.innerHTML =
-            empty(
-              "No recent enquiries."
-            );
-
-        } else {
-
-          recentEnquiries.innerHTML =
-            recent
-              .map(enquiry => {
-
-                return `
-                  <div
-                    class="a-item-card"
-                    data-recent-panel="enquiries"
-                    style="cursor:pointer;">
-
-                    <div class="a-item-info">
-
-                      <h3>
-                        ${ea(
-                          enquiry.name ||
-                          "Unnamed"
-                        )}
-                      </h3>
-
-                      <p>
-                        ${
-                          enquiry.trip
-                            ? ea(
-                                enquiry.trip
-                              )
-                            : "General enquiry"
-                        }
-                      </p>
-
-                      ${
-                        enquiry.phone
-                          ? `
-                            <p>
-                              📞
-                              ${ea(
-                                enquiry.phone
-                              )}
-                            </p>
-                          `
-                          : ""
-                      }
-
-                      <span class="a-badge">
-                        ${ea(
-                          enquiry.status ||
-                          "New"
-                        )}
-                      </span>
-
-                      <p>
-                        ${ea(
-                          fmtDate(
-                            enquiry.created_at
-                          )
-                        )}
-                      </p>
-
-                    </div>
-
-                  </div>
-                `;
-              })
-              .join("");
-        }
-      }
-
-
-      /* =====================================================
-         RECENT REVIEWS
-         ===================================================== */
-
-      const recentReviews =
-        $a("recent-reviews");
-
-      if (recentReviews) {
-
-        const recent =
-          [...reviews]
-            .sort(
-              (a, b) =>
-                String(
-                  b.created_at || ""
-                ).localeCompare(
-                  String(
-                    a.created_at || ""
-                  )
-                )
-            )
-            .slice(0, 5);
-
-        if (!recent.length) {
-
-          recentReviews.innerHTML =
-            empty(
-              "No recent reviews."
-            );
-
-        } else {
-
-          recentReviews.innerHTML =
-            recent
-              .map(review => {
-
-                return `
-                  <div
-                    class="a-item-card"
-                    data-recent-panel="reviews"
-                    style="cursor:pointer;">
-
-                    <div class="a-item-info">
-
-                      <h3>
-                        ${ea(
-                          review.name ||
-                          "Anonymous"
-                        )}
-
-                        <span
-                          style="color:#ffb020;">
-                          ${starsA(
-                            review.rating
-                          )}
-                        </span>
-                      </h3>
-
-                      <p>
-                        ${ea(
-                          review.review ||
-                          review.comment ||
-                          ""
-                        )}
-                      </p>
-
-                      <span class="a-badge">
-                        ${
-                          review.approved
-                            ? "Visible"
-                            : "Pending"
-                        }
-                      </span>
-
-                      <p>
-                        ${ea(
-                          fmtDate(
-                            review.created_at
-                          )
-                        )}
-                      </p>
-
-                    </div>
-
-                  </div>
-                `;
-              })
-              .join("");
-        }
-      }
-
-
-      /* =====================================================
-         RECENT TRIPS
-         ===================================================== */
-
-      const recentTrips =
-        $a("recent-trips");
-
-      if (recentTrips) {
-
-        const recent =
-          [...trips]
-            .sort(
-              (a, b) =>
-                String(
-                  b.created_at || ""
-                ).localeCompare(
-                  String(
-                    a.created_at || ""
-                  )
-                )
-            )
-            .slice(0, 5);
-
-        if (!recent.length) {
-
-          recentTrips.innerHTML =
-            empty(
-              "No recent trips."
-            );
-
-        } else {
-
-          recentTrips.innerHTML =
-            recent
-              .map(trip => {
-
-                return `
-                  <div
-                    class="a-item-card"
-                    data-recent-panel="trips"
-                    style="cursor:pointer;">
-
-                    <div class="a-item-info">
-
-                      <h3>
-                        ${ea(
-                          trip.name ||
-                          "Unnamed Trip"
-                        )}
-                      </h3>
-
-                      <p>
-                        📍
-                        ${ea(
-                          trip.destination ||
-                          ""
-                        )}
-                      </p>
-
-                      ${
-                        trip.duration
-                          ? `
-                            <p>
-                              Duration:
-                              ${ea(
-                                trip.duration
-                              )}
-                            </p>
-                          `
-                          : ""
-                      }
-
-                      ${
-                        trip.price
-                          ? `
-                            <p>
-                              Price:
-                              ${ea(
-                                trip.price
-                              )}
-                            </p>
-                          `
-                          : ""
-                      }
-
-                      <p>
-                        ${ea(
-                          fmtDate(
-                            trip.created_at
-                          )
-                        )}
-                      </p>
-
-                    </div>
-
-                  </div>
-                `;
-              })
-              .join("");
-        }
-      }
+      renderRecentEnquiries(
+        [...enquiries].sort(
+          recentDateSort
+        )
+      );
 
     } catch (error) {
 
@@ -1370,6 +1046,7 @@ PANEL_LOADERS.dashboard =
         "Dashboard error:",
         error
       );
+
     }
   };
 
@@ -1384,170 +1061,127 @@ PANEL_LOADERS.trips =
     const list =
       $a("trips-list");
 
-    if (!list) return;
+    if (!list) {
+      return;
+    }
 
     try {
 
       const trips =
         await getTrips();
 
-      const search =
-        $a("trip-search");
-
-      const query =
-        search
-          ? String(
-              search.value || ""
-            )
-              .trim()
-              .toLowerCase()
-          : "";
-
-      const filtered =
-        trips.filter(
-          trip => {
-
-            if (!query) {
-              return true;
-            }
-
-            return [
-              trip.name,
-              trip.destination,
-              trip.duration,
-              trip.price,
-              trip.description,
-              trip.vehicle
-            ].some(
-              value =>
-                String(
-                  value || ""
-                )
-                  .toLowerCase()
-                  .includes(query)
-            );
-          }
-        );
-
-      if (!filtered.length) {
-
+      if (!trips.length) {
         list.innerHTML =
-          empty(
-            trips.length
-              ? "No trips match your search."
-              : "No trips available yet."
-          );
+          empty("No trips available.");
 
         return;
       }
 
       list.innerHTML =
-        filtered
-          .map(trip => {
+        trips.map(trip => {
 
-            return `
-              <div class="a-item-card">
+          return `
+            <div
+              class="a-item-card"
+              data-trip-search="
+                ${ea(
+                  (
+                    trip.name ||
+                    ""
+                  ) +
+                  " " +
+                  (
+                    trip.destination ||
+                    ""
+                  )
+                ).toLowerCase()}
+              ">
 
-                <img
-                  src="${ea(
-                    imgFallback(
-                      trip.image ||
-                      trip.image_url
-                    )
-                  )}"
-                  alt=""
-                  onerror="this.onerror=null;this.src=''">
+              ${
+                trip.image_url
+                  ? `
+                    <img
+                      src="${ea(
+                        trip.image_url
+                      )}"
+                      alt="${ea(
+                        trip.name ||
+                        "Trip"
+                      )}"
+                      class="a-item-image">
+                  `
+                  : ""
+              }
 
-                <div class="a-item-info">
+              <div class="a-item-info">
 
-                  <h3>
-                    ${ea(
-                      trip.name
-                    )}
-                  </h3>
+                <h3>
+                  ${ea(
+                    trip.name ||
+                    "Unnamed trip"
+                  )}
+                </h3>
 
-                  <p>
-                    ${ea(
-                      trip.destination
-                    )}
-                  </p>
+                <p>
+                  📍
+                  ${ea(
+                    trip.destination ||
+                    ""
+                  )}
+                </p>
 
+                <p>
                   ${
                     trip.duration
-                      ? `
-                        <p>
-                          Duration:
-                          ${ea(
-                            trip.duration
-                          )}
-                        </p>
-                      `
+                      ? "📅 " +
+                        ea(
+                          trip.duration
+                        )
                       : ""
                   }
 
                   ${
                     trip.price
-                      ? `
-                        <p>
-                          Price:
-                          ${ea(
-                            trip.price
-                          )}
-                        </p>
-                      `
+                      ? " · " +
+                        ea(
+                          trip.price
+                        )
                       : ""
                   }
+                </p>
 
-                  ${
-                    trip.vehicle
-                      ? `
-                        <p>
-                          Vehicle:
-                          ${ea(
-                            trip.vehicle
-                          )}
-                        </p>
-                      `
-                      : ""
-                  }
+                <p>
+                  ${ea(
+                    trip.description ||
+                    ""
+                  )}
+                </p>
 
-                  ${
-                    trip.description
-                      ? `
-                        <p>
-                          ${ea(
-                            trip.description
-                          )}
-                        </p>
-                      `
-                      : ""
-                  }
+                <div class="a-item-actions">
 
-                  <div class="a-item-actions">
+                  ${actionButton(
+                    "Edit",
+                    `data-edit-trip="${ea(
+                      trip.id
+                    )}"`
+                  )}
 
-                    ${actionButton(
-                      "Edit",
-                      `data-edit-trip="${ea(
-                        trip.id
-                      )}"`
-                    )}
-
-                    ${actionButton(
-                      "Delete",
-                      `data-delete-trip="${ea(
-                        trip.id
-                      )}"`,
-                      "a-btn-danger"
-                    )}
-
-                  </div>
+                  ${actionButton(
+                    "Delete",
+                    `data-delete-trip="${ea(
+                      trip.id
+                    )}"`,
+                    "a-btn-danger"
+                  )}
 
                 </div>
 
               </div>
-            `;
-          })
-          .join("");
+
+            </div>
+          `;
+
+        }).join("");
 
     } catch (error) {
 
@@ -1558,349 +1192,219 @@ PANEL_LOADERS.trips =
 
       list.innerHTML =
         empty(
-          readableError(error) ||
-          "Unable to load trips."
+          readableError(error)
         );
     }
   };
 
 
-let tripImageDraft = "";
+function openTripModal(trip = null) {
 
+  const modal =
+    $a("trip-modal");
 
-async function openTripModal(id) {
+  if (!modal) {
+    return;
+  }
 
-  try {
+  const form =
+    $a("trip-form");
 
-    const trip =
-      id
-        ? await getTripById(id)
-        : null;
+  if (form) {
+    form.reset();
+  }
 
-    const vehicles =
-      await getVehicles();
+  clearError(
+    "trip-error"
+  );
 
-    const form =
-      $a("trip-form");
+  const title =
+    $a("trip-modal-title");
 
-    if (!form) {
-      adminToast(
-        "Trip form was not found.",
-        "error"
-      );
-      return;
-    }
-
-    try {
-      form.reset();
-    } catch (e) {}
-
-    form.dataset.id =
+  if (title) {
+    title.textContent =
       trip
-        ? String(trip.id)
-        : "";
+        ? "Edit Trip"
+        : "Add Trip";
+  }
 
-    showError(
-      "trip-error",
-      ""
-    );
+  if (trip) {
 
-    const title =
-      $a("trip-modal-title");
-
-    if (title) {
-      title.textContent =
-        trip
-          ? "Edit Trip"
-          : "Add Trip";
-    }
+    form.dataset.editId =
+      trip.id;
 
     setFieldValue(
       "trip-name",
-      trip?.name || ""
+      trip.name
     );
 
     setFieldValue(
       "trip-destination",
-      trip?.destination || ""
+      trip.destination
     );
 
     setFieldValue(
       "trip-duration",
-      trip?.duration || ""
+      trip.duration
     );
 
     setFieldValue(
       "trip-price",
-      trip?.price || ""
+      trip.price
     );
 
     setFieldValue(
       "trip-description",
-      trip?.description || ""
+      trip.description
     );
 
-    tripImageDraft =
-      trip?.image ||
-      trip?.image_url ||
-      "";
+    const preview =
+      $a("trip-image-preview");
+
+    if (
+      preview &&
+      trip.image_url
+    ) {
+      preview.src =
+        trip.image_url;
+
+      preview.style.display =
+        "block";
+    }
+
+  } else {
+
+    if (form) {
+      delete form.dataset.editId;
+    }
 
     const preview =
       $a("trip-image-preview");
 
     if (preview) {
-      preview.src =
-        imgFallback(
-          tripImageDraft
-        );
+      preview.src = "";
+      preview.style.display =
+        "none";
     }
-
-    const container =
-      $a(
-        "trip-vehicle-checkboxes"
-      );
-
-    if (container) {
-
-      if (!vehicles.length) {
-
-        container.innerHTML = `
-          <span class="a-item-meta">
-            No vehicles yet.
-            Add a vehicle first.
-          </span>
-        `;
-
-      } else {
-
-        const selected =
-          Array.isArray(
-            trip?.vehicleIds
-          )
-            ? trip.vehicleIds
-                .map(Number)
-            : [];
-
-        container.innerHTML =
-          vehicles
-            .map(vehicle => {
-
-              const checked =
-                selected.includes(
-                  Number(
-                    vehicle.id
-                  )
-                )
-                  ? "checked"
-                  : "";
-
-              const unavailable =
-                vehicle.available === false
-                  ? " (unavailable)"
-                  : "";
-
-              return `
-                <label>
-
-                  <input
-                    type="checkbox"
-                    value="${ea(
-                      vehicle.id
-                    )}"
-                    ${checked}>
-
-                  ${ea(
-                    vehicle.name
-                  )}
-
-                  ${
-                    vehicle.capacity !== null &&
-                    vehicle.capacity !== undefined
-                      ? ` — ${ea(
-                          vehicle.capacity
-                        )} seats`
-                      : ""
-                  }
-
-                  ${ea(
-                    unavailable
-                  )}
-
-                </label>
-              `;
-            })
-            .join("");
-      }
-    }
-
-    openModal(
-      "trip-modal"
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Open trip modal error:",
-      error
-    );
-
-    adminToast(
-      readableError(error) ||
-      "Unable to open trip form.",
-      "error"
-    );
   }
+
+  const vehicleBox =
+    $a("trip-vehicle-checkboxes");
+
+  if (vehicleBox) {
+    vehicleBox.innerHTML =
+      "<small>Vehicle selection is handled from the Vehicles panel.</small>";
+  }
+
+  modal.style.display =
+    "flex";
 }
 
+function closeTripModal() {
 
-/* =========================================================
-   SAVE TRIP
-   ========================================================= */
+  const modal =
+    $a("trip-modal");
+
+  if (modal) {
+    modal.style.display =
+      "none";
+  }
+}
 
 async function saveTripForm(event) {
 
   event.preventDefault();
 
+  clearError(
+    "trip-error"
+  );
+
   const form =
     event.target;
 
-  const name =
-    getFieldValue(
-      "trip-name"
-    ).trim();
+  const editId =
+    form.dataset.editId;
 
-  const destination =
-    getFieldValue(
-      "trip-destination"
-    ).trim();
+  const trip = {
 
-  if (!name || !destination) {
+    ...(editId
+      ? { id: editId }
+      : {}),
 
+    name:
+      getFieldValue(
+        "trip-name"
+      ),
+
+    destination:
+      getFieldValue(
+        "trip-destination"
+      ),
+
+    duration:
+      getFieldValue(
+        "trip-duration"
+      ),
+
+    price:
+      getFieldValue(
+        "trip-price"
+      ),
+
+    description:
+      getFieldValue(
+        "trip-description"
+      )
+  };
+
+  if (!trip.name) {
     showError(
       "trip-error",
-      "Trip name and destination are required."
+      "Trip name is required."
     );
 
     return;
   }
 
-  showError(
-    "trip-error",
-    ""
-  );
-
-  const vehicleIds =
-    [
-      ...document.querySelectorAll(
-        "#trip-vehicle-checkboxes input[type='checkbox']:checked"
-      )
-    ]
-      .map(
-        checkbox =>
-          Number(
-            checkbox.value
-          )
-      )
-      .filter(
-        Number.isFinite
-      );
-
-  const payload = {
-    name,
-    destination,
-
-    duration:
-      getFieldValue(
-        "trip-duration"
-      ).trim(),
-
-    price:
-      getFieldValue(
-        "trip-price"
-      ).trim(),
-
-    description:
-      getFieldValue(
-        "trip-description"
-      ).trim(),
-
-    image:
-      tripImageDraft || null,
-
-    vehicleIds
-  };
-
   try {
 
-    const id =
-      form.dataset.id;
+    const imageInput =
+      $a("trip-image-input");
 
-    let result;
+    if (
+      imageInput?.files?.[0]
+    ) {
 
-    if (id) {
-
-      result =
-        await updateTrip(
-          id,
-          payload
+      trip.image_url =
+        await readImageFile(
+          imageInput.files[0]
         );
-
-      if (!result) {
-        throw new Error(
-          "Trip update returned no record."
-        );
-      }
-
-      adminToast(
-        "Trip updated successfully.",
-        "success"
-      );
-
-    } else {
-
-      result =
-        await saveTrip(
-          payload
-        );
-
-      if (!result) {
-        throw new Error(
-          "Trip was not created."
-        );
-      }
-
-      adminToast(
-        "Trip added successfully.",
-        "success"
-      );
     }
 
-    closeModal(
-      "trip-modal"
+    await saveTrip(trip);
+
+    closeTripModal();
+
+    adminToast(
+      editId
+        ? "Trip updated successfully."
+        : "Trip added successfully.",
+      "success"
     );
 
     await PANEL_LOADERS.trips();
-
     await PANEL_LOADERS.dashboard();
 
   } catch (error) {
 
     console.error(
-      "SAVE TRIP ERROR:",
+      "Save trip error:",
       error
     );
 
-    const message =
-      readableError(error);
-
     showError(
       "trip-error",
-      message
-    );
-
-    adminToast(
-      message,
-      "error"
+      readableError(error)
     );
   }
 }
@@ -1916,7 +1420,9 @@ PANEL_LOADERS.vehicles =
     const list =
       $a("vehicles-list");
 
-    if (!list) return;
+    if (!list) {
+      return;
+    }
 
     try {
 
@@ -1924,124 +1430,101 @@ PANEL_LOADERS.vehicles =
         await getVehicles();
 
       if (!vehicles.length) {
-
         list.innerHTML =
           empty(
-            "No vehicles available yet."
+            "No vehicles available."
           );
 
         return;
       }
 
       list.innerHTML =
-        vehicles
-          .map(vehicle => {
+        vehicles.map(vehicle => {
 
-            const available =
-              vehicle.available !== false;
+          return `
+            <div class="a-item-card">
 
-            return `
-              <div class="a-item-card">
+              ${
+                vehicle.image_url
+                  ? `
+                    <img
+                      src="${ea(
+                        vehicle.image_url
+                      )}"
+                      alt="${ea(
+                        vehicle.name ||
+                        "Vehicle"
+                      )}"
+                      class="a-item-image">
+                  `
+                  : ""
+              }
 
-                <img
-                  src="${ea(
-                    imgFallback(
-                      vehicle.image_url
-                    )
-                  )}"
-                  alt=""
-                  onerror="this.style.display='none'">
+              <div class="a-item-info">
 
-                <div class="a-item-info">
+                <h3>
+                  ${ea(
+                    vehicle.name ||
+                    "Unnamed vehicle"
+                  )}
+                </h3>
 
-                  <h3>
-                    ${ea(
-                      vehicle.name
-                    )}
-                  </h3>
+                <p>
+                  ${ea(
+                    vehicle.type ||
+                    ""
+                  )}
+                </p>
 
-                  ${
-                    vehicle.type
-                      ? `
-                        <p>
-                          ${ea(
-                            vehicle.type
-                          )}
-                        </p>
-                      `
-                      : ""
-                  }
-
-                  ${
-                    vehicle.capacity !== null &&
-                    vehicle.capacity !== undefined
-                      ? `
-                        <p>
-                          Capacity:
-                          ${ea(
-                            vehicle.capacity
-                          )}
-                          seats
-                        </p>
-                      `
-                      : ""
-                  }
-
+                <p>
+                  💺
+                  ${ea(
+                    vehicle.capacity ||
+                    ""
+                  )}
                   ${
                     vehicle.registration
-                      ? `
-                        <p>
-                          Registration:
-                          ${ea(
-                            vehicle.registration
-                          )}
-                        </p>
-                      `
+                      ? " · " +
+                        ea(
+                          vehicle.registration
+                        )
                       : ""
                   }
+                </p>
 
-                  <span class="a-badge">
-                    ${
-                      available
-                        ? "Available"
-                        : "Unavailable"
-                    }
-                  </span>
+                <span class="a-badge">
+                  ${
+                    vehicle.available
+                      ? "Available"
+                      : "Unavailable"
+                  }
+                </span>
 
-                  <div class="a-item-actions">
+                <div class="a-item-actions">
 
-                    ${actionButton(
-                      "Edit",
-                      `data-edit-vehicle="${ea(
-                        vehicle.id
-                      )}"`
-                    )}
+                  ${actionButton(
+                    "Edit",
+                    `data-edit-vehicle="${ea(
+                      vehicle.id
+                    )}"`
+                  )}
 
-                    ${actionButton(
-                      available
-                        ? "Mark Unavailable"
-                        : "Mark Available",
-                      `data-toggle-vehicle="${ea(
-                        vehicle.id
-                      )}"`
-                    )}
-
-                    ${actionButton(
-                      "Delete",
-                      `data-delete-vehicle="${ea(
-                        vehicle.id
-                      )}"`,
-                      "a-btn-danger"
-                    )}
-
-                  </div>
+                  ${actionButton(
+                    "Delete",
+                    `data-delete-vehicle="${ea(
+                      vehicle.id
+                    )}"`,
+                    "a-btn-danger"
+                  )}
 
                 </div>
 
               </div>
-            `;
-          })
-          .join("");
+
+            </div>
+          `;
+
+        }).join("");
 
     } catch (error) {
 
@@ -2058,91 +1541,94 @@ PANEL_LOADERS.vehicles =
   };
 
 
-let vehicleImageDraft = "";
+function openVehicleModal(
+  vehicle = null
+) {
 
+  const modal =
+    $a("vehicle-modal");
 
-async function openVehicleModal(id) {
+  if (!modal) {
+    return;
+  }
 
-  try {
+  const form =
+    $a("vehicle-form");
 
-    const vehicles =
-      await getVehicles();
+  if (form) {
+    form.reset();
+  }
 
-    const vehicle =
-      id
-        ? vehicles.find(
-            item =>
-              Number(item.id) ===
-              Number(id)
-          )
-        : null;
+  clearError(
+    "vehicle-error"
+  );
 
-    const form =
-      $a("vehicle-form");
+  const title =
+    $a("vehicle-modal-title");
 
-    if (!form) {
-      adminToast(
-        "Vehicle form was not found.",
-        "error"
-      );
-      return;
-    }
-
-    try {
-      form.reset();
-    } catch (e) {}
-
-    form.dataset.id =
+  if (title) {
+    title.textContent =
       vehicle
-        ? String(vehicle.id)
-        : "";
+        ? "Edit Vehicle"
+        : "Add Vehicle";
+  }
 
-    showError(
-      "vehicle-error",
-      ""
-    );
+  if (vehicle) {
 
-    const title =
-      $a(
-        "vehicle-modal-title"
-      );
-
-    if (title) {
-      title.textContent =
-        vehicle
-          ? "Edit Vehicle"
-          : "Add Vehicle";
-    }
+    form.dataset.editId =
+      vehicle.id;
 
     setFieldValue(
       "vehicle-name",
-      vehicle?.name || ""
+      vehicle.name
     );
 
     setFieldValue(
       "vehicle-type",
-      vehicle?.type || ""
+      vehicle.type
     );
 
     setFieldValue(
       "vehicle-capacity",
-      vehicle?.capacity ?? ""
+      vehicle.capacity
     );
 
     setFieldValue(
       "vehicle-registration",
-      vehicle?.registration || ""
+      vehicle.registration
     );
 
-    setFieldValue(
+    setChecked(
       "vehicle-available",
-      vehicle?.available === false
-        ? "false"
-        : "true"
+      vehicle.available
     );
 
-    vehicleImageDraft =
-      vehicle?.image_url || "";
+    const preview =
+      $a(
+        "vehicle-image-preview"
+      );
+
+    if (
+      preview &&
+      vehicle.image_url
+    ) {
+      preview.src =
+        vehicle.image_url;
+
+      preview.style.display =
+        "block";
+    }
+
+  } else {
+
+    if (form) {
+      delete form.dataset.editId;
+    }
+
+    setChecked(
+      "vehicle-available",
+      true
+    );
 
     const preview =
       $a(
@@ -2150,40 +1636,76 @@ async function openVehicleModal(id) {
       );
 
     if (preview) {
-      preview.src =
-        imgFallback(
-          vehicleImageDraft
-        );
+      preview.src = "";
+      preview.style.display =
+        "none";
     }
-
-    openModal(
-      "vehicle-modal"
-    );
-
-  } catch (error) {
-
-    adminToast(
-      readableError(error),
-      "error"
-    );
   }
+
+  modal.style.display =
+    "flex";
 }
 
+function closeVehicleModal() {
+
+  const modal =
+    $a("vehicle-modal");
+
+  if (modal) {
+    modal.style.display =
+      "none";
+  }
+}
 
 async function saveVehicleForm(event) {
 
   event.preventDefault();
 
+  clearError(
+    "vehicle-error"
+  );
+
   const form =
     event.target;
 
-  const name =
-    getFieldValue(
-      "vehicle-name"
-    ).trim();
+  const editId =
+    form.dataset.editId;
 
-  if (!name) {
+  const vehicle = {
 
+    ...(editId
+      ? { id: editId }
+      : {}),
+
+    name:
+      getFieldValue(
+        "vehicle-name"
+      ),
+
+    type:
+      getFieldValue(
+        "vehicle-type"
+      ),
+
+    capacity:
+      Number(
+        getFieldValue(
+          "vehicle-capacity"
+        )
+      ) || 0,
+
+    registration:
+      getFieldValue(
+        "vehicle-registration"
+      ),
+
+    available:
+      !!$a(
+        "vehicle-available"
+      )?.checked
+  };
+
+  if (!vehicle.name) {
     showError(
       "vehicle-error",
       "Vehicle name is required."
@@ -2192,82 +1714,47 @@ async function saveVehicleForm(event) {
     return;
   }
 
-  const payload = {
-    name,
-
-    type:
-      getFieldValue(
-        "vehicle-type"
-      ).trim(),
-
-    capacity:
-      getFieldValue(
-        "vehicle-capacity"
-      ).trim(),
-
-    registration:
-      getFieldValue(
-        "vehicle-registration"
-      ).trim(),
-
-    available:
-      getFieldValue(
-        "vehicle-available"
-      ) !== "false",
-
-    image_url:
-      vehicleImageDraft || null
-  };
-
   try {
 
-    if (form.dataset.id) {
+    const imageInput =
+      $a("vehicle-image-input");
 
-      await updateVehicle(
-        form.dataset.id,
-        payload
-      );
+    if (
+      imageInput?.files?.[0]
+    ) {
 
-      adminToast(
-        "Vehicle updated successfully.",
-        "success"
-      );
-
-    } else {
-
-      await saveVehicle(
-        payload
-      );
-
-      adminToast(
-        "Vehicle added successfully.",
-        "success"
-      );
+      vehicle.image_url =
+        await readImageFile(
+          imageInput.files[0]
+        );
     }
 
-    closeModal(
-      "vehicle-modal"
+    await saveVehicle(
+      vehicle
+    );
+
+    closeVehicleModal();
+
+    adminToast(
+      editId
+        ? "Vehicle updated successfully."
+        : "Vehicle added successfully.",
+      "success"
     );
 
     await PANEL_LOADERS.vehicles();
-
     await PANEL_LOADERS.dashboard();
 
   } catch (error) {
 
     console.error(
-      "SAVE VEHICLE ERROR:",
+      "Save vehicle error:",
       error
     );
 
     showError(
       "vehicle-error",
       readableError(error)
-    );
-
-    adminToast(
-      readableError(error),
-      "error"
     );
   }
 }
@@ -2283,97 +1770,103 @@ PANEL_LOADERS.gallery =
     const list =
       $a("gallery-list");
 
-    if (!list) return;
+    if (!list) {
+      return;
+    }
 
     try {
 
-      const items =
+      const gallery =
         await getGallery();
 
-      if (!items.length) {
+      if (!gallery.length) {
 
         list.innerHTML =
           empty(
-            "No gallery images available."
+            "No gallery items available."
           );
 
         return;
       }
 
       list.innerHTML =
-        items
-          .map(item => {
+        gallery.map(item => {
 
-            return `
-              <div class="a-item-card">
+          const image =
+            item.image_url ||
+            item.media_url ||
+            "";
 
-                <img
-                  src="${ea(
-                    imgFallback(
-                      item.image_url ||
-                      item.media_url
-                    )
-                  )}"
-                  alt=""
-                  onerror="this.style.display='none'">
+          return `
+            <div class="a-item-card">
 
-                <div class="a-item-info">
+              ${
+                image
+                  ? `
+                    <img
+                      src="${ea(
+                        image
+                      )}"
+                      alt="${ea(
+                        item.title ||
+                        "Gallery image"
+                      )}"
+                      class="a-item-image">
+                  `
+                  : ""
+              }
 
-                  <h3>
-                    ${ea(
-                      item.caption ||
-                      item.title ||
-                      "No caption"
-                    )}
-                  </h3>
+              <div class="a-item-info">
 
+                <h3>
+                  ${ea(
+                    item.title ||
+                    "Untitled"
+                  )}
+                </h3>
+
+                <p>
+                  ${ea(
+                    item.description ||
+                    ""
+                  )}
+                </p>
+
+                <span class="a-badge">
                   ${
-                    item.description
-                      ? `
-                        <p>
-                          ${ea(
-                            item.description
-                          )}
-                        </p>
-                      `
-                      : ""
+                    item.approved
+                      ? "Visible"
+                      : "Pending"
                   }
+                </span>
 
-                  <span class="a-badge">
-                    ${
-                      item.approved === false
-                        ? "Hidden"
-                        : "Visible"
-                    }
-                  </span>
+                <div class="a-item-actions">
 
-                  <div class="a-item-actions">
+                  ${actionButton(
+                    item.approved
+                      ? "Hide"
+                      : "Approve",
+                    `data-toggle-gallery="${ea(
+                      item.id
+                    )}"`
+                  )}
 
-                    ${actionButton(
-                      item.approved === false
-                        ? "Show"
-                        : "Hide",
-                      `data-toggle-gallery="${ea(
-                        item.id
-                      )}"`
-                    )}
-
-                    ${actionButton(
-                      "Delete",
-                      `data-delete-photo="${ea(
-                        item.id
-                      )}"`,
-                      "a-btn-danger"
-                    )}
-
-                  </div>
+                  ${actionButton(
+                    "Delete",
+                    `data-delete-gallery="${ea(
+                      item.id
+                    )}"`,
+                    "a-btn-danger"
+                  )}
 
                 </div>
 
               </div>
-            `;
-          })
-          .join("");
+
+            </div>
+          `;
+
+        }).join("");
 
     } catch (error) {
 
@@ -2390,72 +1883,74 @@ PANEL_LOADERS.gallery =
   };
 
 
-async function saveGalleryForm(event) {
+async function saveGalleryForm(
+  event
+) {
 
   event.preventDefault();
 
-  const fileInput =
-    $a("g-image");
+  const form =
+    event.target;
 
-  const file =
-    fileInput?.files?.[0];
+  const title =
+    getFieldValue(
+      "gallery-title"
+    );
 
-  if (!file) {
+  const description =
+    getFieldValue(
+      "gallery-description"
+    );
 
+  if (!title) {
     adminToast(
-      "Please select an image.",
+      "Gallery title is required.",
       "error"
     );
 
     return;
   }
 
-  const caption =
-    getFieldValue(
-      "g-caption"
-    ).trim();
-
-  const description =
-    getFieldValue(
-      "g-description"
-    ).trim();
-
   try {
 
-    const image =
-      await readImage(
-        file,
-        1200
+    const input =
+      $a("gallery-image-input");
+
+    if (
+      !input?.files?.[0]
+    ) {
+      throw new Error(
+        "Please select an image."
+      );
+    }
+
+    const mediaUrl =
+      await readImageFile(
+        input.files[0]
       );
 
-    await saveGalleryItem({
-      image_url: image,
-      caption,
-      description
+    await saveGallery({
+      title,
+      description,
+      media_url: mediaUrl,
+      media_type: "image",
+      approved: true
     });
 
+    form.reset();
+
     adminToast(
-      "Image added successfully.",
+      "Gallery image added successfully.",
       "success"
     );
 
-    const form =
-      $a(
-        "gallery-add-form"
-      );
-
-    if (form) {
-      form.reset();
-    }
-
     await PANEL_LOADERS.gallery();
-
     await PANEL_LOADERS.dashboard();
 
   } catch (error) {
 
     console.error(
-      "SAVE GALLERY ERROR:",
+      "Save gallery error:",
       error
     );
 
@@ -2477,7 +1972,9 @@ PANEL_LOADERS.videos =
     const list =
       $a("videos-list");
 
-    if (!list) return;
+    if (!list) {
+      return;
+    }
 
     try {
 
@@ -2485,100 +1982,70 @@ PANEL_LOADERS.videos =
         await getVideos();
 
       if (!videos.length) {
-
         list.innerHTML =
           empty(
-            "No videos available yet."
+            "No videos available."
           );
 
         return;
       }
 
       list.innerHTML =
-        videos
-          .map(video => {
+        videos.map(video => {
 
-            let thumbnail = "";
+          return `
+            <div class="a-item-card">
 
-            if (video.youtubeId) {
+              <div class="a-item-info">
 
-              thumbnail =
-                "https://img.youtube.com/vi/" +
-                encodeURIComponent(
-                  video.youtubeId
-                ) +
-                "/hqdefault.jpg";
-            }
+                <h3>
+                  ${ea(
+                    video.title ||
+                    "Untitled video"
+                  )}
+                </h3>
 
-            return `
-              <div class="a-item-card">
+                <p>
+                  ${ea(
+                    video.description ||
+                    ""
+                  )}
+                </p>
 
-                ${
-                  thumbnail
-                    ? `
-                      <img
-                        src="${ea(
-                          thumbnail
-                        )}"
-                        alt=""
-                        onerror="this.style.display='none'">
-                    `
-                    : ""
-                }
+                <p>
+                  YouTube ID:
+                  ${ea(
+                    video.youtube_id ||
+                    video.youtubeId ||
+                    ""
+                  )}
+                </p>
 
-                <div class="a-item-info">
+                <div class="a-item-actions">
 
-                  <h3>
-                    ${ea(
-                      video.title
-                    )}
-                  </h3>
+                  ${actionButton(
+                    "Edit",
+                    `data-edit-video="${ea(
+                      video.id
+                    )}"`
+                  )}
 
-                  ${
-                    video.description
-                      ? `
-                        <p>
-                          ${ea(
-                            video.description
-                          )}
-                        </p>
-                      `
-                      : ""
-                  }
-
-                  <p>
-                    YouTube:
-                    ${ea(
-                      video.youtubeId ||
-                      "Not set"
-                    )}
-                  </p>
-
-                  <div class="a-item-actions">
-
-                    ${actionButton(
-                      "Edit",
-                      `data-edit-video="${ea(
-                        video.id
-                      )}"`
-                    )}
-
-                    ${actionButton(
-                      "Delete",
-                      `data-delete-video="${ea(
-                        video.id
-                      )}"`,
-                      "a-btn-danger"
-                    )}
-
-                  </div>
+                  ${actionButton(
+                    "Delete",
+                    `data-delete-video="${ea(
+                      video.id
+                    )}"`,
+                    "a-btn-danger"
+                  )}
 
                 </div>
 
               </div>
-            `;
-          })
-          .join("");
+
+            </div>
+          `;
+
+        }).join("");
 
     } catch (error) {
 
@@ -2595,101 +2062,121 @@ PANEL_LOADERS.videos =
   };
 
 
-async function openVideoModal(id) {
+function openVideoModal(
+  video = null
+) {
 
-  try {
+  const modal =
+    $a("video-modal");
 
-    const videos =
-      await getVideos();
+  if (!modal) {
+    return;
+  }
 
-    const video =
-      id
-        ? videos.find(
-            item =>
-              Number(item.id) ===
-              Number(id)
-          )
-        : null;
+  const form =
+    $a("video-form");
 
-    const form =
-      $a("video-form");
+  if (form) {
+    form.reset();
+  }
 
-    if (!form) {
-      adminToast(
-        "Video form was not found.",
-        "error"
-      );
-      return;
-    }
+  clearError(
+    "video-error"
+  );
 
-    try {
-      form.reset();
-    } catch (e) {}
+  const title =
+    $a("video-modal-title");
 
-    form.dataset.id =
+  if (title) {
+    title.textContent =
       video
-        ? String(video.id)
-        : "";
+        ? "Edit Video"
+        : "Add Video";
+  }
 
-    showError(
-      "video-error",
-      ""
-    );
+  if (video) {
 
-    const title =
-      $a(
-        "video-modal-title"
-      );
-
-    if (title) {
-      title.textContent =
-        video
-          ? "Edit Video"
-          : "Add Video";
-    }
+    form.dataset.editId =
+      video.id;
 
     setFieldValue(
       "video-title",
-      video?.title || ""
+      video.title
     );
 
     setFieldValue(
       "video-description",
-      video?.description || ""
+      video.description
     );
 
     setFieldValue(
       "video-youtube",
-      video?.youtubeId || ""
+      video.youtube_id ||
+      video.youtubeId ||
+      ""
     );
 
-    openModal(
-      "video-modal"
-    );
+  } else {
 
-  } catch (error) {
+    if (form) {
+      delete form.dataset.editId;
+    }
+  }
 
-    adminToast(
-      readableError(error),
-      "error"
-    );
+  modal.style.display =
+    "flex";
+}
+
+function closeVideoModal() {
+
+  const modal =
+    $a("video-modal");
+
+  if (modal) {
+    modal.style.display =
+      "none";
   }
 }
 
-
-async function saveVideoForm(event) {
+async function saveVideoForm(
+  event
+) {
 
   event.preventDefault();
+
+  clearError(
+    "video-error"
+  );
 
   const form =
     event.target;
 
-  const title =
-    getFieldValue(
-      "video-title"
-    ).trim();
+  const editId =
+    form.dataset.editId;
 
-  if (!title) {
+  const video = {
+
+    ...(editId
+      ? { id: editId }
+      : {}),
+
+    title:
+      getFieldValue(
+        "video-title"
+      ),
+
+    description:
+      getFieldValue(
+        "video-description"
+      ),
+
+    youtube_id:
+      getFieldValue(
+        "video-youtube"
+      )
+  };
+
+  if (!video.title) {
 
     showError(
       "video-error",
@@ -2699,86 +2186,44 @@ async function saveVideoForm(event) {
     return;
   }
 
-  const raw =
-    getFieldValue(
-      "video-youtube"
-    ).trim();
+  if (!video.youtube_id) {
 
-  let youtubeId = "";
+    showError(
+      "video-error",
+      "YouTube video ID is required."
+    );
 
-  if (raw) {
-
-    youtubeId =
-      extractYouTubeId(
-        raw
-      );
-
-    if (!youtubeId) {
-
-      showError(
-        "video-error",
-        "Please enter a valid YouTube link or video ID."
-      );
-
-      return;
-    }
+    return;
   }
-
-  const payload = {
-    title,
-
-    description:
-      getFieldValue(
-        "video-description"
-      ).trim(),
-
-    youtubeId
-  };
 
   try {
 
-    if (form.dataset.id) {
+    await saveVideo(
+      video
+    );
 
-      await updateVideo(
-        form.dataset.id,
-        payload
-      );
+    closeVideoModal();
 
-      adminToast(
-        "Video updated successfully.",
-        "success"
-      );
-
-    } else {
-
-      await saveVideo(
-        payload
-      );
-
-      adminToast(
-        "Video added successfully.",
-        "success"
-      );
-    }
-
-    closeModal(
-      "video-modal"
+    adminToast(
+      editId
+        ? "Video updated successfully."
+        : "Video added successfully.",
+      "success"
     );
 
     await PANEL_LOADERS.videos();
-
     await PANEL_LOADERS.dashboard();
 
   } catch (error) {
 
+    console.error(
+      "Save video error:",
+      error
+    );
+
     showError(
       "video-error",
       readableError(error)
-    );
-
-    adminToast(
-      readableError(error),
-      "error"
     );
   }
 }
@@ -2794,7 +2239,9 @@ PANEL_LOADERS.reviews =
     const list =
       $a("reviews-list");
 
-    if (!list) return;
+    if (!list) {
+      return;
+    }
 
     try {
 
@@ -2812,78 +2259,81 @@ PANEL_LOADERS.reviews =
       }
 
       list.innerHTML =
-        reviews
-          .map(review => {
+        reviews.map(review => {
 
-            return `
-              <div class="a-item-card">
+          return `
+            <div class="a-item-card">
 
-                <div class="a-item-info">
+              <div class="a-item-info">
 
-                  <h3>
-                    ${ea(
-                      review.name ||
-                      "Anonymous"
+                <h3>
+
+                  ${ea(
+                    review.name ||
+                    "Anonymous"
+                  )}
+
+                  <span
+                    style="color:#ffb020;">
+                    ${starsA(
+                      review.rating
                     )}
-
-                    <span
-                      style="color:#ffb020;">
-                      ${starsA(
-                        review.rating
-                      )}
-                    </span>
-                  </h3>
-
-                  <p>
-                    ${ea(
-                      review.review ||
-                      review.comment ||
-                      ""
-                    )}
-                  </p>
-
-                  <span class="a-badge">
-                    ${
-                      review.approved
-                        ? "Visible"
-                        : "Pending"
-                    }
                   </span>
 
-                  <div class="a-item-actions">
+                </h3>
 
-                    ${actionButton(
-                      "Edit",
-                      `data-edit-review="${ea(
-                        review.id
-                      )}"`
-                    )}
+                <p>
+                  ${ea(
+                    review.review ||
+                    review.comment ||
+                    ""
+                  )}
+                </p>
 
-                    ${actionButton(
-                      review.approved
-                        ? "Hide"
-                        : "Approve",
-                      `data-toggle-review="${ea(
-                        review.id
-                      )}"`
-                    )}
+                <span class="a-badge">
 
-                    ${actionButton(
-                      "Delete",
-                      `data-delete-review="${ea(
-                        review.id
-                      )}"`,
-                      "a-btn-danger"
-                    )}
+                  ${
+                    review.approved
+                      ? "Visible"
+                      : "Pending"
+                  }
 
-                  </div>
+                </span>
+
+                <div class="a-item-actions">
+
+                  ${actionButton(
+                    "Edit",
+                    `data-edit-review="${ea(
+                      review.id
+                    )}"`
+                  )}
+
+                  ${actionButton(
+                    review.approved
+                      ? "Hide"
+                      : "Approve",
+                    `data-toggle-review="${ea(
+                      review.id
+                    )}"`
+                  )}
+
+                  ${actionButton(
+                    "Delete",
+                    `data-delete-review="${ea(
+                      review.id
+                    )}"`,
+                    "a-btn-danger"
+                  )}
 
                 </div>
 
               </div>
-            `;
-          })
-          .join("");
+
+            </div>
+          `;
+
+        }).join("");
 
     } catch (error) {
 
@@ -2900,205 +2350,197 @@ PANEL_LOADERS.reviews =
   };
 
 
-async function openReviewModal(id) {
+function openReviewModal(
+  review = null
+) {
 
-  try {
+  const modal =
+    $a("review-modal");
 
-    const reviews =
-      await getReviews();
+  if (!modal) {
+    return;
+  }
 
-    const review =
-      id
-        ? reviews.find(
-            item =>
-              Number(item.id) ===
-              Number(id)
-          )
-        : null;
+  const form =
+    $a("review-form-admin");
 
-    const form =
-      $a("review-form-admin") ||
-      $a("review-form");
+  if (form) {
+    form.reset();
+  }
 
-    if (!form) {
+  clearError(
+    "review-error"
+  );
 
-      adminToast(
-        "Review form was not found.",
-        "error"
-      );
+  const title =
+    $a("review-modal-title");
 
-      return;
-    }
-
-    try {
-      form.reset();
-    } catch (e) {}
-
-    form.dataset.id =
+  if (title) {
+    title.textContent =
       review
-        ? String(review.id)
-        : "";
+        ? "Edit Review"
+        : "Add Review";
+  }
 
-    showError(
-      "review-error",
-      ""
-    );
+  if (review) {
 
-    const title =
-      $a(
-        "review-modal-title"
-      );
-
-    if (title) {
-      title.textContent =
-        review
-          ? "Edit Review"
-          : "Add Review";
-    }
+    form.dataset.editId =
+      review.id;
 
     setFieldValue(
       "review-name",
-      review?.name || ""
+      review.name
     );
 
     setFieldValue(
       "review-rating",
-      review?.rating || 5
+      review.rating
     );
 
     setFieldValue(
       "review-text",
-      review?.review ||
-      review?.comment ||
-      ""
+      review.review ||
+      review.comment
     );
 
-    setFieldValue(
+    setChecked(
       "review-approved",
-      review
-        ? String(
-            !!review.approved
-          )
-        : "true"
+      review.approved
     );
 
-    openModal(
-      "review-modal"
-    );
+  } else {
 
-  } catch (error) {
+    if (form) {
+      delete form.dataset.editId;
+    }
 
-    adminToast(
-      readableError(error),
-      "error"
+    setChecked(
+      "review-approved",
+      true
     );
+  }
+
+  modal.style.display =
+    "flex";
+}
+
+function closeReviewModal() {
+
+  const modal =
+    $a("review-modal");
+
+  if (modal) {
+    modal.style.display =
+      "none";
   }
 }
 
-
-async function saveReviewForm(event) {
+async function saveReviewForm(
+  event
+) {
 
   event.preventDefault();
+
+  clearError(
+    "review-error"
+  );
 
   const form =
     event.target;
 
-  const name =
-    getFieldValue(
-      "review-name"
-    ).trim();
+  const editId =
+    form.dataset.editId;
 
-  const reviewText =
-    getFieldValue(
-      "review-text"
-    ).trim();
+  const review = {
 
-  if (!name || !reviewText) {
+    ...(editId
+      ? { id: editId }
+      : {}),
+
+    name:
+      getFieldValue(
+        "review-name"
+      ),
+
+    rating:
+      Number(
+        getFieldValue(
+          "review-rating"
+        )
+      ) || 0,
+
+    review:
+      getFieldValue(
+        "review-text"
+      ),
+
+    approved:
+      !!$a(
+        "review-approved"
+      )?.checked
+  };
+
+  if (!review.name) {
 
     showError(
       "review-error",
-      "Name and review are required."
+      "Reviewer name is required."
     );
 
     return;
   }
 
-  let rating =
-    parseInt(
-      getFieldValue(
-        "review-rating"
-      ),
-      10
+  if (
+    review.rating < 1 ||
+    review.rating > 5
+  ) {
+
+    showError(
+      "review-error",
+      "Rating must be between 1 and 5."
     );
 
-  if (!Number.isFinite(rating)) {
-    rating = 5;
+    return;
   }
 
-  rating =
-    Math.max(
-      1,
-      Math.min(
-        5,
-        rating
-      )
+  if (!review.review) {
+
+    showError(
+      "review-error",
+      "Review text is required."
     );
 
-  const payload = {
-    name,
-    rating,
-    review: reviewText,
-
-    approved:
-      getFieldValue(
-        "review-approved"
-      ) === "true"
-  };
+    return;
+  }
 
   try {
 
-    if (form.dataset.id) {
+    await saveReview(
+      review
+    );
 
-      await updateReview(
-        form.dataset.id,
-        payload
-      );
+    closeReviewModal();
 
-      adminToast(
-        "Review updated successfully.",
-        "success"
-      );
-
-    } else {
-
-      await saveReview(
-        payload
-      );
-
-      adminToast(
-        "Review added successfully.",
-        "success"
-      );
-    }
-
-    closeModal(
-      "review-modal"
+    adminToast(
+      editId
+        ? "Review updated successfully."
+        : "Review added successfully.",
+      "success"
     );
 
     await PANEL_LOADERS.reviews();
-
     await PANEL_LOADERS.dashboard();
 
   } catch (error) {
 
+    console.error(
+      "Save review error:",
+      error
+    );
+
     showError(
       "review-error",
       readableError(error)
-    );
-
-    adminToast(
-      readableError(error),
-      "error"
     );
   }
 }
@@ -3114,7 +2556,9 @@ PANEL_LOADERS.enquiries =
     const list =
       $a("enquiries-list");
 
-    if (!list) return;
+    if (!list) {
+      return;
+    }
 
     try {
 
@@ -3122,143 +2566,99 @@ PANEL_LOADERS.enquiries =
         await getEnquiries();
 
       const filter =
-        $a("enquiry-filter");
+        getFieldValue(
+          "enquiry-filter"
+        ).toLowerCase();
 
-      const selected =
-        filter
-          ? filter.value
-          : "";
+      let filtered =
+        [...enquiries];
 
-      const filtered =
-        enquiries
-          .filter(
-            enquiry =>
-              !selected ||
-              enquiry.status === selected
-          )
-          .sort(
-            (a, b) =>
+      if (filter) {
+
+        filtered =
+          filtered.filter(
+            item =>
               String(
-                b.created_at || ""
-              ).localeCompare(
-                String(
-                  a.created_at || ""
-                )
-              )
+                item.status ||
+                ""
+              ).toLowerCase() ===
+              filter
           );
+      }
+
+      filtered.sort(
+        recentDateSort
+      );
 
       if (!filtered.length) {
 
         list.innerHTML =
           empty(
-            "No enquiries found."
+            "No enquiries available."
           );
 
         return;
       }
 
       list.innerHTML =
-        filtered
-          .map(enquiry => {
+        filtered.map(item => {
 
-            const status =
-              enquiry.status ||
-              "New";
+          return `
+            <div class="a-item-card">
 
-            const statuses = [
-              "New",
-              "Contacted",
-              "Confirmed",
-              "Closed"
-            ];
+              <div class="a-item-info">
 
-            const options =
-              statuses
-                .map(
-                  value => `
-                    <option
-                      value="${ea(
-                        value
-                      )}"
-                      ${
-                        value === status
-                          ? "selected"
-                          : ""
-                      }>
-                      ${ea(
-                        value
-                      )}
-                    </option>
-                  `
-                )
-                .join("");
+                <h3>
+                  ${ea(
+                    item.name ||
+                    "Unnamed"
+                  )}
+                </h3>
 
-            return `
-              <div class="a-item-card">
+                <p>
+                  📞
+                  ${ea(
+                    item.phone ||
+                    ""
+                  )}
+                </p>
 
-                <div class="a-item-info">
+                <p>
+                  🚌
+                  ${ea(
+                    item.trip ||
+                    "General enquiry"
+                  )}
+                </p>
 
-                  <h3>
-                    ${ea(
-                      enquiry.name ||
-                      "Unnamed"
-                    )}
-                  </h3>
+                <p>
+                  ${ea(
+                    item.message ||
+                    ""
+                  )}
+                </p>
 
-                  <p>
-                    Phone:
-                    ${ea(
-                      enquiry.phone || ""
-                    )}
-                  </p>
+                <span class="a-badge">
+                  ${ea(
+                    item.status ||
+                    "new"
+                  )}
+                </span>
 
-                  <p>
-                    Trip:
-                    ${ea(
-                      enquiry.trip ||
-                      "General enquiry"
-                    )}
-                  </p>
-
-                  <p>
-                    ${ea(
-                      enquiry.message || ""
-                    )}
-                  </p>
-
-                  <p>
-                    ${ea(
-                      fmtDate(
-                        enquiry.created_at
-                      )
-                    )}
-                  </p>
-
-                  <select
-                    data-enquiry-status="${ea(
-                      enquiry.id
-                    )}">
-                    ${options}
-                  </select>
-
-                  <div class="a-item-actions">
-
-                    ${actionButton(
-                      "Delete",
-                      `data-delete-enquiry="${ea(
-                        enquiry.id
-                      )}"`,
-                      "a-btn-danger"
-                    )}
-
-                  </div>
-
-                </div>
+                <small>
+                  ${ea(
+                    formatDate(
+                      item.created_at
+                    )
+                  )}
+                </small>
 
               </div>
-            `;
-          })
-          .join("");
+
+            </div>
+          `;
+
+        }).join("");
 
     } catch (error) {
 
@@ -3284,65 +2684,66 @@ PANEL_LOADERS.settings =
 
     try {
 
-      const business =
-        await getBusiness();
+      const settings =
+        await getSettings();
 
-      const data =
-        business || {};
+      if (!settings) {
+        return;
+      }
 
       setFieldValue(
         "settings-phone",
-        data.phone || ""
+        settings.phone
       );
 
       setFieldValue(
         "settings-whatsapp",
-        data.whatsapp || ""
+        settings.whatsapp
       );
 
       setFieldValue(
         "settings-email",
-        data.email || ""
+        settings.email
       );
 
       setFieldValue(
         "settings-address",
-        data.address || ""
+        settings.address
       );
 
       setFieldValue(
         "settings-hours",
-        data.hours || ""
+        settings.hours
       );
 
       setFieldValue(
         "settings-map",
-        data.mapUrl || ""
+        settings.map_url
       );
 
       setFieldValue(
         "settings-facebook",
-        data.facebook || ""
+        settings.facebook
       );
 
       setFieldValue(
         "settings-instagram",
-        data.instagram || ""
+        settings.instagram
       );
 
       setFieldValue(
         "settings-youtube",
-        data.youtube || ""
+        settings.youtube
       );
 
       setFieldValue(
         "settings-about",
-        data.aboutText || ""
+        settings.about_text
       );
 
       setFieldValue(
         "settings-footer",
-        data.footerText || ""
+        settings.footer_text
       );
 
     } catch (error) {
@@ -3351,76 +2752,82 @@ PANEL_LOADERS.settings =
         "Settings error:",
         error
       );
+
+      adminToast(
+        readableError(error),
+        "error"
+      );
     }
   };
 
-
-async function saveSettingsForm(event) {
+async function saveSettingsForm(
+  event
+) {
 
   event.preventDefault();
 
-  const data = {
-
-    phone:
-      getFieldValue(
-        "settings-phone"
-      ).trim(),
-
-    whatsapp:
-      getFieldValue(
-        "settings-whatsapp"
-      ).trim(),
-
-    email:
-      getFieldValue(
-        "settings-email"
-      ).trim(),
-
-    address:
-      getFieldValue(
-        "settings-address"
-      ).trim(),
-
-    hours:
-      getFieldValue(
-        "settings-hours"
-      ).trim(),
-
-    mapUrl:
-      getFieldValue(
-        "settings-map"
-      ).trim(),
-
-    facebook:
-      getFieldValue(
-        "settings-facebook"
-      ).trim(),
-
-    instagram:
-      getFieldValue(
-        "settings-instagram"
-      ).trim(),
-
-    youtube:
-      getFieldValue(
-        "settings-youtube"
-      ).trim(),
-
-    aboutText:
-      getFieldValue(
-        "settings-about"
-      ).trim(),
-
-    footerText:
-      getFieldValue(
-        "settings-footer"
-      ).trim()
-  };
-
   try {
 
+    const settings = {
+
+      phone:
+        getFieldValue(
+          "settings-phone"
+        ),
+
+      whatsapp:
+        getFieldValue(
+          "settings-whatsapp"
+        ),
+
+      email:
+        getFieldValue(
+          "settings-email"
+        ),
+
+      address:
+        getFieldValue(
+          "settings-address"
+        ),
+
+      hours:
+        getFieldValue(
+          "settings-hours"
+        ),
+
+      map_url:
+        getFieldValue(
+          "settings-map"
+        ),
+
+      facebook:
+        getFieldValue(
+          "settings-facebook"
+        ),
+
+      instagram:
+        getFieldValue(
+          "settings-instagram"
+        ),
+
+      youtube:
+        getFieldValue(
+          "settings-youtube"
+        ),
+
+      about_text:
+        getFieldValue(
+          "settings-about"
+        ),
+
+      footer_text:
+        getFieldValue(
+          "settings-footer"
+        )
+    };
+
     await saveSettings(
-      data
+      settings
     );
 
     adminToast(
@@ -3429,6 +2836,11 @@ async function saveSettingsForm(event) {
     );
 
   } catch (error) {
+
+    console.error(
+      "Save settings error:",
+      error
+    );
 
     adminToast(
       readableError(error),
@@ -3442,223 +2854,351 @@ async function saveSettingsForm(event) {
    NAVIGATION
    ========================================================= */
 
-function showPanel(name) {
+async function showPanel(
+  panel
+) {
 
-  document
-    .querySelectorAll(
-      ".admin-panel"
-    )
-    .forEach(panel => {
-
-      panel.classList.toggle(
-        "active",
-        panel.id ===
-          "panel-" + name
-      );
-    });
+  if (!panel) {
+    panel = "dashboard";
+  }
 
   document
     .querySelectorAll(
       "[data-panel]"
     )
-    .forEach(item => {
+    .forEach(button => {
 
-      item.classList.toggle(
+      button.classList.toggle(
         "active",
-        item.dataset.panel === name
+        button.dataset.panel ===
+        panel
       );
     });
 
-  if (
-    PANEL_LOADERS[name]
-  ) {
+  document
+    .querySelectorAll(
+      ".admin-panel"
+    )
+    .forEach(section => {
 
-    guard(
-      PANEL_LOADERS[name]
-    );
+      section.style.display =
+        section.id ===
+        `panel-${panel}`
+          ? ""
+          : "none";
+    });
+
+  const loader =
+    PANEL_LOADERS[panel];
+
+  if (loader) {
+    await loader();
+  }
+}
+
+
+/* =========================================================
+   IMAGE PREVIEWS
+   ========================================================= */
+
+function setupImagePreview(
+  inputId,
+  previewId
+) {
+
+  const input =
+    $a(inputId);
+
+  const preview =
+    $a(previewId);
+
+  if (!input || !preview) {
+    return;
   }
 
-  window.scrollTo(
-    0,
-    0
+  input.addEventListener(
+    "change",
+    () => {
+
+      const file =
+        input.files?.[0];
+
+      if (!file) {
+
+        preview.src = "";
+        preview.style.display =
+          "none";
+
+        return;
+      }
+
+      const reader =
+        new FileReader();
+
+      reader.onload =
+        event => {
+
+          preview.src =
+            event.target.result;
+
+          preview.style.display =
+            "block";
+        };
+
+      reader.readAsDataURL(
+        file
+      );
+    }
   );
 }
 
 
 /* =========================================================
-   INITIALIZATION
+   INIT ADMIN PANEL
    ========================================================= */
 
-let adminInitialized =
-  false;
+async function initAdmin() {
+
+  /*
+   * Image previews
+   */
+
+  setupImagePreview(
+    "trip-image-input",
+    "trip-image-preview"
+  );
+
+  setupImagePreview(
+    "vehicle-image-input",
+    "vehicle-image-preview"
+  );
 
 
-function initAdmin() {
-
-  if (adminInitialized) {
-    return;
-  }
-
-  adminInitialized =
-    true;
-
-
-  /* =======================================================
-     CLICK HANDLER
-     ======================================================= */
+  /*
+   * Navigation
+   */
 
   document.addEventListener(
     "click",
     async event => {
 
-      const target =
+      const panelButton =
         event.target.closest(
-          "button, a, [data-recent-panel]"
+          "[data-panel]"
         );
-
-      if (!target) {
-        return;
-      }
-
-      const data =
-        target.dataset;
-
-
-      /* RECENT DASHBOARD ITEMS */
-
-      if (data.recentPanel) {
-
-        event.preventDefault();
-
-        showPanel(
-          data.recentPanel
-        );
-
-        return;
-      }
-
-
-      /* PANEL */
-
-      if (data.panel) {
-
-        event.preventDefault();
-
-        showPanel(
-          data.panel
-        );
-
-        return;
-      }
-
-
-      /* CLOSE */
-
-      if (data.close) {
-
-        closeModal(
-          data.close
-        );
-
-        return;
-      }
-
-
-      /* LOGOUT */
 
       if (
-        target.classList.contains(
-          "a-logout-btn"
+        panelButton &&
+        !event.target.closest(
+          "button[type='submit']"
         )
       ) {
 
         event.preventDefault();
 
-        await adminLogout();
-
-        location.replace(
-          "login.html"
+        await showPanel(
+          panelButton.dataset.panel
         );
 
         return;
       }
 
 
-      /* QUICK ACTIONS */
+      /*
+       * Quick actions
+       */
 
-      if (
-        data.quick === "trip"
-      ) {
+      const quick =
+        event.target.closest(
+          "[data-quick]"
+        );
 
-        showPanel("trips");
+      if (quick) {
 
-        await openTripModal(null);
+        event.preventDefault();
+
+        const type =
+          quick.dataset.quick;
+
+        if (type === "trip") {
+          openTripModal();
+          return;
+        }
+
+        if (type === "vehicle") {
+          openVehicleModal();
+          return;
+        }
+
+        if (type === "video") {
+          openVideoModal();
+          return;
+        }
+
+        if (type === "review") {
+          openReviewModal();
+          return;
+        }
+
+        if (type === "gallery") {
+
+          await showPanel(
+            "gallery"
+          );
+
+          return;
+        }
+      }
+
+
+      /*
+       * Recent dashboard buttons
+       */
+
+      const recent =
+        event.target.closest(
+          "[data-recent-panel]"
+        );
+
+      if (recent) {
+
+        event.preventDefault();
+
+        await showPanel(
+          recent.dataset.recentPanel
+        );
 
         return;
       }
 
+
+      /*
+       * Add buttons
+       */
+
       if (
-        data.quick === "vehicle"
+        event.target.closest(
+          "#add-trip-btn"
+        )
       ) {
 
-        showPanel("vehicles");
-
-        await openVehicleModal(null);
-
+        openTripModal();
         return;
       }
 
       if (
-        data.quick === "video"
+        event.target.closest(
+          "#add-vehicle-btn"
+        )
       ) {
 
-        showPanel("videos");
-
-        await openVideoModal(null);
-
+        openVehicleModal();
         return;
       }
 
       if (
-        data.quick === "review"
+        event.target.closest(
+          "#add-video-btn"
+        )
       ) {
 
-        showPanel("reviews");
-
-        await openReviewModal(null);
-
+        openVideoModal();
         return;
       }
 
       if (
-        data.quick === "gallery"
+        event.target.closest(
+          "#add-review-btn"
+        )
       ) {
 
-        showPanel("gallery");
+        openReviewModal();
+        return;
+      }
 
-        const input =
-          $a("g-image");
 
-        if (input) {
-          input.focus();
+      /*
+       * Close modal buttons
+       */
+
+      if (
+        event.target.closest(
+          "[data-close-modal]"
+        )
+      ) {
+
+        const button =
+          event.target.closest(
+            "[data-close-modal]"
+          );
+
+        const modalId =
+          button.dataset.closeModal;
+
+        const modal =
+          $a(modalId);
+
+        if (modal) {
+          modal.style.display =
+            "none";
         }
 
         return;
       }
 
 
-      /* TRIPS */
+      /*
+       * Trip edit
+       */
 
-      if (data.editTrip) {
+      const editTrip =
+        event.target.closest(
+          "[data-edit-trip]"
+        );
 
-        await openTripModal(
-          data.editTrip
+      if (editTrip) {
+
+        await guard(
+          async () => {
+
+            const trips =
+              await getTrips();
+
+            const trip =
+              trips.find(
+                row =>
+                  String(row.id) ===
+                  String(
+                    editTrip.dataset.editTrip
+                  )
+              );
+
+            if (!trip) {
+              throw new Error(
+                "Trip not found."
+              );
+            }
+
+            openTripModal(
+              trip
+            );
+          }
         );
 
         return;
       }
 
-      if (data.deleteTrip) {
+
+      /*
+       * Trip delete
+       */
+
+      const deleteTrip =
+        event.target.closest(
+          "[data-delete-trip]"
+        );
+
+      if (deleteTrip) {
 
         if (
           !confirm(
@@ -3671,8 +3211,8 @@ function initAdmin() {
         await guard(
           async () => {
 
-            await deleteTrip(
-              data.deleteTrip
+            await deleteTripById(
+              deleteTrip.dataset.deleteTrip
             );
 
             adminToast(
@@ -3681,7 +3221,6 @@ function initAdmin() {
             );
 
             await PANEL_LOADERS.trips();
-
             await PANEL_LOADERS.dashboard();
           }
         );
@@ -3690,18 +3229,16 @@ function initAdmin() {
       }
 
 
-      /* VEHICLES */
+      /*
+       * Vehicle edit
+       */
 
-      if (data.editVehicle) {
-
-        await openVehicleModal(
-          data.editVehicle
+      const editVehicle =
+        event.target.closest(
+          "[data-edit-vehicle]"
         );
 
-        return;
-      }
-
-      if (data.toggleVehicle) {
+      if (editVehicle) {
 
         await guard(
           async () => {
@@ -3711,10 +3248,10 @@ function initAdmin() {
 
             const vehicle =
               vehicles.find(
-                item =>
-                  Number(item.id) ===
-                  Number(
-                    data.toggleVehicle
+                row =>
+                  String(row.id) ===
+                  String(
+                    editVehicle.dataset.editVehicle
                   )
               );
 
@@ -3724,29 +3261,26 @@ function initAdmin() {
               );
             }
 
-            await updateVehicle(
-              vehicle.id,
-              {
-                available:
-                  vehicle.available === false
-              }
+            openVehicleModal(
+              vehicle
             );
-
-            adminToast(
-              "Vehicle availability updated.",
-              "success"
-            );
-
-            await PANEL_LOADERS.vehicles();
-
-            await PANEL_LOADERS.dashboard();
           }
         );
 
         return;
       }
 
-      if (data.deleteVehicle) {
+
+      /*
+       * Vehicle delete
+       */
+
+      const deleteVehicle =
+        event.target.closest(
+          "[data-delete-vehicle]"
+        );
+
+      if (deleteVehicle) {
 
         if (
           !confirm(
@@ -3759,47 +3293,8 @@ function initAdmin() {
         await guard(
           async () => {
 
-            const vehicleId =
-              Number(
-                data.deleteVehicle
-              );
-
-            const trips =
-              await getTrips();
-
-            for (
-              const trip of trips
-            ) {
-
-              const ids =
-                Array.isArray(
-                  trip.vehicleIds
-                )
-                  ? trip.vehicleIds
-                  : [];
-
-              if (
-                ids
-                  .map(Number)
-                  .includes(vehicleId)
-              ) {
-
-                await updateTrip(
-                  trip.id,
-                  {
-                    vehicleIds:
-                      ids.filter(
-                        id =>
-                          Number(id) !==
-                          vehicleId
-                      )
-                  }
-                );
-              }
-            }
-
-            await deleteVehicle(
-              vehicleId
+            await deleteVehicleById(
+              deleteVehicle.dataset.deleteVehicle
             );
 
             adminToast(
@@ -3808,9 +3303,6 @@ function initAdmin() {
             );
 
             await PANEL_LOADERS.vehicles();
-
-            await PANEL_LOADERS.trips();
-
             await PANEL_LOADERS.dashboard();
           }
         );
@@ -3819,9 +3311,16 @@ function initAdmin() {
       }
 
 
-      /* GALLERY */
+      /*
+       * Gallery approval
+       */
 
-      if (data.toggleGallery) {
+      const toggleGallery =
+        event.target.closest(
+          "[data-toggle-gallery]"
+        );
+
+      if (toggleGallery) {
 
         await guard(
           async () => {
@@ -3834,7 +3333,7 @@ function initAdmin() {
                 row =>
                   Number(row.id) ===
                   Number(
-                    data.toggleGallery
+                    toggleGallery.dataset.toggleGallery
                   )
               );
 
@@ -3844,11 +3343,11 @@ function initAdmin() {
               );
             }
 
-            await updateGalleryItem(
+            await updateGallery(
               item.id,
               {
                 approved:
-                  item.approved === false
+                  !item.approved
               }
             );
 
@@ -3858,7 +3357,6 @@ function initAdmin() {
             );
 
             await PANEL_LOADERS.gallery();
-
             await PANEL_LOADERS.dashboard();
           }
         );
@@ -3866,11 +3364,21 @@ function initAdmin() {
         return;
       }
 
-      if (data.deletePhoto) {
+
+      /*
+       * Gallery delete
+       */
+
+      const deleteGallery =
+        event.target.closest(
+          "[data-delete-gallery]"
+        );
+
+      if (deleteGallery) {
 
         if (
           !confirm(
-            "Delete this gallery image?"
+            "Delete this gallery item?"
           )
         ) {
           return;
@@ -3879,17 +3387,16 @@ function initAdmin() {
         await guard(
           async () => {
 
-            await deleteGalleryItem(
-              data.deletePhoto
+            await deleteGalleryById(
+              deleteGallery.dataset.deleteGallery
             );
 
             adminToast(
-              "Gallery image deleted.",
+              "Gallery item deleted successfully.",
               "success"
             );
 
             await PANEL_LOADERS.gallery();
-
             await PANEL_LOADERS.dashboard();
           }
         );
@@ -3898,18 +3405,58 @@ function initAdmin() {
       }
 
 
-      /* VIDEOS */
+      /*
+       * Video edit
+       */
 
-      if (data.editVideo) {
+      const editVideo =
+        event.target.closest(
+          "[data-edit-video]"
+        );
 
-        await openVideoModal(
-          data.editVideo
+      if (editVideo) {
+
+        await guard(
+          async () => {
+
+            const videos =
+              await getVideos();
+
+            const video =
+              videos.find(
+                row =>
+                  String(row.id) ===
+                  String(
+                    editVideo.dataset.editVideo
+                  )
+              );
+
+            if (!video) {
+              throw new Error(
+                "Video not found."
+              );
+            }
+
+            openVideoModal(
+              video
+            );
+          }
         );
 
         return;
       }
 
-      if (data.deleteVideo) {
+
+      /*
+       * Video delete
+       */
+
+      const deleteVideo =
+        event.target.closest(
+          "[data-delete-video]"
+        );
+
+      if (deleteVideo) {
 
         if (
           !confirm(
@@ -3922,8 +3469,8 @@ function initAdmin() {
         await guard(
           async () => {
 
-            await deleteVideo(
-              data.deleteVideo
+            await deleteVideoById(
+              deleteVideo.dataset.deleteVideo
             );
 
             adminToast(
@@ -3932,7 +3479,6 @@ function initAdmin() {
             );
 
             await PANEL_LOADERS.videos();
-
             await PANEL_LOADERS.dashboard();
           }
         );
@@ -3941,18 +3487,16 @@ function initAdmin() {
       }
 
 
-      /* REVIEWS */
+      /*
+       * Review edit
+       */
 
-      if (data.editReview) {
-
-        await openReviewModal(
-          data.editReview
+      const editReview =
+        event.target.closest(
+          "[data-edit-review]"
         );
 
-        return;
-      }
-
-      if (data.toggleReview) {
+      if (editReview) {
 
         await guard(
           async () => {
@@ -3965,7 +3509,49 @@ function initAdmin() {
                 row =>
                   Number(row.id) ===
                   Number(
-                    data.toggleReview
+                    editReview.dataset.editReview
+                  )
+              );
+
+            if (!review) {
+              throw new Error(
+                "Review not found."
+              );
+            }
+
+            openReviewModal(
+              review
+            );
+          }
+        );
+
+        return;
+      }
+
+
+      /*
+       * Review approve / hide
+       */
+
+      const toggleReview =
+        event.target.closest(
+          "[data-toggle-review]"
+        );
+
+      if (toggleReview) {
+
+        await guard(
+          async () => {
+
+            const reviews =
+              await getReviews();
+
+            const review =
+              reviews.find(
+                row =>
+                  Number(row.id) ===
+                  Number(
+                    toggleReview.dataset.toggleReview
                   )
               );
 
@@ -3989,7 +3575,6 @@ function initAdmin() {
             );
 
             await PANEL_LOADERS.reviews();
-
             await PANEL_LOADERS.dashboard();
           }
         );
@@ -3997,7 +3582,17 @@ function initAdmin() {
         return;
       }
 
-      if (data.deleteReview) {
+
+      /*
+       * Review delete
+       */
+
+      const deleteReview =
+        event.target.closest(
+          "[data-delete-review]"
+        );
+
+      if (deleteReview) {
 
         if (
           !confirm(
@@ -4010,8 +3605,8 @@ function initAdmin() {
         await guard(
           async () => {
 
-            await deleteReview(
-              data.deleteReview
+            await deleteReviewById(
+              deleteReview.dataset.deleteReview
             );
 
             adminToast(
@@ -4020,7 +3615,6 @@ function initAdmin() {
             );
 
             await PANEL_LOADERS.reviews();
-
             await PANEL_LOADERS.dashboard();
           }
         );
@@ -4029,311 +3623,105 @@ function initAdmin() {
       }
 
 
-      /* ENQUIRIES */
+      /*
+       * Logout
+       */
 
-      if (data.deleteEnquiry) {
-
-        if (
-          !confirm(
-            "Delete this enquiry?"
-          )
-        ) {
-          return;
-        }
+      if (
+        event.target.closest(
+          "#logout-btn"
+        ) ||
+        event.target.closest(
+          "[data-logout]"
+        )
+      ) {
 
         await guard(
           async () => {
 
-            await deleteEnquiry(
-              data.deleteEnquiry
-            );
-
-            adminToast(
-              "Enquiry deleted successfully.",
-              "success"
-            );
-
-            await PANEL_LOADERS.enquiries();
-
-            await PANEL_LOADERS.dashboard();
+            await adminLogout();
           }
         );
 
         return;
       }
 
+
+      /*
+       * Modal click outside
+       */
+
+      if (
+        event.target.classList.contains(
+          "admin-modal"
+        )
+      ) {
+
+        event.target.style.display =
+          "none";
+      }
     }
   );
 
 
-  /* =======================================================
-     CHANGE EVENTS
-     ======================================================= */
-
-  document.addEventListener(
-    "change",
-    event => {
-
-      const target =
-        event.target;
-
-
-      /* ENQUIRY STATUS */
-
-      if (
-        target?.dataset?.enquiryStatus
-      ) {
-
-        guard(
-          async () => {
-
-            await updateEnquiry(
-              target.dataset
-                .enquiryStatus,
-              {
-                status:
-                  target.value
-              }
-            );
-
-            adminToast(
-              "Enquiry status updated.",
-              "success"
-            );
-
-            await PANEL_LOADERS.enquiries();
-
-            await PANEL_LOADERS.dashboard();
-          }
-        );
-      }
-
-
-      /* TRIP IMAGE */
-
-      if (
-        target?.id ===
-        "trip-image-input"
-      ) {
-
-        guard(
-          async () => {
-
-            const file =
-              target.files?.[0];
-
-            if (!file) {
-              return;
-            }
-
-            tripImageDraft =
-              await readImage(
-                file
-              );
-
-            const preview =
-              $a(
-                "trip-image-preview"
-              );
-
-            if (preview) {
-              preview.src =
-                tripImageDraft;
-            }
-          }
-        );
-      }
-
-
-      /* VEHICLE IMAGE */
-
-      if (
-        target?.id ===
-        "vehicle-image-input"
-      ) {
-
-        guard(
-          async () => {
-
-            const file =
-              target.files?.[0];
-
-            if (!file) {
-              return;
-            }
-
-            vehicleImageDraft =
-              await readImage(
-                file
-              );
-
-            const preview =
-              $a(
-                "vehicle-image-preview"
-              );
-
-            if (preview) {
-              preview.src =
-                vehicleImageDraft;
-            }
-          }
-        );
-      }
-
-
-      /* ENQUIRY FILTER */
-
-      if (
-        target?.id ===
-        "enquiry-filter"
-      ) {
-
-        guard(
-          PANEL_LOADERS
-            .enquiries
-        );
-      }
-
-    }
-  );
-
-
-  /* =======================================================
-     SEARCH
-     ======================================================= */
-
-  const tripSearch =
-    $a("trip-search");
-
-  if (tripSearch) {
-
-    tripSearch.addEventListener(
-      "input",
-      () => {
-
-        guard(
-          PANEL_LOADERS
-            .trips
-        );
-      }
-    );
-  }
-
-
-  /* =======================================================
-     ADD BUTTONS
-     ======================================================= */
-
-  const addTrip =
-    $a("add-trip-btn");
-
-  if (addTrip) {
-
-    addTrip.addEventListener(
-      "click",
-      () =>
-        openTripModal(null)
-    );
-  }
-
-
-  const addVehicle =
-    $a("add-vehicle-btn");
-
-  if (addVehicle) {
-
-    addVehicle.addEventListener(
-      "click",
-      () =>
-        openVehicleModal(null)
-    );
-  }
-
-
-  const addVideo =
-    $a("add-video-btn");
-
-  if (addVideo) {
-
-    addVideo.addEventListener(
-      "click",
-      () =>
-        openVideoModal(null)
-    );
-  }
-
-
-  const addReview =
-    $a("add-review-btn");
-
-  if (addReview) {
-
-    addReview.addEventListener(
-      "click",
-      () =>
-        openReviewModal(null)
-    );
-  }
-
-
-  /* =======================================================
-     FORMS
-     ======================================================= */
+  /*
+   * Forms
+   */
 
   const tripForm =
     $a("trip-form");
 
   if (tripForm) {
-
     tripForm.addEventListener(
       "submit",
       saveTripForm
     );
   }
 
-
   const vehicleForm =
     $a("vehicle-form");
 
   if (vehicleForm) {
-
     vehicleForm.addEventListener(
       "submit",
       saveVehicleForm
     );
   }
 
+  const galleryForm =
+    $a("gallery-add-form");
+
+  if (galleryForm) {
+    galleryForm.addEventListener(
+      "submit",
+      saveGalleryForm
+    );
+  }
 
   const videoForm =
     $a("video-form");
 
   if (videoForm) {
-
     videoForm.addEventListener(
       "submit",
       saveVideoForm
     );
   }
 
-
   const reviewForm =
-    $a("review-form-admin") ||
-    $a("review-form");
+    $a("review-form-admin");
 
   if (reviewForm) {
-
     reviewForm.addEventListener(
       "submit",
       saveReviewForm
     );
   }
 
-
   const settingsForm =
     $a("settings-form");
 
   if (settingsForm) {
-
     settingsForm.addEventListener(
       "submit",
       saveSettingsForm
@@ -4341,26 +3729,13 @@ function initAdmin() {
   }
 
 
-  const galleryForm =
-    $a("gallery-add-form");
-
-  if (galleryForm) {
-
-    galleryForm.addEventListener(
-      "submit",
-      saveGalleryForm
-    );
-  }
-
-
-  /* =======================================================
-     CHANGE PASSWORD FORM
-     ======================================================= */
+  /*
+   * NEW:
+   * Password change form
+   */
 
   const changePasswordForm =
-    $a(
-      "change-password-form"
-    );
+    $a("change-password-form");
 
   if (changePasswordForm) {
 
@@ -4371,64 +3746,168 @@ function initAdmin() {
   }
 
 
-  /* =======================================================
-     ESCAPE
-     ======================================================= */
+  /*
+   * Add buttons
+   */
+
+  const addTrip =
+    $a("add-trip-btn");
+
+  if (addTrip) {
+    addTrip.addEventListener(
+      "click",
+      () => openTripModal()
+    );
+  }
+
+  const addVehicle =
+    $a("add-vehicle-btn");
+
+  if (addVehicle) {
+    addVehicle.addEventListener(
+      "click",
+      () => openVehicleModal()
+    );
+  }
+
+  const addVideo =
+    $a("add-video-btn");
+
+  if (addVideo) {
+    addVideo.addEventListener(
+      "click",
+      () => openVideoModal()
+    );
+  }
+
+  const addReview =
+    $a("add-review-btn");
+
+  if (addReview) {
+    addReview.addEventListener(
+      "click",
+      () => openReviewModal()
+    );
+  }
+
+
+  /*
+   * Enquiry filter
+   */
+
+  const enquiryFilter =
+    $a("enquiry-filter");
+
+  if (enquiryFilter) {
+
+    enquiryFilter.addEventListener(
+      "change",
+      () =>
+        PANEL_LOADERS.enquiries()
+    );
+  }
+
+
+  /*
+   * Trip search
+   */
+
+  const tripSearch =
+    $a("trip-search");
+
+  if (tripSearch) {
+
+    tripSearch.addEventListener(
+      "input",
+      () => {
+
+        const query =
+          tripSearch.value
+            .trim()
+            .toLowerCase();
+
+        document
+          .querySelectorAll(
+            "#trips-list [data-trip-search]"
+          )
+          .forEach(card => {
+
+            const text =
+              card.dataset.tripSearch ||
+              "";
+
+            card.style.display =
+              !query ||
+              text.includes(query)
+                ? ""
+                : "none";
+          });
+      }
+    );
+  }
+
+
+  /*
+   * Escape key
+   */
 
   document.addEventListener(
     "keydown",
     event => {
 
       if (
-        event.key === "Escape"
+        event.key !== "Escape"
       ) {
-
-        document
-          .querySelectorAll(
-            ".a-modal-overlay.open"
-          )
-          .forEach(
-            modal =>
-              modal.classList.remove(
-                "open"
-              )
-          );
+        return;
       }
+
+      document
+        .querySelectorAll(
+          ".admin-modal"
+        )
+        .forEach(modal => {
+
+          modal.style.display =
+            "none";
+        });
     }
   );
 
 
-  /* =======================================================
-     CLICK OUTSIDE MODAL
-     ======================================================= */
+  /*
+   * First panel
+   */
 
-  document.addEventListener(
-    "click",
-    event => {
-
-      const overlay =
-        event.target.closest(
-          ".a-modal-overlay"
-        );
-
-      if (
-        overlay &&
-        event.target === overlay
-      ) {
-
-        overlay.classList.remove(
-          "open"
-        );
-      }
-    }
-  );
-
-
-  /* =======================================================
-     FIRST LOAD
-     ======================================================= */
-
-  showPanel(
+  await showPanel(
     "dashboard"
   );
 }
+
+
+/* =========================================================
+   EXPORT / GLOBAL ACCESS
+   ========================================================= */
+
+window.ADMIN_USER_ID =
+  ADMIN_USER_ID;
+
+window.adminLogin =
+  adminLogin;
+
+window.adminLogout =
+  adminLogout;
+
+window.isAdminLoggedIn =
+  isAdminLoggedIn;
+
+window.requireAdminAuth =
+  requireAdminAuth;
+
+window.initAdmin =
+  initAdmin;
+
+window.showPanel =
+  showPanel;
+
+window.changeAdminPassword =
+  changeAdminPassword;
