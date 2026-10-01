@@ -14,7 +14,7 @@
    LocalStorage is NOT used for application data.
 
    UI ↔ Supabase field mappings are handled here so the
-   existing Admin Panel can continue using its current names.
+   existing Admin Panel and Public App remain compatible.
    ========================================================= */
 
 const PLACEHOLDER_FALLBACK =
@@ -67,22 +67,6 @@ async function dataLayerIsAdmin() {
 
 /* =========================================================
    TRIPS
-   Supabase table: trips
-
-   DB fields:
-   id
-   created_at
-   name
-   destination
-   description
-   price
-   duration
-   image_url
-   vehicle
-
-   Admin/customer UI compatibility:
-   image      ↔ image_url
-   vehicleIds ↔ vehicle
    ========================================================= */
 
 function tripVehicleIdsFromText(vehicleText, allVehicles) {
@@ -105,7 +89,6 @@ function tripVehicleIdsFromText(vehicleText, allVehicles) {
     )
     .map(vehicle => vehicle.id);
 }
-
 
 function vehicleTextFromIds(vehicleIds, allVehicles) {
   if (
@@ -132,7 +115,6 @@ function vehicleTextFromIds(vehicleIds, allVehicles) {
     : null;
 }
 
-
 function attachVehicleIds(trip, allVehicles) {
   if (!trip) {
     return null;
@@ -141,12 +123,8 @@ function attachVehicleIds(trip, allVehicles) {
   return {
     ...trip,
 
-    /* UI-compatible image field */
-    image:
-      trip.image_url ||
-      "",
+    image: trip.image_url || "",
 
-    /* UI-compatible vehicle selection */
     vehicleIds:
       tripVehicleIdsFromText(
         trip.vehicle,
@@ -154,7 +132,6 @@ function attachVehicleIds(trip, allVehicles) {
       )
   };
 }
-
 
 async function getTrips() {
   const client = ensureSupabase();
@@ -189,7 +166,6 @@ async function getTrips() {
   );
 }
 
-
 async function getTripById(id) {
   const client = ensureSupabase();
 
@@ -221,28 +197,16 @@ async function getTripById(id) {
     : null;
 }
 
-
 async function saveTrip(trip) {
   const client = ensureSupabase();
-
-  const vehicles =
-    await getVehicles();
+  const vehicles = await getVehicles();
 
   const row = {
-    name:
-      trip.name || null,
-
-    destination:
-      trip.destination || null,
-
-    description:
-      trip.description || null,
-
-    price:
-      trip.price || null,
-
-    duration:
-      trip.duration || null,
+    name: trip.name || null,
+    destination: trip.destination || null,
+    description: trip.description || null,
+    price: trip.price || null,
+    duration: trip.duration || null,
 
     image_url:
       trip.image ||
@@ -278,67 +242,34 @@ async function saveTrip(trip) {
   );
 }
 
-
 async function updateTrip(id, updates) {
   const client = ensureSupabase();
-
-  const vehicles =
-    await getVehicles();
+  const vehicles = await getVehicles();
 
   const row = {};
 
-  if (
-    updates.name !== undefined
-  ) {
-    row.name =
-      updates.name || null;
-  }
+  if (updates.name !== undefined)
+    row.name = updates.name || null;
 
-  if (
-    updates.destination !== undefined
-  ) {
-    row.destination =
-      updates.destination || null;
-  }
+  if (updates.destination !== undefined)
+    row.destination = updates.destination || null;
 
-  if (
-    updates.description !== undefined
-  ) {
-    row.description =
-      updates.description || null;
-  }
+  if (updates.description !== undefined)
+    row.description = updates.description || null;
 
-  if (
-    updates.price !== undefined
-  ) {
-    row.price =
-      updates.price || null;
-  }
+  if (updates.price !== undefined)
+    row.price = updates.price || null;
 
-  if (
-    updates.duration !== undefined
-  ) {
-    row.duration =
-      updates.duration || null;
-  }
+  if (updates.duration !== undefined)
+    row.duration = updates.duration || null;
 
-  if (
-    updates.image !== undefined
-  ) {
-    row.image_url =
-      updates.image || null;
-  }
+  if (updates.image !== undefined)
+    row.image_url = updates.image || null;
 
-  if (
-    updates.image_url !== undefined
-  ) {
-    row.image_url =
-      updates.image_url || null;
-  }
+  if (updates.image_url !== undefined)
+    row.image_url = updates.image_url || null;
 
-  if (
-    updates.vehicleIds !== undefined
-  ) {
+  if (updates.vehicleIds !== undefined) {
     row.vehicle =
       vehicleTextFromIds(
         updates.vehicleIds,
@@ -346,9 +277,7 @@ async function updateTrip(id, updates) {
       );
   }
 
-  if (
-    Object.keys(row).length === 0
-  ) {
+  if (Object.keys(row).length === 0) {
     return getTripById(id);
   }
 
@@ -377,13 +306,10 @@ async function updateTrip(id, updates) {
     : null;
 }
 
-
 async function deleteTrip(id) {
   const client = ensureSupabase();
 
-  const {
-    error
-  } = await client
+  const { error } = await client
     .from("trips")
     .delete()
     .eq("id", Number(id));
@@ -401,10 +327,6 @@ async function deleteTrip(id) {
 
 /* =========================================================
    VEHICLES
-   Supabase table: vehicles
-
-   IMPORTANT:
-   There is NO description field.
    ========================================================= */
 
 function parseCapacity(value) {
@@ -423,7 +345,6 @@ function parseCapacity(value) {
     ? parseInt(match[0], 10)
     : null;
 }
-
 
 async function getVehicles() {
   const client = ensureSupabase();
@@ -445,27 +366,21 @@ async function getVehicles() {
     );
   }
 
-  return (data || []).map(
-    vehicle => ({
-      ...vehicle,
+  return (data || []).map(vehicle => ({
+    ...vehicle,
 
-      image_url:
-        vehicle.image_url ||
-        PLACEHOLDER_FALLBACK
-    })
-  );
+    image_url:
+      vehicle.image_url ||
+      PLACEHOLDER_FALLBACK
+  }));
 }
-
 
 async function saveVehicle(vehicle) {
   const client = ensureSupabase();
 
   const row = {
-    name:
-      vehicle.name || null,
-
-    type:
-      vehicle.type || null,
+    name: vehicle.name || null,
+    type: vehicle.type || null,
 
     capacity:
       parseCapacity(
@@ -501,64 +416,30 @@ async function saveVehicle(vehicle) {
   return data;
 }
 
-
-async function updateVehicle(
-  id,
-  updates
-) {
+async function updateVehicle(id, updates) {
   const client = ensureSupabase();
 
   const row = {};
 
-  if (
-    updates.name !== undefined
-  ) {
-    row.name =
-      updates.name || null;
-  }
+  if (updates.name !== undefined)
+    row.name = updates.name || null;
 
-  if (
-    updates.type !== undefined
-  ) {
-    row.type =
-      updates.type || null;
-  }
+  if (updates.type !== undefined)
+    row.type = updates.type || null;
 
-  if (
-    updates.capacity !== undefined
-  ) {
-    row.capacity =
-      parseCapacity(
-        updates.capacity
-      );
-  }
+  if (updates.capacity !== undefined)
+    row.capacity = parseCapacity(updates.capacity);
 
-  if (
-    updates.registration !== undefined
-  ) {
-    row.registration =
-      updates.registration ||
-      null;
-  }
+  if (updates.registration !== undefined)
+    row.registration = updates.registration || null;
 
-  if (
-    updates.image_url !== undefined
-  ) {
-    row.image_url =
-      updates.image_url ||
-      null;
-  }
+  if (updates.image_url !== undefined)
+    row.image_url = updates.image_url || null;
 
-  if (
-    updates.available !== undefined
-  ) {
-    row.available =
-      !!updates.available;
-  }
+  if (updates.available !== undefined)
+    row.available = !!updates.available;
 
-  if (
-    Object.keys(row).length === 0
-  ) {
+  if (Object.keys(row).length === 0) {
     return null;
   }
 
@@ -582,13 +463,10 @@ async function updateVehicle(
   return data;
 }
 
-
 async function deleteVehicle(id) {
   const client = ensureSupabase();
 
-  const {
-    error
-  } = await client
+  const { error } = await client
     .from("vehicles")
     .delete()
     .eq("id", Number(id));
@@ -606,20 +484,6 @@ async function deleteVehicle(id) {
 
 /* =========================================================
    GALLERY
-   Supabase table: gallery
-
-   DB:
-   title
-   media_url
-   media_type
-   description
-   approved
-
-   UI:
-   caption
-   image_url
-   description
-   approved
    ========================================================= */
 
 function normalizeGalleryItem(item) {
@@ -631,15 +495,12 @@ function normalizeGalleryItem(item) {
     ...item,
 
     image_url:
-      item.media_url ||
-      "",
+      item.media_url || "",
 
     caption:
-      item.title ||
-      ""
+      item.title || ""
   };
 }
-
 
 async function getGallery() {
   const client = ensureSupabase();
@@ -651,15 +512,10 @@ async function getGallery() {
       ascending: false
     });
 
-  const admin =
-    await dataLayerIsAdmin();
+  const admin = await dataLayerIsAdmin();
 
   if (!admin) {
-    query =
-      query.eq(
-        "approved",
-        true
-      );
+    query = query.eq("approved", true);
   }
 
   const {
@@ -678,7 +534,6 @@ async function getGallery() {
     normalizeGalleryItem
   );
 }
-
 
 async function saveGalleryItem(item) {
   const client = ensureSupabase();
@@ -722,74 +577,36 @@ async function saveGalleryItem(item) {
     );
   }
 
-  return normalizeGalleryItem(
-    data
-  );
+  return normalizeGalleryItem(data);
 }
 
-
-async function updateGalleryItem(
-  id,
-  updates
-) {
+async function updateGalleryItem(id, updates) {
   const client = ensureSupabase();
 
   const row = {};
 
-  if (
-    updates.caption !== undefined
-  ) {
-    row.title =
-      updates.caption || null;
-  }
+  if (updates.caption !== undefined)
+    row.title = updates.caption || null;
 
-  if (
-    updates.title !== undefined
-  ) {
-    row.title =
-      updates.title || null;
-  }
+  if (updates.title !== undefined)
+    row.title = updates.title || null;
 
-  if (
-    updates.image_url !== undefined
-  ) {
-    row.media_url =
-      updates.image_url || null;
-  }
+  if (updates.image_url !== undefined)
+    row.media_url = updates.image_url || null;
 
-  if (
-    updates.media_url !== undefined
-  ) {
-    row.media_url =
-      updates.media_url || null;
-  }
+  if (updates.media_url !== undefined)
+    row.media_url = updates.media_url || null;
 
-  if (
-    updates.media_type !== undefined
-  ) {
-    row.media_type =
-      updates.media_type ||
-      "image";
-  }
+  if (updates.media_type !== undefined)
+    row.media_type = updates.media_type || "image";
 
-  if (
-    updates.description !== undefined
-  ) {
-    row.description =
-      updates.description ||
-      null;
-  }
+  if (updates.description !== undefined)
+    row.description = updates.description || null;
 
-  if (
-    updates.approved !== undefined
-  ) {
-    row.approved =
-      !!updates.approved;
-  }
+  if (updates.approved !== undefined)
+    row.approved = !!updates.approved;
 
-  if (
-    Object.keys(row).length === 0
-  ) {
+  if (Object.keys(row).length === 0) {
     return null;
   }
 
@@ -810,38 +627,21 @@ async function updateGalleryItem(
     );
   }
 
-  return normalizeGalleryItem(
-    data
-  );
+  return normalizeGalleryItem(data);
 }
-
 
 async function deleteGalleryItem(id) {
   const client = ensureSupabase();
 
-  const numericId =
-    Number(id);
+  const numericId = Number(id);
 
-  if (
-    !Number.isFinite(
-      numericId
-    )
-  ) {
+  if (!Number.isFinite(numericId)) {
     throw new Error(
       "Invalid gallery image ID."
     );
   }
 
-  /*
-    Do not request a returned row here.
-
-    We already verified that DELETE works directly
-    in Supabase. A simple DELETE is more reliable and
-    does not depend on representation-return settings.
-  */
-  const {
-    error
-  } = await client
+  const { error } = await client
     .from("gallery")
     .delete()
     .eq("id", numericId);
@@ -859,13 +659,6 @@ async function deleteGalleryItem(id) {
 
 /* =========================================================
    REVIEWS
-   Supabase table: reviews
-
-   DB:
-   comment
-
-   UI:
-   review
    ========================================================= */
 
 function normalizeReview(review) {
@@ -877,11 +670,9 @@ function normalizeReview(review) {
     ...review,
 
     review:
-      review.comment ||
-      ""
+      review.comment || ""
   };
 }
-
 
 async function getReviews() {
   const client = ensureSupabase();
@@ -893,15 +684,10 @@ async function getReviews() {
       ascending: false
     });
 
-  const admin =
-    await dataLayerIsAdmin();
+  const admin = await dataLayerIsAdmin();
 
   if (!admin) {
-    query =
-      query.eq(
-        "approved",
-        true
-      );
+    query = query.eq("approved", true);
   }
 
   const {
@@ -920,7 +706,6 @@ async function getReviews() {
     normalizeReview
   );
 }
-
 
 async function saveReview(review) {
   const client = ensureSupabase();
@@ -957,60 +742,30 @@ async function saveReview(review) {
     );
   }
 
-  return normalizeReview(
-    data
-  );
+  return normalizeReview(data);
 }
 
-
-async function updateReview(
-  id,
-  updates
-) {
+async function updateReview(id, updates) {
   const client = ensureSupabase();
 
   const row = {};
 
-  if (
-    updates.name !== undefined
-  ) {
-    row.name =
-      updates.name || null;
-  }
+  if (updates.name !== undefined)
+    row.name = updates.name || null;
 
-  if (
-    updates.rating !== undefined
-  ) {
-    row.rating =
-      updates.rating;
-  }
+  if (updates.rating !== undefined)
+    row.rating = updates.rating;
 
-  if (
-    updates.review !== undefined
-  ) {
-    row.comment =
-      updates.review ||
-      null;
-  }
+  if (updates.review !== undefined)
+    row.comment = updates.review || null;
 
-  if (
-    updates.comment !== undefined
-  ) {
-    row.comment =
-      updates.comment ||
-      null;
-  }
+  if (updates.comment !== undefined)
+    row.comment = updates.comment || null;
 
-  if (
-    updates.approved !== undefined
-  ) {
-    row.approved =
-      !!updates.approved;
-  }
+  if (updates.approved !== undefined)
+    row.approved = !!updates.approved;
 
-  if (
-    Object.keys(row).length === 0
-  ) {
+  if (Object.keys(row).length === 0) {
     return null;
   }
 
@@ -1031,18 +786,13 @@ async function updateReview(
     );
   }
 
-  return normalizeReview(
-    data
-  );
+  return normalizeReview(data);
 }
-
 
 async function deleteReview(id) {
   const client = ensureSupabase();
 
-  const {
-    error
-  } = await client
+  const { error } = await client
     .from("reviews")
     .delete()
     .eq("id", Number(id));
@@ -1060,12 +810,9 @@ async function deleteReview(id) {
 
 /* =========================================================
    ENQUIRIES
-   Supabase table: enquiries
    ========================================================= */
 
-function enquiryMessageWithExtras(
-  enquiry
-) {
+function enquiryMessageWithExtras(enquiry) {
   const extra = [];
 
   if (enquiry.travel_date) {
@@ -1087,7 +834,6 @@ function enquiryMessageWithExtras(
     ? `${base}${base ? "\n\n" : ""}${extra.join("\n")}`
     : base || null;
 }
-
 
 async function getEnquiries() {
   const client = ensureSupabase();
@@ -1112,10 +858,7 @@ async function getEnquiries() {
   return data || [];
 }
 
-
-async function saveEnquiry(
-  enquiry
-) {
+async function saveEnquiry(enquiry) {
   const client = ensureSupabase();
 
   const row = {
@@ -1157,53 +900,27 @@ async function saveEnquiry(
   return data;
 }
 
-
-async function updateEnquiry(
-  id,
-  updates
-) {
+async function updateEnquiry(id, updates) {
   const client = ensureSupabase();
 
   const row = {};
 
-  if (
-    updates.status !== undefined
-  ) {
-    row.status =
-      updates.status;
-  }
+  if (updates.status !== undefined)
+    row.status = updates.status;
 
-  if (
-    updates.name !== undefined
-  ) {
-    row.name =
-      updates.name;
-  }
+  if (updates.name !== undefined)
+    row.name = updates.name;
 
-  if (
-    updates.phone !== undefined
-  ) {
-    row.phone =
-      updates.phone;
-  }
+  if (updates.phone !== undefined)
+    row.phone = updates.phone;
 
-  if (
-    updates.trip !== undefined
-  ) {
-    row.trip =
-      updates.trip;
-  }
+  if (updates.trip !== undefined)
+    row.trip = updates.trip;
 
-  if (
-    updates.message !== undefined
-  ) {
-    row.message =
-      updates.message;
-  }
+  if (updates.message !== undefined)
+    row.message = updates.message;
 
-  if (
-    Object.keys(row).length === 0
-  ) {
+  if (Object.keys(row).length === 0) {
     return null;
   }
 
@@ -1227,15 +944,10 @@ async function updateEnquiry(
   return data;
 }
 
-
-async function deleteEnquiry(
-  id
-) {
+async function deleteEnquiry(id) {
   const client = ensureSupabase();
 
-  const {
-    error
-  } = await client
+  const { error } = await client
     .from("enquiries")
     .delete()
     .eq("id", Number(id));
@@ -1253,13 +965,6 @@ async function deleteEnquiry(
 
 /* =========================================================
    VIDEOS
-   Supabase table: videos
-
-   DB:
-   youtube_id
-
-   UI:
-   youtubeId
    ========================================================= */
 
 function normalizeVideo(video) {
@@ -1271,11 +976,9 @@ function normalizeVideo(video) {
     ...video,
 
     youtubeId:
-      video.youtube_id ||
-      ""
+      video.youtube_id || ""
   };
 }
-
 
 async function getVideos() {
   const client = ensureSupabase();
@@ -1301,7 +1004,6 @@ async function getVideos() {
     normalizeVideo
   );
 }
-
 
 async function saveVideo(video) {
   const client = ensureSupabase();
@@ -1335,57 +1037,27 @@ async function saveVideo(video) {
     );
   }
 
-  return normalizeVideo(
-    data
-  );
+  return normalizeVideo(data);
 }
 
-
-async function updateVideo(
-  id,
-  updates
-) {
+async function updateVideo(id, updates) {
   const client = ensureSupabase();
 
   const row = {};
 
-  if (
-    updates.title !== undefined
-  ) {
-    row.title =
-      updates.title || null;
-  }
+  if (updates.title !== undefined)
+    row.title = updates.title || null;
 
-  if (
-    updates.description !==
-    undefined
-  ) {
-    row.description =
-      updates.description ||
-      null;
-  }
+  if (updates.description !== undefined)
+    row.description = updates.description || null;
 
-  if (
-    updates.youtubeId !==
-    undefined
-  ) {
-    row.youtube_id =
-      updates.youtubeId ||
-      null;
-  }
+  if (updates.youtubeId !== undefined)
+    row.youtube_id = updates.youtubeId || null;
 
-  if (
-    updates.youtube_id !==
-    undefined
-  ) {
-    row.youtube_id =
-      updates.youtube_id ||
-      null;
-  }
+  if (updates.youtube_id !== undefined)
+    row.youtube_id = updates.youtube_id || null;
 
-  if (
-    Object.keys(row).length === 0
-  ) {
+  if (Object.keys(row).length === 0) {
     return null;
   }
 
@@ -1406,18 +1078,13 @@ async function updateVideo(
     );
   }
 
-  return normalizeVideo(
-    data
-  );
+  return normalizeVideo(data);
 }
-
 
 async function deleteVideo(id) {
   const client = ensureSupabase();
 
-  const {
-    error
-  } = await client
+  const { error } = await client
     .from("videos")
     .delete()
     .eq("id", Number(id));
@@ -1435,37 +1102,6 @@ async function deleteVideo(id) {
 
 /* =========================================================
    BUSINESS SETTINGS
-   Supabase table: settings
-
-   DB:
-   business_name
-   phone
-   whatsapp
-   email
-   address
-   description
-   hours
-   map_url
-   facebook
-   instagram
-   youtube
-   about_text
-   footer_text
-
-   UI:
-   name
-   phone
-   whatsapp
-   email
-   address
-   description
-   hours
-   mapUrl
-   facebook
-   instagram
-   youtube
-   aboutText
-   footerText
    ========================================================= */
 
 const BUSINESS_DEFAULTS = {
@@ -1482,6 +1118,27 @@ const BUSINESS_DEFAULTS = {
   youtube: "",
   aboutText: "",
   footerText: ""
+};
+
+
+/*
+   IMPORTANT COMPATIBILITY FIX
+
+   The existing public app calls:
+
+       const b = getBusiness();
+
+   without await.
+
+   Therefore getBusiness() must return a normal object,
+   not a Promise.
+
+   Supabase settings are loaded into this cache in the
+   background.
+*/
+
+let BUSINESS_CACHE = {
+  ...BUSINESS_DEFAULTS
 };
 
 
@@ -1547,9 +1204,80 @@ function normalizeSettings(settings) {
 }
 
 
-function settingsRowFromUI(
-  settings
-) {
+/*
+   Synchronous public function.
+
+   This preserves compatibility with app.js.
+*/
+function getBusiness() {
+  return {
+    ...BUSINESS_CACHE
+  };
+}
+
+
+/*
+   Background Supabase refresh.
+*/
+async function refreshBusinessCache() {
+  try {
+    const client = ensureSupabase();
+
+    const {
+      data,
+      error
+    } = await client
+      .from("settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (error) {
+      console.error(
+        "[data.js] Unable to refresh business settings:",
+        error
+      );
+      return BUSINESS_CACHE;
+    }
+
+    BUSINESS_CACHE =
+      normalizeSettings(data);
+
+    /*
+      Tell the public app that fresh business settings
+      are now available.
+    */
+    try {
+      window.dispatchEvent(
+        new CustomEvent(
+          "hdt:business-updated"
+        )
+      );
+    } catch (eventError) {
+      /* Older browser fallback: ignore */
+    }
+
+    return BUSINESS_CACHE;
+  } catch (error) {
+    console.error(
+      "[data.js] Business settings refresh failed:",
+      error
+    );
+
+    return BUSINESS_CACHE;
+  }
+}
+
+
+/*
+   Async settings function used by Admin Panel.
+*/
+async function getSettings() {
+  return await refreshBusinessCache();
+}
+
+
+function settingsRowFromUI(settings) {
   return {
     id: 1,
 
@@ -1625,9 +1353,7 @@ function settingsRowFromUI(
 }
 
 
-function removeUndefinedFields(
-  object
-) {
+function removeUndefinedFields(object) {
   return Object.fromEntries(
     Object.entries(object)
       .filter(
@@ -1638,43 +1364,14 @@ function removeUndefinedFields(
 }
 
 
-async function getBusiness() {
+async function saveSettings(newSettings) {
   const client = ensureSupabase();
 
-  const {
-    data,
-    error
-  } = await client
-    .from("settings")
-    .select("*")
-    .eq("id", 1)
-    .maybeSingle();
-
-  if (error) {
-    throw dbError(
-      error,
-      "load business settings"
-    );
-  }
-
-  return normalizeSettings(
-    data
-  );
-}
-
-
-async function getSettings() {
-  return getBusiness();
-}
-
-
-async function saveSettings(
-  newSettings
-) {
-  const client = ensureSupabase();
-
-  const existing =
-    await getBusiness();
+  /*
+    Use the current cached settings rather than requiring
+    getBusiness() to be asynchronous.
+  */
+  const existing = getBusiness();
 
   const merged = {
     ...existing,
@@ -1682,19 +1379,11 @@ async function saveSettings(
   };
 
   const rawRow =
-    settingsRowFromUI(
-      merged
-    );
+    settingsRowFromUI(merged);
 
   const row =
-    removeUndefinedFields(
-      rawRow
-    );
+    removeUndefinedFields(rawRow);
 
-  /*
-    Keep settings as exactly one row:
-    id = 1
-  */
   const {
     data,
     error
@@ -1716,28 +1405,24 @@ async function saveSettings(
     );
   }
 
-  return normalizeSettings(
-    data
-  );
+  BUSINESS_CACHE =
+    normalizeSettings(data);
+
+  return BUSINESS_CACHE;
 }
 
 
 /* =========================================================
    DATA LAYER INITIALIZATION
-   =========================================================
-
-   IMPORTANT:
-   No LocalStorage seeding.
-
-   Supabase is now the single source of truth.
    ========================================================= */
 
 function initDataLayer() {
   /*
-    Intentionally empty.
+    Start loading Supabase settings in the background.
 
-    All application data is stored in Supabase.
+    This does NOT block the public UI.
   */
+  refreshBusinessCache();
 }
 
 initDataLayer();
