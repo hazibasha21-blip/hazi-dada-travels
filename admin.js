@@ -1,11 +1,19 @@
 /* =========================================================
    HAZI DADA TRAVELS
-   ADMIN PANEL CONTROLLER
-   Stable / Supabase / Password Change / Dashboard
+   admin.js
+   Complete Admin Panel Controller
+   ========================================================= */
+
+
+/* =========================================================
+   ADMIN CONFIG
    ========================================================= */
 
 const ADMIN_USER_ID =
   "589555e8-5853-4e58-aaac-8038ec833c80";
+
+const ADMIN_MAX_IMAGE_SIZE =
+  5 * 1024 * 1024;
 
 
 /* =========================================================
@@ -16,22 +24,8 @@ function $a(id) {
   return document.getElementById(id);
 }
 
-function getFieldValue(id) {
-  const el = $a(id);
-  return el ? String(el.value || "").trim() : "";
-}
 
-function setFieldValue(id, value) {
-  const el = $a(id);
-  if (el) el.value = value ?? "";
-}
-
-function setChecked(id, value) {
-  const el = $a(id);
-  if (el) el.checked = !!value;
-}
-
-function ea(value) {
+function escapeHTML(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -40,99 +34,124 @@ function ea(value) {
     .replace(/'/g, "&#039;");
 }
 
+
+function getFieldValue(id) {
+  const el = $a(id);
+  return el ? String(el.value ?? "").trim() : "";
+}
+
+
+function setFieldValue(id, value) {
+  const el = $a(id);
+
+  if (el) {
+    el.value =
+      value === null ||
+      value === undefined
+        ? ""
+        : String(value);
+  }
+}
+
+
+function showElement(id) {
+  const el = $a(id);
+
+  if (el) {
+    el.style.display = "";
+  }
+}
+
+
+function hideElement(id) {
+  const el = $a(id);
+
+  if (el) {
+    el.style.display = "none";
+  }
+}
+
+
 function showError(id, message) {
   const el = $a(id);
-  if (!el) return;
 
-  el.textContent = message || "";
-  el.style.display = message ? "block" : "none";
+  if (!el) {
+    return;
+  }
+
+  el.textContent =
+    message || "Something went wrong.";
+
+  el.style.display = "block";
 }
+
 
 function clearError(id) {
-  showError(id, "");
+  const el = $a(id);
+
+  if (!el) {
+    return;
+  }
+
+  el.textContent = "";
+  el.style.display = "none";
 }
 
-function readableError(error) {
-  if (!error) return "Something went wrong.";
 
-  if (typeof error === "string") {
-    return error;
+function setButtonLoading(button, loading, loadingText) {
+  if (!button) {
+    return;
   }
 
-  if (error.message) {
-    return error.message;
-  }
+  if (loading) {
+    button.dataset.originalText =
+      button.textContent;
 
-  if (error.error_description) {
-    return error.error_description;
-  }
+    button.disabled = true;
 
-  return "Something went wrong.";
-}
-
-function adminToast(message, type = "success") {
-  let toast = $a("admin-toast");
-
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "admin-toast";
-
-    Object.assign(toast.style, {
-      position: "fixed",
-      right: "20px",
-      bottom: "20px",
-      zIndex: "999999",
-      padding: "14px 18px",
-      borderRadius: "12px",
-      fontSize: "14px",
-      fontWeight: "600",
-      maxWidth: "90vw",
-      boxShadow: "0 10px 30px rgba(0,0,0,.25)"
-    });
-
-    document.body.appendChild(toast);
-  }
-
-  toast.textContent = message || "";
-
-  if (type === "error") {
-    toast.style.background = "#dc2626";
-    toast.style.color = "#fff";
+    button.textContent =
+      loadingText || "Saving...";
   } else {
-    toast.style.background = "#16a34a";
-    toast.style.color = "#fff";
-  }
+    button.disabled = false;
 
-  clearTimeout(window.__adminToastTimer);
+    if (
+      button.dataset.originalText !== undefined
+    ) {
+      button.textContent =
+        button.dataset.originalText;
 
-  window.__adminToastTimer = setTimeout(() => {
-    if (toast && toast.parentNode) {
-      toast.remove();
+      delete button.dataset.originalText;
     }
-  }, 3500);
-}
-
-async function guard(callback) {
-  try {
-    return await callback();
-  } catch (error) {
-    console.error("[admin.js]", error);
-
-    adminToast(
-      readableError(error),
-      "error"
-    );
-
-    return null;
   }
 }
+
+
+function actionButton(
+  label,
+  action,
+  id,
+  className = "a-btn a-btn-outline a-btn-small"
+) {
+  return `
+    <button
+      type="button"
+      class="${className}"
+      data-action="${escapeHTML(action)}"
+      data-id="${escapeHTML(id)}">
+      ${escapeHTML(label)}
+    </button>
+  `;
+}
+
 
 function formatDate(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   try {
     return new Date(value).toLocaleString(
-      "en-IN",
+      undefined,
       {
         dateStyle: "medium",
         timeStyle: "short"
@@ -143,93 +162,82 @@ function formatDate(value) {
   }
 }
 
-function starsA(rating) {
-  const count = Math.max(
-    0,
-    Math.min(5, Number(rating) || 0)
-  );
 
-  return (
-    "★".repeat(count) +
-    "☆".repeat(5 - count)
-  );
-}
+function normalizeYouTubeId(value) {
+  const raw =
+    String(value || "").trim();
 
-function empty(message) {
-  return `
-    <div class="a-empty">
-      ${ea(message || "No data available.")}
-    </div>
-  `;
-}
+  if (!raw) {
+    return "";
+  }
 
-function actionButton(
-  label,
-  attributes = "",
-  extraClass = ""
-) {
-  return `
-    <button
-      type="button"
-      class="a-btn ${extraClass}"
-      ${attributes}>
-      ${ea(label)}
-    </button>
-  `;
+  /*
+   * Already an 11-character YouTube ID.
+   */
+  if (
+    /^[A-Za-z0-9_-]{11}$/.test(raw)
+  ) {
+    return raw;
+  }
+
+  try {
+    const url =
+      new URL(raw);
+
+    if (
+      url.hostname.includes("youtu.be")
+    ) {
+      return url.pathname
+        .replace(/^\/+/, "")
+        .split("/")[0];
+    }
+
+    if (
+      url.hostname.includes("youtube.com")
+    ) {
+      const v =
+        url.searchParams.get("v");
+
+      if (v) {
+        return v;
+      }
+
+      const parts =
+        url.pathname.split("/");
+
+      const index =
+        parts.indexOf("shorts");
+
+      if (
+        index >= 0 &&
+        parts[index + 1]
+      ) {
+        return parts[index + 1];
+      }
+
+      const embedIndex =
+        parts.indexOf("embed");
+
+      if (
+        embedIndex >= 0 &&
+        parts[embedIndex + 1]
+      ) {
+        return parts[embedIndex + 1];
+      }
+    }
+
+  } catch {
+    /*
+     * Not a URL.
+     */
+  }
+
+  return raw;
 }
 
 
 /* =========================================================
-   IMAGE READER
-   ========================================================= */
-
-function readImageFile(file) {
-  return new Promise((resolve, reject) => {
-
-    if (!file) {
-      resolve("");
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      reject(
-        new Error(
-          "Please select a valid image file."
-        )
-      );
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      reject(
-        new Error(
-          "Image must be smaller than 5 MB."
-        )
-      );
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      resolve(reader.result);
-    };
-
-    reader.onerror = () => {
-      reject(
-        new Error(
-          "Unable to read image."
-        )
-      );
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
-
-
-/* =========================================================
-   AUTHENTICATION
+   SUPABASE CLIENT
    ========================================================= */
 
 function authClient() {
@@ -246,1286 +254,809 @@ function authClient() {
   return supabaseClient;
 }
 
-function authErrorMessage(error) {
-  const message =
-    String(error?.message || "");
 
-  const lower =
-    message.toLowerCase();
-
-  if (
-    lower.includes("invalid login") ||
-    lower.includes("invalid credentials")
-  ) {
-    return "Invalid email or password.";
-  }
-
-  if (
-    lower.includes("email not confirmed")
-  ) {
-    return "Please confirm the admin email address first.";
-  }
-
-  return (
-    message ||
-    "Authentication failed."
-  );
-}
-
-async function adminLogin(
-  email,
-  password
-) {
-  const db = authClient();
-
-  if (!email || !password) {
-    throw new Error(
-      "Email and password are required."
-    );
-  }
-
-  const result =
-    await Promise.race([
-      db.auth.signInWithPassword({
-        email,
-        password
-      }),
-
-      new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(
-            new Error(
-              "Login request timed out. Please try again."
-            )
-          );
-        }, 15000);
-      })
-    ]);
-
-  const {
-    data,
-    error
-  } = result;
-
-  if (error) {
-    throw new Error(
-      authErrorMessage(error)
-    );
-  }
-
-  if (!data?.session) {
-    throw new Error(
-      "Login session could not be created."
-    );
-  }
-
-  if (
-    data.user?.id !== ADMIN_USER_ID
-  ) {
-    await db.auth.signOut();
-
-    throw new Error(
-      "This account is not authorized for the Admin Panel."
-    );
-  }
-
-  return data;
-}
+/* =========================================================
+   AUTH
+   ========================================================= */
 
 async function isAdminLoggedIn() {
   try {
-    const db = authClient();
+    const db =
+      authClient();
 
     const {
       data,
       error
-    } = await db.auth.getSession();
+    } =
+      await db.auth.getSession();
 
     if (
       error ||
-      !data?.session
+      !data ||
+      !data.session ||
+      !data.session.user
     ) {
       return false;
     }
 
     return (
-      data.session.user?.id ===
+      data.session.user.id ===
       ADMIN_USER_ID
     );
 
-  } catch {
+  } catch (error) {
+    console.error(
+      "[admin.js] Session check failed:",
+      error
+    );
+
     return false;
   }
 }
 
-async function adminLogout() {
-  const db = authClient();
 
-  const {
-    error
-  } = await db.auth.signOut();
-
-  if (error) {
-    throw error;
-  }
-
-  window.location.href =
-    "login.html";
-}
-
-async function requireAdminAuth() {
+async function adminLogin(
+  email,
+  password
+) {
   try {
+    const db =
+      authClient();
 
-    const db = authClient();
+    if (!email) {
+      return {
+        ok: false,
+        message: "Please enter your email."
+      };
+    }
+
+    if (!password) {
+      return {
+        ok: false,
+        message: "Please enter your password."
+      };
+    }
 
     const {
       data,
       error
-    } = await db.auth.getSession();
+    } =
+      await db.auth.signInWithPassword({
+        email,
+        password
+      });
+
+    if (error) {
+      return {
+        ok: false,
+        message:
+          error.message ||
+          "Login failed."
+      };
+    }
 
     if (
-      error ||
-      !data?.session ||
-      data.session.user?.id !==
-        ADMIN_USER_ID
+      !data ||
+      !data.user
     ) {
-      window.location.href =
-        "login.html";
-
-      return false;
+      return {
+        ok: false,
+        message:
+          "Login failed. No user session was returned."
+      };
     }
 
     /*
-     * Listen for logout/session changes.
+     * Only the configured admin UUID is allowed.
      */
-    if (!window.__adminAuthListener) {
-
-      const result =
-        db.auth.onAuthStateChange(
-          (event, session) => {
-
-            if (
-              event === "SIGNED_OUT" ||
-              (
-                session &&
-                session.user?.id !==
-                  ADMIN_USER_ID
-              )
-            ) {
-              window.location.href =
-                "login.html";
-            }
-
-          }
+    if (
+      data.user.id !==
+      ADMIN_USER_ID
+    ) {
+      try {
+        await db.auth.signOut();
+      } catch (signOutError) {
+        console.warn(
+          "[admin.js] Unauthorized sign-out failed:",
+          signOutError
         );
+      }
 
-      window.__adminAuthListener =
-        result?.data?.subscription || true;
+      return {
+        ok: false,
+        message:
+          "This account is not authorized for the Admin Panel."
+      };
     }
 
-    return true;
+    return {
+      ok: true,
+      data
+    };
 
   } catch (error) {
-
     console.error(
-      "Admin authentication failed:",
+      "[admin.js] Login error:",
       error
     );
 
-    window.location.href =
-      "login.html";
-
-    return false;
+    return {
+      ok: false,
+      message:
+        error.message ||
+        "Unable to login. Please try again."
+    };
   }
 }
 
 
-/* =========================================================
-   PASSWORD CHANGE
-   ========================================================= */
+async function adminLogout() {
+  try {
+    const db =
+      authClient();
 
-async function changeAdminPassword(
-  currentPassword,
-  newPassword
-) {
-  const db = authClient();
+    await db.auth.signOut();
 
-  const {
-    data: sessionData,
-    error: sessionError
-  } = await db.auth.getSession();
+  } catch (error) {
+    console.warn(
+      "[admin.js] Logout error:",
+      error
+    );
 
-  if (sessionError) {
-    throw sessionError;
-  }
-
-  const session =
-    sessionData?.session;
-
-  const user =
-    session?.user;
-
-  if (!user?.email) {
-    throw new Error(
-      "Admin session is not available."
+  } finally {
+    window.location.replace(
+      "login.html"
     );
   }
+}
 
-  if (
-    user.id !== ADMIN_USER_ID
-  ) {
-    throw new Error(
-      "Unauthorized admin account."
+
+async function requireAdminAuth() {
+  const allowed =
+    await isAdminLoggedIn();
+
+  if (!allowed) {
+    window.location.replace(
+      "login.html"
     );
-  }
 
-  /*
-   * Verify current password.
-   */
-  const {
-    data: loginData,
-    error: loginError
-  } =
-    await db.auth.signInWithPassword({
-      email: user.email,
-      password: currentPassword
-    });
-
-  if (loginError) {
-    throw new Error(
-      "Current password is incorrect."
-    );
-  }
-
-  if (
-    loginData?.user?.id !==
-    ADMIN_USER_ID
-  ) {
-    throw new Error(
-      "Unauthorized admin account."
-    );
-  }
-
-  /*
-   * Change password.
-   */
-  const {
-    error: updateError
-  } =
-    await db.auth.updateUser({
-      password: newPassword
-    });
-
-  if (updateError) {
-    throw updateError;
+    return false;
   }
 
   return true;
 }
 
-async function saveChangePasswordForm(
-  event
-) {
-  event.preventDefault();
 
-  clearError(
-    "change-password-error"
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+function showPanel(panelName) {
+  const panels =
+    document.querySelectorAll(
+      ".admin-panel"
+    );
+
+  panels.forEach(panel => {
+    panel.classList.toggle(
+      "active",
+      panel.id ===
+      `panel-${panelName}`
+    );
+  });
+
+  const navItems =
+    document.querySelectorAll(
+      "[data-panel]"
+    );
+
+  navItems.forEach(item => {
+    item.classList.toggle(
+      "active",
+      item.dataset.panel ===
+      panelName
+    );
+  });
+
+  /*
+   * Load the selected panel.
+   */
+  const loader =
+    PANEL_LOADERS[panelName];
+
+  if (loader) {
+    Promise.resolve(loader())
+      .catch(error => {
+        console.error(
+          `[admin.js] Failed to load ${panelName}:`,
+          error
+        );
+      });
+  }
+}
+
+
+/* =========================================================
+   MODALS
+   ========================================================= */
+
+function openModal(id) {
+  const modal = $a(id);
+
+  if (!modal) {
+    return;
+  }
+
+  modal.classList.add("active");
+
+  /*
+   * Some admin.css implementations use display
+   * rather than an active class.
+   */
+  modal.style.display = "flex";
+
+  document.body.classList.add(
+    "modal-open"
   );
+}
 
-  const success =
-    $a("change-password-success");
 
-  if (success) {
-    success.textContent = "";
-    success.style.display = "none";
-  }
+function closeModal(id) {
+  const modal = $a(id);
 
-  const currentPassword =
-    getFieldValue(
-      "current-admin-password"
-    );
-
-  const newPassword =
-    getFieldValue(
-      "new-admin-password"
-    );
-
-  const confirmPassword =
-    getFieldValue(
-      "confirm-admin-password"
-    );
-
-  if (
-    !currentPassword ||
-    !newPassword ||
-    !confirmPassword
-  ) {
-    showError(
-      "change-password-error",
-      "Please fill in all password fields."
-    );
+  if (!modal) {
     return;
   }
 
-  if (newPassword.length < 8) {
-    showError(
-      "change-password-error",
-      "New password must be at least 8 characters."
+  modal.classList.remove("active");
+  modal.style.display = "";
+
+  const openModals =
+    document.querySelectorAll(
+      ".a-modal-overlay.active"
     );
-    return;
+
+  if (!openModals.length) {
+    document.body.classList.remove(
+      "modal-open"
+    );
   }
+}
 
-  if (
-    newPassword !== confirmPassword
-  ) {
-    showError(
-      "change-password-error",
-      "New password and confirmation do not match."
-    );
-    return;
-  }
 
-  if (
-    currentPassword === newPassword
-  ) {
-    showError(
-      "change-password-error",
-      "New password must be different from the current password."
-    );
-    return;
-  }
+function closeAllModals() {
+  document
+    .querySelectorAll(
+      ".a-modal-overlay"
+    )
+    .forEach(modal => {
+      modal.classList.remove("active");
+      modal.style.display = "";
+    });
 
-  const submitButton =
-    event.submitter ||
-    event.target.querySelector(
-      'button[type="submit"]'
-    );
-
-  const originalText =
-    submitButton?.textContent ||
-    "Change Password";
-
-  try {
-
-    if (submitButton) {
-      submitButton.disabled = true;
-      submitButton.textContent =
-        "Changing...";
-    }
-
-    await changeAdminPassword(
-      currentPassword,
-      newPassword
-    );
-
-    setFieldValue(
-      "current-admin-password",
-      ""
-    );
-
-    setFieldValue(
-      "new-admin-password",
-      ""
-    );
-
-    setFieldValue(
-      "confirm-admin-password",
-      ""
-    );
-
-    if (success) {
-      success.textContent =
-        "Password changed successfully.";
-
-      success.style.display =
-        "block";
-    }
-
-    adminToast(
-      "Admin password changed successfully.",
-      "success"
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Password change error:",
-      error
-    );
-
-    showError(
-      "change-password-error",
-      readableError(error)
-    );
-
-    adminToast(
-      readableError(error),
-      "error"
-    );
-
-  } finally {
-
-    if (submitButton) {
-      submitButton.disabled = false;
-      submitButton.textContent =
-        originalText;
-    }
-  }
+  document.body.classList.remove(
+    "modal-open"
+  );
 }
 
 
 /* =========================================================
-   PANEL LOADERS
+   IMAGE HELPERS
    ========================================================= */
 
-const PANEL_LOADERS = {};
-
-
-/* =========================================================
-   DASHBOARD HELPERS
-   ========================================================= */
-
-function recentDateSort(a, b) {
-  const aTime =
-    new Date(
-      a?.created_at || 0
-    ).getTime();
-
-  const bTime =
-    new Date(
-      b?.created_at || 0
-    ).getTime();
-
-  return bTime - aTime;
-}
-
-function safeArray(value) {
-  return Array.isArray(value)
-    ? value
-    : [];
-}
-
-function renderRecentEnquiries(items) {
-
-  const container =
-    $a("recent-enquiries");
-
-  if (!container) return;
-
-  if (!items.length) {
-    container.innerHTML =
-      empty("No enquiries yet.");
-    return;
-  }
-
-  container.innerHTML =
-    items
-      .slice(0, 5)
-      .map(item => `
-        <div class="a-item-card">
-          <div class="a-item-info">
-
-            <h3>
-              ${ea(
-                item.name ||
-                "Unnamed customer"
-              )}
-            </h3>
-
-            <p>
-              ${ea(
-                item.trip ||
-                "General enquiry"
-              )}
-            </p>
-
-            <small>
-              ${ea(item.phone || "")}
-              ${
-                item.created_at
-                  ? " · " +
-                    ea(
-                      formatDate(
-                        item.created_at
-                      )
-                    )
-                  : ""
-              }
-            </small>
-
-          </div>
-
-          <div class="a-item-actions">
-            ${actionButton(
-              "View",
-              'data-recent-panel="enquiries"'
-            )}
-          </div>
-        </div>
-      `)
-      .join("");
-}
-
-function renderRecentReviews(items) {
-
-  const container =
-    $a("recent-reviews");
-
-  if (!container) return;
-
-  if (!items.length) {
-    container.innerHTML =
-      empty("No reviews yet.");
-    return;
-  }
-
-  container.innerHTML =
-    items
-      .slice(0, 5)
-      .map(review => `
-        <div class="a-item-card">
-
-          <div class="a-item-info">
-
-            <h3>
-              ${ea(
-                review.name ||
-                "Anonymous"
-              )}
-
-              <span
-                style="color:#ffb020;">
-                ${starsA(
-                  review.rating
-                )}
-              </span>
-            </h3>
-
-            <p>
-              ${ea(
-                review.review ||
-                review.comment ||
-                ""
-              )}
-            </p>
-
-            <span class="a-badge">
-              ${
-                review.approved
-                  ? "Visible"
-                  : "Pending"
-              }
-            </span>
-
-          </div>
-
-          <div class="a-item-actions">
-            ${actionButton(
-              "View",
-              'data-recent-panel="reviews"'
-            )}
-          </div>
-
-        </div>
-      `)
-      .join("");
-}
-
-function renderRecentTrips(items) {
-
-  const container =
-    $a("recent-trips");
-
-  if (!container) return;
-
-  if (!items.length) {
-    container.innerHTML =
-      empty("No trips yet.");
-    return;
-  }
-
-  container.innerHTML =
-    items
-      .slice(0, 5)
-      .map(trip => `
-        <div class="a-item-card">
-
-          <div class="a-item-info">
-
-            <h3>
-              ${ea(
-                trip.name ||
-                "Unnamed trip"
-              )}
-            </h3>
-
-            <p>
-              ${ea(
-                trip.destination ||
-                ""
-              )}
-            </p>
-
-            <small>
-              ${ea(
-                trip.duration ||
-                ""
-              )}
-
-              ${
-                trip.price
-                  ? " · " +
-                    ea(trip.price)
-                  : ""
-              }
-            </small>
-
-          </div>
-
-          <div class="a-item-actions">
-            ${actionButton(
-              "View",
-              'data-recent-panel="trips"'
-            )}
-          </div>
-
-        </div>
-      `)
-      .join("");
-}
-
-
-/* =========================================================
-   DASHBOARD
-   IMPORTANT:
-   Dashboard itself is shown before data is loaded.
-   One failed query will NOT stop the Admin Panel.
-   ========================================================= */
-
-PANEL_LOADERS.dashboard =
-  async function () {
-
-    const setText =
-      (id, value) => {
-
-        const element =
-          $a(id);
-
-        if (element) {
-          element.textContent =
-            value;
-        }
-      };
-
-    /*
-     * Always render containers first.
-     */
-    renderRecentTrips([]);
-    renderRecentReviews([]);
-    renderRecentEnquiries([]);
-
-    try {
-
-      const results =
-        await Promise.allSettled([
-
-          typeof getTrips === "function"
-            ? getTrips()
-            : Promise.resolve([]),
-
-          typeof getVehicles === "function"
-            ? getVehicles()
-            : Promise.resolve([]),
-
-          typeof getGallery === "function"
-            ? getGallery()
-            : Promise.resolve([]),
-
-          typeof getVideos === "function"
-            ? getVideos()
-            : Promise.resolve([]),
-
-          typeof getReviews === "function"
-            ? getReviews()
-            : Promise.resolve([]),
-
-          typeof getEnquiries === "function"
-            ? getEnquiries()
-            : Promise.resolve([])
-
-        ]);
-
-      const trips =
-        results[0].status === "fulfilled"
-          ? safeArray(results[0].value)
-          : [];
-
-      const vehicles =
-        results[1].status === "fulfilled"
-          ? safeArray(results[1].value)
-          : [];
-
-      const gallery =
-        results[2].status === "fulfilled"
-          ? safeArray(results[2].value)
-          : [];
-
-      const videos =
-        results[3].status === "fulfilled"
-          ? safeArray(results[3].value)
-          : [];
-
-      const reviews =
-        results[4].status === "fulfilled"
-          ? safeArray(results[4].value)
-          : [];
-
-      const enquiries =
-        results[5].status === "fulfilled"
-          ? safeArray(results[5].value)
-          : [];
-
-      setText(
-        "stat-trips",
-        trips.length
-      );
-
-      setText(
-        "stat-vehicles",
-        vehicles.length
-      );
-
-      setText(
-        "stat-gallery",
-        gallery.length
-      );
-
-      setText(
-        "stat-videos",
-        videos.length
-      );
-
-      setText(
-        "stat-reviews",
-        reviews.length
-      );
-
-      setText(
-        "stat-enquiries",
-        enquiries.length
-      );
-
-      renderRecentTrips(
-        [...trips].sort(
-          recentDateSort
-        )
-      );
-
-      renderRecentReviews(
-        [...reviews].sort(
-          recentDateSort
-        )
-      );
-
-      renderRecentEnquiries(
-        [...enquiries].sort(
-          recentDateSort
-        )
-      );
-
-      /*
-       * Log individual failures without
-       * breaking the panel.
-       */
-      results.forEach(
-        (result, index) => {
-
-          if (
-            result.status ===
-            "rejected"
-          ) {
-            console.error(
-              "Dashboard query failed:",
-              index,
-              result.reason
-            );
-          }
-
-        }
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Dashboard error:",
-        error
-      );
-
-      /*
-       * Do NOT throw.
-       * Admin Panel must remain visible.
-       */
-    }
-  };
-
-
-/* =========================================================
-   TRIPS
-   ========================================================= */
-
-PANEL_LOADERS.trips =
-  async function () {
-
-    const list =
-      $a("trips-list");
-
-    if (!list) return;
-
-    try {
-
-      const trips =
-        await getTrips();
-
-      if (!trips.length) {
-        list.innerHTML =
-          empty("No trips available.");
+function readImageFile(file) {
+  return new Promise(
+    (resolve, reject) => {
+      if (!file) {
+        resolve("");
         return;
       }
 
-      list.innerHTML =
-        trips.map(trip => `
-
-          <div
-            class="a-item-card"
-            data-trip-search="${ea(
-              (
-                (trip.name || "") +
-                " " +
-                (trip.destination || "")
-              ).toLowerCase()
-            )}">
-
-            ${
-              trip.image_url
-                ? `
-                  <img
-                    src="${ea(
-                      trip.image_url
-                    )}"
-                    alt="${ea(
-                      trip.name ||
-                      "Trip"
-                    )}"
-                    class="a-item-image">
-                `
-                : ""
-            }
-
-            <div class="a-item-info">
-
-              <h3>
-                ${ea(
-                  trip.name ||
-                  "Unnamed trip"
-                )}
-              </h3>
-
-              <p>
-                📍
-                ${ea(
-                  trip.destination ||
-                  ""
-                )}
-              </p>
-
-              <p>
-                ${
-                  trip.duration
-                    ? "📅 " +
-                      ea(
-                        trip.duration
-                      )
-                    : ""
-                }
-
-                ${
-                  trip.price
-                    ? " · " +
-                      ea(trip.price)
-                    : ""
-                }
-              </p>
-
-              <p>
-                ${ea(
-                  trip.description ||
-                  ""
-                )}
-              </p>
-
-              <div class="a-item-actions">
-
-                ${actionButton(
-                  "Edit",
-                  `data-edit-trip="${ea(
-                    trip.id
-                  )}"`
-                )}
-
-                ${actionButton(
-                  "Delete",
-                  `data-delete-trip="${ea(
-                    trip.id
-                  )}"`,
-                  "a-btn-danger"
-                )}
-
-              </div>
-
-            </div>
-
-          </div>
-
-        `).join("");
-
-    } catch (error) {
-
-      console.error(
-        "Trips error:",
-        error
-      );
-
-      list.innerHTML =
-        empty(
-          readableError(error)
+      if (
+        !file.type ||
+        !file.type.startsWith("image/")
+      ) {
+        reject(
+          new Error(
+            "Please select a valid image file."
+          )
         );
+
+        return;
+      }
+
+      if (
+        file.size >
+        ADMIN_MAX_IMAGE_SIZE
+      ) {
+        reject(
+          new Error(
+            "Image must be 5 MB or smaller."
+          )
+        );
+
+        return;
+      }
+
+      const reader =
+        new FileReader();
+
+      reader.onload = () => {
+        resolve(
+          String(
+            reader.result || ""
+          )
+        );
+      };
+
+      reader.onerror = () => {
+        reject(
+          new Error(
+            "Failed to read image."
+          )
+        );
+      };
+
+      reader.readAsDataURL(file);
     }
-  };
+  );
+}
 
 
-function openTripModal(trip = null) {
+function setupImagePreview(
+  inputId,
+  previewId
+) {
+  const input =
+    $a(inputId);
 
-  const modal =
-    $a("trip-modal");
+  const preview =
+    $a(previewId);
 
-  if (!modal) return;
+  if (
+    !input ||
+    !preview
+  ) {
+    return;
+  }
+
+  input.addEventListener(
+    "change",
+    () => {
+      const file =
+        input.files &&
+        input.files[0];
+
+      if (!file) {
+        return;
+      }
+
+      if (
+        !file.type.startsWith(
+          "image/"
+        )
+      ) {
+        return;
+      }
+
+      if (
+        file.size >
+        ADMIN_MAX_IMAGE_SIZE
+      ) {
+        alert(
+          "Image must be 5 MB or smaller."
+        );
+
+        input.value = "";
+        return;
+      }
+
+      const url =
+        URL.createObjectURL(file);
+
+      preview.src = url;
+      preview.style.display =
+        "block";
+    }
+  );
+}
+
+
+/* =========================================================
+   TRIP VEHICLE SELECT
+   ========================================================= */
+
+async function loadTripVehicleOptions(
+  selectedVehicle = ""
+) {
+  const container =
+    $a("trip-vehicle-checkboxes");
+
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = `
+    <select
+      id="trip-vehicle-select"
+      name="vehicle"
+      style="width:100%;">
+      <option value="">No vehicle selected</option>
+    </select>
+  `;
+
+  const select =
+    $a("trip-vehicle-select");
+
+  try {
+    const vehicles =
+      await getVehicles();
+
+    vehicles.forEach(vehicle => {
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        vehicle.name || "";
+
+      option.textContent =
+        vehicle.name
+          ? `${vehicle.name}${vehicle.type ? ` — ${vehicle.type}` : ""}`
+          : "Unnamed vehicle";
+
+      if (
+        String(vehicle.name || "") ===
+        String(selectedVehicle || "")
+      ) {
+        option.selected = true;
+      }
+
+      select.appendChild(
+        option
+      );
+    });
+
+    /*
+     * Preserve a vehicle value that may no longer
+     * exist in the vehicles table.
+     */
+    if (
+      selectedVehicle &&
+      !Array.from(
+        select.options
+      ).some(
+        option =>
+          option.value ===
+          selectedVehicle
+      )
+    ) {
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        selectedVehicle;
+
+      option.textContent =
+        `${selectedVehicle} (existing trip vehicle)`;
+
+      option.selected = true;
+
+      select.appendChild(
+        option
+      );
+    }
+
+  } catch (error) {
+    console.warn(
+      "[admin.js] Could not load trip vehicles:",
+      error
+    );
+
+    if (selectedVehicle) {
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        selectedVehicle;
+
+      option.textContent =
+        selectedVehicle;
+
+      option.selected = true;
+
+      select.appendChild(
+        option
+      );
+    }
+  }
+}
+
+
+/* =========================================================
+   TRIP MODAL
+   ========================================================= */
+
+let editingTripId =
+  null;
+
+
+async function openTripModal(
+  tripId = null
+) {
+  editingTripId =
+    tripId;
 
   const form =
     $a("trip-form");
 
   if (form) {
     form.reset();
-    delete form.dataset.editId;
   }
 
-  clearError("trip-error");
+  clearError(
+    "trip-error"
+  );
 
   const title =
     $a("trip-modal-title");
-
-  if (title) {
-    title.textContent =
-      trip
-        ? "Edit Trip"
-        : "Add Trip";
-  }
 
   const preview =
     $a("trip-image-preview");
 
   if (preview) {
     preview.src = "";
-    preview.style.display = "none";
   }
 
-  if (trip && form) {
+  if (title) {
+    title.textContent =
+      tripId
+        ? "Edit Trip"
+        : "Add Trip";
+  }
 
-    form.dataset.editId =
-      trip.id;
+  let trip =
+    null;
 
-    setFieldValue(
-      "trip-name",
-      trip.name
-    );
+  if (tripId) {
+    try {
+      trip =
+        await getTrip(tripId);
 
-    setFieldValue(
-      "trip-destination",
-      trip.destination
-    );
+      if (!trip) {
+        throw new Error(
+          "Trip not found."
+        );
+      }
 
-    setFieldValue(
-      "trip-duration",
-      trip.duration
-    );
+      setFieldValue(
+        "trip-name",
+        trip.name
+      );
 
-    setFieldValue(
-      "trip-price",
-      trip.price
-    );
+      setFieldValue(
+        "trip-destination",
+        trip.destination
+      );
 
-    setFieldValue(
-      "trip-description",
-      trip.description
-    );
+      setFieldValue(
+        "trip-duration",
+        trip.duration
+      );
 
-    if (
-      preview &&
-      trip.image_url
-    ) {
-      preview.src =
-        trip.image_url;
+      setFieldValue(
+        "trip-price",
+        trip.price
+      );
 
-      preview.style.display =
-        "block";
+      setFieldValue(
+        "trip-description",
+        trip.description
+      );
+
+      if (
+        preview &&
+        trip.image_url
+      ) {
+        preview.src =
+          trip.image_url;
+      }
+
+    } catch (error) {
+      showError(
+        "trip-error",
+        error.message
+      );
+
+      return;
     }
   }
 
-  const vehicleBox =
-    $a("trip-vehicle-checkboxes");
+  await loadTripVehicleOptions(
+    trip
+      ? trip.vehicle
+      : ""
+  );
 
-  if (vehicleBox) {
-    vehicleBox.innerHTML =
-      "<small>Vehicle selection is handled from the Vehicles panel.</small>";
-  }
-
-  modal.style.display =
-    "flex";
+  openModal(
+    "trip-modal"
+  );
 }
 
-function closeTripModal() {
-  const modal =
-    $a("trip-modal");
 
-  if (modal) {
-    modal.style.display =
-      "none";
-  }
-}
-
-async function saveTripForm(event) {
-
-  event.preventDefault();
-
-  clearError("trip-error");
-
+async function saveTripForm() {
   const form =
-    event.target;
+    $a("trip-form");
 
-  const editId =
-    form.dataset.editId;
-
-  const trip = {
-
-    ...(editId
-      ? { id: editId }
-      : {}),
-
-    name:
-      getFieldValue("trip-name"),
-
-    destination:
-      getFieldValue("trip-destination"),
-
-    duration:
-      getFieldValue("trip-duration"),
-
-    price:
-      getFieldValue("trip-price"),
-
-    description:
-      getFieldValue("trip-description")
-  };
-
-  if (!trip.name) {
-    showError(
-      "trip-error",
-      "Trip name is required."
-    );
+  if (!form) {
     return;
   }
 
+  const errorId =
+    "trip-error";
+
+  clearError(errorId);
+
+  const name =
+    getFieldValue(
+      "trip-name"
+    );
+
+  const destination =
+    getFieldValue(
+      "trip-destination"
+    );
+
+  if (!name) {
+    showError(
+      errorId,
+      "Please enter the trip name."
+    );
+
+    return;
+  }
+
+  if (!destination) {
+    showError(
+      errorId,
+      "Please enter the destination."
+    );
+
+    return;
+  }
+
+  const submitButton =
+    form.querySelector(
+      'button[type="submit"]'
+    );
+
+  setButtonLoading(
+    submitButton,
+    true,
+    "Saving..."
+  );
+
   try {
+    let imageUrl = "";
+
+    const existing =
+      editingTripId
+        ? await getTrip(
+            editingTripId
+          )
+        : null;
+
+    imageUrl =
+      existing
+        ? existing.image_url || ""
+        : "";
 
     const input =
       $a("trip-image-input");
 
-    if (input?.files?.[0]) {
-
-      trip.image_url =
+    if (
+      input &&
+      input.files &&
+      input.files[0]
+    ) {
+      imageUrl =
         await readImageFile(
           input.files[0]
         );
     }
 
-    await saveTrip(trip);
+    const vehicleSelect =
+      $a("trip-vehicle-select");
 
-    closeTripModal();
+    const vehicle =
+      vehicleSelect
+        ? vehicleSelect.value.trim()
+        : "";
 
-    adminToast(
-      editId
-        ? "Trip updated successfully."
-        : "Trip added successfully.",
-      "success"
+    const saved =
+      await saveTrip({
+        ...(existing || {}),
+        ...(editingTripId
+          ? { id: editingTripId }
+          : {}),
+
+        name,
+        destination,
+
+        duration:
+          getFieldValue(
+            "trip-duration"
+          ),
+
+        price:
+          getFieldValue(
+            "trip-price"
+          ),
+
+        description:
+          getFieldValue(
+            "trip-description"
+          ),
+
+        image_url:
+          imageUrl,
+
+        vehicle
+      });
+
+    closeModal(
+      "trip-modal"
     );
 
-    await PANEL_LOADERS.trips();
-    await PANEL_LOADERS.dashboard();
+    await loadTrips();
+
+    await loadDashboardStats();
+
+    console.log(
+      "[admin.js] Trip saved:",
+      saved
+    );
 
   } catch (error) {
-
-    console.error(
-      "Save trip error:",
-      error
+    showError(
+      errorId,
+      error.message ||
+        "Failed to save trip."
     );
 
-    showError(
-      "trip-error",
-      readableError(error)
+  } finally {
+    setButtonLoading(
+      submitButton,
+      false
     );
   }
 }
 
 
 /* =========================================================
-   VEHICLES
+   VEHICLE MODAL
    ========================================================= */
 
-PANEL_LOADERS.vehicles =
-  async function () {
-
-    const list =
-      $a("vehicles-list");
-
-    if (!list) return;
-
-    try {
-
-      const vehicles =
-        await getVehicles();
-
-      if (!vehicles.length) {
-        list.innerHTML =
-          empty("No vehicles available.");
-        return;
-      }
-
-      list.innerHTML =
-        vehicles.map(vehicle => `
-
-          <div class="a-item-card">
-
-            ${
-              vehicle.image_url
-                ? `
-                  <img
-                    src="${ea(
-                      vehicle.image_url
-                    )}"
-                    alt="${ea(
-                      vehicle.name ||
-                      "Vehicle"
-                    )}"
-                    class="a-item-image">
-                `
-                : ""
-            }
-
-            <div class="a-item-info">
-
-              <h3>
-                ${ea(
-                  vehicle.name ||
-                  "Unnamed vehicle"
-                )}
-              </h3>
-
-              <p>
-                ${ea(
-                  vehicle.type ||
-                  ""
-                )}
-              </p>
-
-              <p>
-                💺
-                ${ea(
-                  vehicle.capacity ||
-                  ""
-                )}
-
-                ${
-                  vehicle.registration
-                    ? " · " +
-                      ea(
-                        vehicle.registration
-                      )
-                    : ""
-                }
-              </p>
-
-              <span class="a-badge">
-                ${
-                  vehicle.available
-                    ? "Available"
-                    : "Unavailable"
-                }
-              </span>
-
-              <div class="a-item-actions">
-
-                ${actionButton(
-                  "Edit",
-                  `data-edit-vehicle="${ea(
-                    vehicle.id
-                  )}"`
-                )}
-
-                ${actionButton(
-                  "Delete",
-                  `data-delete-vehicle="${ea(
-                    vehicle.id
-                  )}"`,
-                  "a-btn-danger"
-                )}
-
-              </div>
-
-            </div>
-
-          </div>
-
-        `).join("");
-
-    } catch (error) {
-
-      console.error(
-        "Vehicles error:",
-        error
-      );
-
-      list.innerHTML =
-        empty(
-          readableError(error)
-        );
-    }
-  };
+let editingVehicleId =
+  null;
 
 
-function openVehicleModal(
-  vehicle = null
+async function openVehicleModal(
+  vehicleId = null
 ) {
-
-  const modal =
-    $a("vehicle-modal");
-
-  if (!modal) return;
+  editingVehicleId =
+    vehicleId;
 
   const form =
     $a("vehicle-form");
 
   if (form) {
     form.reset();
-    delete form.dataset.editId;
   }
 
   clearError(
@@ -1535,25 +1066,44 @@ function openVehicleModal(
   const title =
     $a("vehicle-modal-title");
 
-  if (title) {
-    title.textContent =
-      vehicle
-        ? "Edit Vehicle"
-        : "Add Vehicle";
-  }
-
   const preview =
     $a("vehicle-image-preview");
 
   if (preview) {
     preview.src = "";
-    preview.style.display = "none";
   }
 
-  if (vehicle && form) {
+  if (title) {
+    title.textContent =
+      vehicleId
+        ? "Edit Vehicle"
+        : "Add Vehicle";
+  }
 
-    form.dataset.editId =
-      vehicle.id;
+  if (!vehicleId) {
+    setFieldValue(
+      "vehicle-available",
+      "true"
+    );
+
+    openModal(
+      "vehicle-modal"
+    );
+
+    return;
+  }
+
+  try {
+    const vehicle =
+      await getVehicle(
+        vehicleId
+      );
+
+    if (!vehicle) {
+      throw new Error(
+        "Vehicle not found."
+      );
+    }
 
     setFieldValue(
       "vehicle-name",
@@ -1575,9 +1125,11 @@ function openVehicleModal(
       vehicle.registration
     );
 
-    setChecked(
+    setFieldValue(
       "vehicle-available",
-      vehicle.available
+      String(
+        vehicle.available
+      )
     );
 
     if (
@@ -1586,131 +1138,144 @@ function openVehicleModal(
     ) {
       preview.src =
         vehicle.image_url;
-
-      preview.style.display =
-        "block";
     }
 
-  } else {
+    openModal(
+      "vehicle-modal"
+    );
 
-    setChecked(
-      "vehicle-available",
-      true
+  } catch (error) {
+    showError(
+      "vehicle-error",
+      error.message
     );
   }
-
-  modal.style.display =
-    "flex";
 }
 
-function closeVehicleModal() {
 
-  const modal =
-    $a("vehicle-modal");
+async function saveVehicleForm() {
+  const form =
+    $a("vehicle-form");
 
-  if (modal) {
-    modal.style.display =
-      "none";
+  if (!form) {
+    return;
   }
-}
-
-async function saveVehicleForm(event) {
-
-  event.preventDefault();
 
   clearError(
     "vehicle-error"
   );
 
-  const form =
-    event.target;
+  const name =
+    getFieldValue(
+      "vehicle-name"
+    );
 
-  const editId =
-    form.dataset.editId;
-
-  const vehicle = {
-
-    ...(editId
-      ? { id: editId }
-      : {}),
-
-    name:
-      getFieldValue(
-        "vehicle-name"
-      ),
-
-    type:
-      getFieldValue(
-        "vehicle-type"
-      ),
-
-    capacity:
-      Number(
-        getFieldValue(
-          "vehicle-capacity"
-        )
-      ) || 0,
-
-    registration:
-      getFieldValue(
-        "vehicle-registration"
-      ),
-
-    available:
-      !!$a(
-        "vehicle-available"
-      )?.checked
-  };
-
-  if (!vehicle.name) {
-
+  if (!name) {
     showError(
       "vehicle-error",
-      "Vehicle name is required."
+      "Please enter the vehicle name."
     );
 
     return;
   }
 
+  const submitButton =
+    form.querySelector(
+      'button[type="submit"]'
+    );
+
+  setButtonLoading(
+    submitButton,
+    true,
+    "Saving..."
+  );
+
   try {
+    const existing =
+      editingVehicleId
+        ? await getVehicle(
+            editingVehicleId
+          )
+        : null;
+
+    let imageUrl =
+      existing
+        ? existing.image_url || ""
+        : "";
 
     const input =
       $a("vehicle-image-input");
 
-    if (input?.files?.[0]) {
-
-      vehicle.image_url =
+    if (
+      input &&
+      input.files &&
+      input.files[0]
+    ) {
+      imageUrl =
         await readImageFile(
           input.files[0]
         );
     }
 
-    await saveVehicle(
-      vehicle
+    const capacityText =
+      getFieldValue(
+        "vehicle-capacity"
+      );
+
+    const saved =
+      await saveVehicle({
+        ...(existing || {}),
+        ...(editingVehicleId
+          ? { id: editingVehicleId }
+          : {}),
+
+        name,
+
+        type:
+          getFieldValue(
+            "vehicle-type"
+          ),
+
+        capacity:
+          capacityText,
+
+        registration:
+          getFieldValue(
+            "vehicle-registration"
+          ),
+
+        image_url:
+          imageUrl,
+
+        available:
+          getFieldValue(
+            "vehicle-available"
+          ) === "true"
+      });
+
+    closeModal(
+      "vehicle-modal"
     );
 
-    closeVehicleModal();
+    await loadVehicles();
+    await loadDashboardStats();
 
-    adminToast(
-      editId
-        ? "Vehicle updated successfully."
-        : "Vehicle added successfully.",
-      "success"
+    console.log(
+      "[admin.js] Vehicle saved:",
+      saved
     );
-
-    await PANEL_LOADERS.vehicles();
-    await PANEL_LOADERS.dashboard();
 
   } catch (error) {
-
-    console.error(
-      "Save vehicle error:",
-      error
-    );
-
     showError(
       "vehicle-error",
-      readableError(error)
+      error.message ||
+        "Failed to save vehicle."
+    );
+
+  } finally {
+    setButtonLoading(
+      submitButton,
+      false
     );
   }
 }
@@ -1720,571 +1285,369 @@ async function saveVehicleForm(event) {
    GALLERY
    ========================================================= */
 
-PANEL_LOADERS.gallery =
-  async function () {
-
-    const list =
-      $a("gallery-list");
-
-    if (!list) return;
-
-    try {
-
-      const gallery =
-        await getGallery();
-
-      if (!gallery.length) {
-
-        list.innerHTML =
-          empty(
-            "No gallery items available."
-          );
-
-        return;
-      }
-
-      list.innerHTML =
-        gallery.map(item => {
-
-          const image =
-            item.image_url ||
-            item.media_url ||
-            "";
-
-          return `
-            <div class="a-item-card">
-
-              ${
-                image
-                  ? `
-                    <img
-                      src="${ea(
-                        image
-                      )}"
-                      alt="${ea(
-                        item.title ||
-                        "Gallery image"
-                      )}"
-                      class="a-item-image">
-                  `
-                  : ""
-              }
-
-              <div class="a-item-info">
-
-                <h3>
-                  ${ea(
-                    item.title ||
-                    "Untitled"
-                  )}
-                </h3>
-
-                <p>
-                  ${ea(
-                    item.description ||
-                    ""
-                  )}
-                </p>
-
-                <span class="a-badge">
-                  ${
-                    item.approved
-                      ? "Visible"
-                      : "Pending"
-                  }
-                </span>
-
-                <div class="a-item-actions">
-
-                  ${actionButton(
-                    item.approved
-                      ? "Hide"
-                      : "Approve",
-                    `data-toggle-gallery="${ea(
-                      item.id
-                    )}"`
-                  )}
-
-                  ${actionButton(
-                    "Delete",
-                    `data-delete-gallery="${ea(
-                      item.id
-                    )}"`,
-                    "a-btn-danger"
-                  )}
-
-                </div>
-
-              </div>
-
-            </div>
-          `;
-
-        }).join("");
-
-    } catch (error) {
-
-      console.error(
-        "Gallery error:",
-        error
-      );
-
-      list.innerHTML =
-        empty(
-          readableError(error)
-        );
-    }
-  };
-
-async function saveGalleryForm(event) {
-
-  event.preventDefault();
-
+async function saveGalleryForm() {
   const form =
-    event.target;
+    $a("gallery-add-form");
 
-  const title =
-    getFieldValue(
-      "gallery-title"
-    );
-
-  const description =
-    getFieldValue(
-      "gallery-description"
-    );
-
-  if (!title) {
-    adminToast(
-      "Gallery title is required.",
-      "error"
-    );
+  if (!form) {
     return;
   }
 
+  const input =
+    $a("g-image");
+
+  clearInlineGalleryMessage();
+
+  if (
+    !input ||
+    !input.files ||
+    !input.files[0]
+  ) {
+    showGalleryMessage(
+      "Please select an image.",
+      "error"
+    );
+
+    return;
+  }
+
+  const submitButton =
+    form.querySelector(
+      'button[type="submit"]'
+    );
+
+  setButtonLoading(
+    submitButton,
+    true,
+    "Adding..."
+  );
+
   try {
-
-    const input =
-      $a("gallery-image-input");
-
-    if (!input?.files?.[0]) {
-      throw new Error(
-        "Please select an image."
-      );
-    }
-
-    const mediaUrl =
+    const imageUrl =
       await readImageFile(
         input.files[0]
       );
 
-    await saveGallery({
-      title,
-      description,
-      media_url: mediaUrl,
-      media_type: "image",
-      approved: true
-    });
+    const saved =
+      await saveGallery({
+        title:
+          getFieldValue(
+            "g-caption"
+          ),
+
+        description:
+          getFieldValue(
+            "g-description"
+          ),
+
+        media_url:
+          imageUrl,
+
+        media_type:
+          "image",
+
+        /*
+         * Admin-added images are immediately
+         * visible on the public website.
+         */
+        approved:
+          true
+      });
 
     form.reset();
 
-    adminToast(
-      "Gallery image added successfully.",
+    await loadGallery();
+
+    await loadDashboardStats();
+
+    showGalleryMessage(
+      "Image added successfully.",
       "success"
     );
 
-    await PANEL_LOADERS.gallery();
-    await PANEL_LOADERS.dashboard();
-
-  } catch (error) {
-
-    console.error(
-      "Save gallery error:",
-      error
+    console.log(
+      "[admin.js] Gallery saved:",
+      saved
     );
 
-    adminToast(
-      readableError(error),
+  } catch (error) {
+    showGalleryMessage(
+      error.message ||
+        "Failed to add image.",
       "error"
+    );
+
+  } finally {
+    setButtonLoading(
+      submitButton,
+      false
     );
   }
 }
 
 
-/* =========================================================
-   VIDEOS
-   ========================================================= */
+function showGalleryMessage(
+  message,
+  type
+) {
+  const form =
+    $a("gallery-add-form");
 
-PANEL_LOADERS.videos =
-  async function () {
+  if (!form) {
+    return;
+  }
 
-    const list =
-      $a("videos-list");
+  let box =
+    $a("gallery-form-message");
 
-    if (!list) return;
-
-    try {
-
-      const videos =
-        await getVideos();
-
-      if (!videos.length) {
-
-        list.innerHTML =
-          empty(
-            "No videos available."
-          );
-
-        return;
-      }
-
-      list.innerHTML =
-        videos.map(video => `
-
-          <div class="a-item-card">
-
-            <div class="a-item-info">
-
-              <h3>
-                ${ea(
-                  video.title ||
-                  "Untitled video"
-                )}
-              </h3>
-
-              <p>
-                ${ea(
-                  video.description ||
-                  ""
-                )}
-              </p>
-
-              <p>
-                YouTube ID:
-                ${ea(
-                  video.youtube_id ||
-                  video.youtubeId ||
-                  ""
-                )}
-              </p>
-
-              <div class="a-item-actions">
-
-                ${actionButton(
-                  "Edit",
-                  `data-edit-video="${ea(
-                    video.id
-                  )}"`
-                )}
-
-                ${actionButton(
-                  "Delete",
-                  `data-delete-video="${ea(
-                    video.id
-                  )}"`,
-                  "a-btn-danger"
-                )}
-
-              </div>
-
-            </div>
-
-          </div>
-
-        `).join("");
-
-    } catch (error) {
-
-      console.error(
-        "Videos error:",
-        error
+  if (!box) {
+    box =
+      document.createElement(
+        "p"
       );
 
-      list.innerHTML =
-        empty(
-          readableError(error)
-        );
-    }
-  };
+    box.id =
+      "gallery-form-message";
+
+    form.appendChild(box);
+  }
+
+  box.className =
+    `a-msg ${type || "error"}`;
+
+  box.textContent =
+    message;
+
+  box.style.display =
+    "block";
+}
 
 
-function openVideoModal(video = null) {
+function clearInlineGalleryMessage() {
+  const box =
+    $a("gallery-form-message");
 
-  const modal =
-    $a("video-modal");
+  if (box) {
+    box.textContent = "";
+    box.style.display =
+      "none";
+  }
+}
 
-  if (!modal) return;
+
+/* =========================================================
+   VIDEO MODAL
+   ========================================================= */
+
+let editingVideoId =
+  null;
+
+
+async function openVideoModal(
+  videoId = null
+) {
+  editingVideoId =
+    videoId;
 
   const form =
     $a("video-form");
 
   if (form) {
     form.reset();
-    delete form.dataset.editId;
   }
 
-  clearError("video-error");
+  clearError(
+    "video-error"
+  );
 
   const title =
     $a("video-modal-title");
 
   if (title) {
     title.textContent =
-      video
+      videoId
         ? "Edit Video"
         : "Add Video";
   }
 
-  if (video && form) {
+  if (videoId) {
+    try {
+      const videos =
+        await getVideos();
 
-    form.dataset.editId =
-      video.id;
+      const video =
+        videos.find(
+          item =>
+            String(item.id) ===
+            String(videoId)
+        );
 
-    setFieldValue(
-      "video-title",
-      video.title
-    );
+      if (!video) {
+        throw new Error(
+          "Video not found."
+        );
+      }
 
-    setFieldValue(
-      "video-description",
-      video.description
-    );
+      setFieldValue(
+        "video-title",
+        video.title
+      );
 
-    setFieldValue(
-      "video-youtube",
-      video.youtube_id ||
-      video.youtubeId ||
-      ""
-    );
+      setFieldValue(
+        "video-description",
+        video.description
+      );
+
+      setFieldValue(
+        "video-youtube",
+        video.youtube_id
+      );
+
+    } catch (error) {
+      showError(
+        "video-error",
+        error.message
+      );
+
+      return;
+    }
   }
 
-  modal.style.display =
-    "flex";
+  openModal(
+    "video-modal"
+  );
 }
 
-function closeVideoModal() {
 
-  const modal =
-    $a("video-modal");
-
-  if (modal) {
-    modal.style.display =
-      "none";
-  }
-}
-
-async function saveVideoForm(event) {
-
-  event.preventDefault();
-
-  clearError("video-error");
-
+async function saveVideoForm() {
   const form =
-    event.target;
+    $a("video-form");
 
-  const editId =
-    form.dataset.editId;
+  if (!form) {
+    return;
+  }
 
-  const video = {
+  clearError(
+    "video-error"
+  );
 
-    ...(editId
-      ? { id: editId }
-      : {}),
+  const title =
+    getFieldValue(
+      "video-title"
+    );
 
-    title:
-      getFieldValue(
-        "video-title"
-      ),
+  if (!title) {
+    showError(
+      "video-error",
+      "Please enter the video title."
+    );
 
-    description:
-      getFieldValue(
-        "video-description"
-      ),
+    return;
+  }
 
-    youtube_id:
+  const youtube =
+    normalizeYouTubeId(
       getFieldValue(
         "video-youtube"
       )
-  };
+    );
 
-  if (!video.title) {
-
+  if (!youtube) {
     showError(
       "video-error",
-      "Video title is required."
+      "Please enter a YouTube ID or URL."
     );
 
     return;
   }
 
-  if (!video.youtube_id) {
-
-    showError(
-      "video-error",
-      "YouTube video ID is required."
+  const submitButton =
+    form.querySelector(
+      'button[type="submit"]'
     );
 
-    return;
-  }
+  setButtonLoading(
+    submitButton,
+    true,
+    "Saving..."
+  );
 
   try {
+    let existing =
+      null;
 
-    await saveVideo(video);
+    if (editingVideoId) {
+      const videos =
+        await getVideos();
 
-    closeVideoModal();
+      existing =
+        videos.find(
+          item =>
+            String(item.id) ===
+            String(editingVideoId)
+        ) || null;
+    }
 
-    adminToast(
-      editId
-        ? "Video updated successfully."
-        : "Video added successfully.",
-      "success"
+    await saveVideo({
+      ...(existing || {}),
+
+      ...(editingVideoId
+        ? { id: editingVideoId }
+        : {}),
+
+      title,
+
+      description:
+        getFieldValue(
+          "video-description"
+        ),
+
+      youtube_id:
+        youtube
+    });
+
+    closeModal(
+      "video-modal"
     );
 
-    await PANEL_LOADERS.videos();
-    await PANEL_LOADERS.dashboard();
+    await loadVideos();
+    await loadDashboardStats();
 
   } catch (error) {
-
-    console.error(
-      "Save video error:",
-      error
-    );
-
     showError(
       "video-error",
-      readableError(error)
+      error.message ||
+        "Failed to save video."
+    );
+
+  } finally {
+    setButtonLoading(
+      submitButton,
+      false
     );
   }
 }
 
 
 /* =========================================================
-   REVIEWS
+   REVIEW MODAL
    ========================================================= */
 
-PANEL_LOADERS.reviews =
-  async function () {
-
-    const list =
-      $a("reviews-list");
-
-    if (!list) return;
-
-    try {
-
-      const reviews =
-        await getReviews();
-
-      if (!reviews.length) {
-
-        list.innerHTML =
-          empty(
-            "No reviews available."
-          );
-
-        return;
-      }
-
-      list.innerHTML =
-        reviews.map(review => `
-
-          <div class="a-item-card">
-
-            <div class="a-item-info">
-
-              <h3>
-
-                ${ea(
-                  review.name ||
-                  "Anonymous"
-                )}
-
-                <span
-                  style="color:#ffb020;">
-                  ${starsA(
-                    review.rating
-                  )}
-                </span>
-
-              </h3>
-
-              <p>
-                ${ea(
-                  review.review ||
-                  review.comment ||
-                  ""
-                )}
-              </p>
-
-              <span class="a-badge">
-                ${
-                  review.approved
-                    ? "Visible"
-                    : "Pending"
-                }
-              </span>
-
-              <div class="a-item-actions">
-
-                ${actionButton(
-                  "Edit",
-                  `data-edit-review="${ea(
-                    review.id
-                  )}"`
-                )}
-
-                ${actionButton(
-                  review.approved
-                    ? "Hide"
-                    : "Approve",
-                  `data-toggle-review="${ea(
-                    review.id
-                  )}"`
-                )}
-
-                ${actionButton(
-                  "Delete",
-                  `data-delete-review="${ea(
-                    review.id
-                  )}"`,
-                  "a-btn-danger"
-                )}
-
-              </div>
-
-            </div>
-
-          </div>
-
-        `).join("");
-
-    } catch (error) {
-
-      console.error(
-        "Reviews error:",
-        error
-      );
-
-      list.innerHTML =
-        empty(
-          readableError(error)
-        );
-    }
-  };
+let editingReviewId =
+  null;
 
 
-function openReviewModal(review = null) {
-
-  const modal =
-    $a("review-modal");
-
-  if (!modal) return;
+async function openReviewModal(
+  reviewId = null
+) {
+  editingReviewId =
+    reviewId;
 
   const form =
     $a("review-form-admin");
 
   if (form) {
     form.reset();
-    delete form.dataset.editId;
   }
 
   clearError(
@@ -2296,387 +1659,1363 @@ function openReviewModal(review = null) {
 
   if (title) {
     title.textContent =
-      review
+      reviewId
         ? "Edit Review"
         : "Add Review";
   }
 
-  if (review && form) {
+  /*
+   * Default for admin-created review:
+   * approved.
+   */
+  setFieldValue(
+    "review-approved",
+    "true"
+  );
 
-    form.dataset.editId =
-      review.id;
+  if (reviewId) {
+    try {
+      const reviews =
+        await getAllReviews();
 
-    setFieldValue(
-      "review-name",
-      review.name
-    );
+      const review =
+        reviews.find(
+          item =>
+            String(item.id) ===
+            String(reviewId)
+        );
 
-    setFieldValue(
-      "review-rating",
-      review.rating
-    );
+      if (!review) {
+        throw new Error(
+          "Review not found."
+        );
+      }
 
-    setFieldValue(
-      "review-text",
-      review.review ||
-      review.comment ||
-      ""
-    );
+      setFieldValue(
+        "review-name",
+        review.name
+      );
 
-    setChecked(
-      "review-approved",
-      review.approved
-    );
+      setFieldValue(
+        "review-rating",
+        review.rating
+      );
 
-  } else {
+      setFieldValue(
+        "review-text",
+        review.comment
+      );
 
-    setChecked(
-      "review-approved",
-      true
-    );
+      setFieldValue(
+        "review-approved",
+        String(
+          review.approved
+        )
+      );
+
+    } catch (error) {
+      showError(
+        "review-error",
+        error.message
+      );
+
+      return;
+    }
   }
 
-  modal.style.display =
-    "flex";
+  openModal(
+    "review-modal"
+  );
 }
 
-function closeReviewModal() {
 
-  const modal =
-    $a("review-modal");
+async function saveReviewForm() {
+  const form =
+    $a("review-form-admin");
 
-  if (modal) {
-    modal.style.display =
-      "none";
+  if (!form) {
+    return;
   }
-}
-
-async function saveReviewForm(event) {
-
-  event.preventDefault();
 
   clearError(
     "review-error"
   );
 
-  const form =
-    event.target;
+  const name =
+    getFieldValue(
+      "review-name"
+    );
 
-  const editId =
-    form.dataset.editId;
+  const reviewText =
+    getFieldValue(
+      "review-text"
+    );
 
-  const review = {
-
-    ...(editId
-      ? { id: editId }
-      : {}),
-
-    name:
-      getFieldValue(
-        "review-name"
-      ),
-
-    rating:
-      Number(
-        getFieldValue(
-          "review-rating"
-        )
-      ) || 0,
-
-    review:
-      getFieldValue(
-        "review-text"
-      ),
-
-    approved:
-      !!$a(
-        "review-approved"
-      )?.checked
-  };
-
-  if (!review.name) {
-
+  if (!name) {
     showError(
       "review-error",
-      "Reviewer name is required."
+      "Please enter the customer name."
     );
 
     return;
   }
 
-  if (
-    review.rating < 1 ||
-    review.rating > 5
-  ) {
-
+  if (!reviewText) {
     showError(
       "review-error",
-      "Rating must be between 1 and 5."
+      "Please enter the review."
     );
 
     return;
   }
 
-  if (!review.review) {
+  const requestedApproved =
+    getFieldValue(
+      "review-approved"
+    ) === "true";
 
-    showError(
-      "review-error",
-      "Review text is required."
+  const submitButton =
+    form.querySelector(
+      'button[type="submit"]'
     );
 
-    return;
-  }
+  setButtonLoading(
+    submitButton,
+    true,
+    "Saving..."
+  );
 
   try {
+    let existing =
+      null;
 
-    await saveReview(
-      review
+    if (editingReviewId) {
+      const reviews =
+        await getAllReviews();
+
+      existing =
+        reviews.find(
+          item =>
+            String(item.id) ===
+            String(editingReviewId)
+        ) || null;
+    }
+
+    /*
+     * Existing review can be updated directly.
+     */
+    if (editingReviewId) {
+      await saveReview({
+        ...(existing || {}),
+        id:
+          editingReviewId,
+
+        name,
+
+        rating:
+          Number(
+            getFieldValue(
+              "review-rating"
+            )
+          ) || 0,
+
+        comment:
+          reviewText,
+
+        approved:
+          requestedApproved
+      });
+
+    } else {
+      /*
+       * New review is deliberately inserted as
+       * unapproved by data.js for RLS safety.
+       */
+      const created =
+        await saveReview({
+          name,
+
+          rating:
+            Number(
+              getFieldValue(
+                "review-rating"
+              )
+            ) || 0,
+
+          comment:
+            reviewText
+        });
+
+      /*
+       * If admin selected Approved = Yes,
+       * approve it after creation.
+       */
+      if (
+        requestedApproved &&
+        created &&
+        created.id
+      ) {
+        await approveReview(
+          created.id
+        );
+      }
+    }
+
+    closeModal(
+      "review-modal"
     );
 
-    closeReviewModal();
-
-    adminToast(
-      editId
-        ? "Review updated successfully."
-        : "Review added successfully.",
-      "success"
-    );
-
-    await PANEL_LOADERS.reviews();
-    await PANEL_LOADERS.dashboard();
+    await loadReviews();
+    await loadDashboardStats();
 
   } catch (error) {
-
-    console.error(
-      "Save review error:",
-      error
-    );
-
     showError(
       "review-error",
-      readableError(error)
+      error.message ||
+        "Failed to save review."
+    );
+
+  } finally {
+    setButtonLoading(
+      submitButton,
+      false
     );
   }
 }
 
 
 /* =========================================================
-   ENQUIRIES
+   DASHBOARD STATS
    ========================================================= */
 
-PANEL_LOADERS.enquiries =
-  async function () {
+async function loadDashboardStats() {
+  try {
+    const [
+      trips,
+      vehicles,
+      gallery,
+      videos,
+      reviews,
+      enquiries
+    ] = await Promise.all([
+      getTrips(),
+      getVehicles(),
+      getAllGallery(),
+      getVideos(),
+      getAllReviews(),
+      getEnquiries()
+    ]);
 
-    const list =
-      $a("enquiries-list");
+    const values = {
+      "stat-trips":
+        trips.length,
 
-    if (!list) return;
+      "stat-vehicles":
+        vehicles.length,
 
-    try {
+      "stat-gallery":
+        gallery.length,
 
-      const enquiries =
-        await getEnquiries();
+      "stat-videos":
+        videos.length,
 
-      const filter =
-        getFieldValue(
-          "enquiry-filter"
-        ).toLowerCase();
+      "stat-reviews":
+        reviews.length,
 
-      let filtered =
-        [...enquiries];
+      "stat-enquiries":
+        enquiries.length
+    };
 
-      if (filter) {
+    Object.entries(values)
+      .forEach(
+        ([id, value]) => {
+          const el =
+            $a(id);
 
-        filtered =
-          filtered.filter(
-            item =>
-              String(
-                item.status ||
-                ""
-              ).toLowerCase() ===
-              filter
-          );
-      }
-
-      filtered.sort(
-        recentDateSort
+          if (el) {
+            el.textContent =
+              String(value);
+          }
+        }
       );
 
-      if (!filtered.length) {
+    renderRecentEnquiries(
+      enquiries.slice(0, 5)
+    );
 
-        list.innerHTML =
-          empty(
-            "No enquiries available."
-          );
+    renderRecentReviews(
+      reviews.slice(0, 5)
+    );
 
-        return;
-      }
+    renderRecentTrips(
+      trips.slice(0, 5)
+    );
 
-      list.innerHTML =
-        filtered.map(item => `
+  } catch (error) {
+    console.error(
+      "[admin.js] Dashboard stats failed:",
+      error
+    );
+  }
+}
 
-          <div class="a-item-card">
 
-            <div class="a-item-info">
+function renderRecentEnquiries(
+  enquiries
+) {
+  const container =
+    $a("recent-enquiries");
 
-              <h3>
-                ${ea(
-                  item.name ||
-                  "Unnamed"
-                )}
-              </h3>
+  if (!container) {
+    return;
+  }
 
-              <p>
-                📞
-                ${ea(
-                  item.phone ||
-                  ""
-                )}
-              </p>
+  if (!enquiries.length) {
+    container.innerHTML =
+      `<p class="a-item-meta">No enquiries yet.</p>`;
 
-              <p>
-                🚌
-                ${ea(
-                  item.trip ||
-                  "General enquiry"
-                )}
-              </p>
+    return;
+  }
 
-              <p>
-                ${ea(
-                  item.message ||
-                  ""
-                )}
-              </p>
+  container.innerHTML =
+    enquiries
+      .map(
+        item => `
+          <div class="a-list-row">
+            <div>
+              <strong>
+                ${escapeHTML(item.name)}
+              </strong>
 
-              <span class="a-badge">
-                ${ea(
-                  item.status ||
-                  "new"
-                )}
-              </span>
+              <div class="a-item-meta">
+                ${escapeHTML(item.phone)}
+                ${item.trip
+                  ? ` • ${escapeHTML(item.trip)}`
+                  : ""}
+              </div>
+            </div>
 
-              <small>
-                ${ea(
-                  formatDate(
-                    item.created_at
+            <span class="a-item-meta">
+              ${escapeHTML(item.status)}
+            </span>
+          </div>
+        `
+      )
+      .join("");
+}
+
+
+function renderRecentReviews(
+  reviews
+) {
+  const container =
+    $a("recent-reviews");
+
+  if (!container) {
+    return;
+  }
+
+  if (!reviews.length) {
+    container.innerHTML =
+      `<p class="a-item-meta">No reviews yet.</p>`;
+
+    return;
+  }
+
+  container.innerHTML =
+    reviews
+      .map(
+        item => `
+          <div class="a-list-row">
+            <div>
+              <strong>
+                ${escapeHTML(item.name)}
+              </strong>
+
+              <div>
+                ${"★".repeat(
+                  Math.max(
+                    0,
+                    Math.min(
+                      5,
+                      Number(
+                        item.rating
+                      ) || 0
+                    )
                   )
                 )}
-              </small>
+              </div>
+            </div>
+
+            <span class="a-item-meta">
+              ${
+                item.approved
+                  ? "Approved"
+                  : "Pending"
+              }
+            </span>
+          </div>
+        `
+      )
+      .join("");
+}
+
+
+function renderRecentTrips(
+  trips
+) {
+  const container =
+    $a("recent-trips");
+
+  if (!container) {
+    return;
+  }
+
+  if (!trips.length) {
+    container.innerHTML =
+      `<p class="a-item-meta">No trips yet.</p>`;
+
+    return;
+  }
+
+  container.innerHTML =
+    trips
+      .map(
+        item => `
+          <div class="a-list-row">
+            <div>
+              <strong>
+                ${escapeHTML(item.name)}
+              </strong>
+
+              <div class="a-item-meta">
+                ${escapeHTML(
+                  item.destination
+                )}
+              </div>
+            </div>
+
+            <span class="a-item-meta">
+              ${escapeHTML(
+                item.price
+              )}
+            </span>
+          </div>
+        `
+      )
+      .join("");
+}
+
+
+/* =========================================================
+   TRIPS LIST
+   ========================================================= */
+
+let cachedTrips =
+  [];
+
+
+async function loadTrips() {
+  const container =
+    $a("trips-list");
+
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML =
+    `<p class="a-item-meta">Loading trips...</p>`;
+
+  try {
+    cachedTrips =
+      await getTrips();
+
+    renderTrips(
+      cachedTrips
+    );
+
+  } catch (error) {
+    container.innerHTML =
+      `<p class="a-msg error">
+        ${escapeHTML(
+          error.message
+        )}
+      </p>`;
+  }
+}
+
+
+function renderTrips(
+  trips
+) {
+  const container =
+    $a("trips-list");
+
+  if (!container) {
+    return;
+  }
+
+  if (!trips.length) {
+    container.innerHTML =
+      `<p class="a-item-meta">No trips found.</p>`;
+
+    return;
+  }
+
+  container.innerHTML =
+    trips
+      .map(
+        trip => `
+          <div class="a-item-card">
+            <div class="a-item-main">
+
+              ${
+                trip.image_url
+                  ? `
+                    <img
+                      src="${escapeHTML(
+                        trip.image_url
+                      )}"
+                      alt="${escapeHTML(
+                        trip.name
+                      )}"
+                      style="width:90px;height:65px;object-fit:cover;border-radius:8px;">
+                  `
+                  : ""
+              }
+
+              <div>
+                <h3>
+                  ${escapeHTML(
+                    trip.name
+                  )}
+                </h3>
+
+                <div class="a-item-meta">
+                  ${escapeHTML(
+                    trip.destination
+                  )}
+                </div>
+
+                <div class="a-item-meta">
+                  ${
+                    trip.duration
+                      ? escapeHTML(
+                          trip.duration
+                        )
+                      : ""
+                  }
+
+                  ${
+                    trip.price
+                      ? ` • ${escapeHTML(
+                          trip.price
+                        )}`
+                      : ""
+                  }
+
+                  ${
+                    trip.vehicle
+                      ? ` • ${escapeHTML(
+                          trip.vehicle
+                        )}`
+                      : ""
+                  }
+                </div>
+              </div>
+
+            </div>
+
+            <div class="a-item-actions">
+
+              ${actionButton(
+                "Edit",
+                "edit-trip",
+                trip.id
+              )}
+
+              ${actionButton(
+                "Delete",
+                "delete-trip",
+                trip.id,
+                "a-btn a-btn-danger a-btn-small"
+              )}
+
+            </div>
+          </div>
+        `
+      )
+      .join("");
+}
+
+
+/* =========================================================
+   VEHICLES LIST
+   ========================================================= */
+
+async function loadVehicles() {
+  const container =
+    $a("vehicles-list");
+
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML =
+    `<p class="a-item-meta">Loading vehicles...</p>`;
+
+  try {
+    const vehicles =
+      await getVehicles();
+
+    if (!vehicles.length) {
+      container.innerHTML =
+        `<p class="a-item-meta">No vehicles found.</p>`;
+
+      return;
+    }
+
+    container.innerHTML =
+      vehicles
+        .map(
+          vehicle => `
+            <div class="a-item-card">
+
+              <div class="a-item-main">
+
+                ${
+                  vehicle.image_url
+                    ? `
+                      <img
+                        src="${escapeHTML(
+                          vehicle.image_url
+                        )}"
+                        alt="${escapeHTML(
+                          vehicle.name
+                        )}"
+                        style="width:90px;height:65px;object-fit:cover;border-radius:8px;">
+                    `
+                    : ""
+                }
+
+                <div>
+                  <h3>
+                    ${escapeHTML(
+                      vehicle.name
+                    )}
+                  </h3>
+
+                  <div class="a-item-meta">
+                    ${escapeHTML(
+                      vehicle.type
+                    )}
+
+                    ${
+                      vehicle.capacity !==
+                        "" &&
+                      vehicle.capacity !==
+                        null
+                        ? ` • ${escapeHTML(
+                            vehicle.capacity
+                          )} seats`
+                        : ""
+                    }
+                  </div>
+
+                  ${
+                    vehicle.registration
+                      ? `
+                        <div class="a-item-meta">
+                          ${escapeHTML(
+                            vehicle.registration
+                          )}
+                        </div>
+                      `
+                      : ""
+                  }
+
+                  <div class="a-item-meta">
+                    ${
+                      vehicle.available
+                        ? "Available"
+                        : "Unavailable"
+                    }
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="a-item-actions">
+
+                ${actionButton(
+                  "Edit",
+                  "edit-vehicle",
+                  vehicle.id
+                )}
+
+                ${actionButton(
+                  "Delete",
+                  "delete-vehicle",
+                  vehicle.id,
+                  "a-btn a-btn-danger a-btn-small"
+                )}
+
+              </div>
+
+            </div>
+          `
+        )
+        .join("");
+
+  } catch (error) {
+    container.innerHTML =
+      `<p class="a-msg error">
+        ${escapeHTML(
+          error.message
+        )}
+      </p>`;
+  }
+}
+
+
+/* =========================================================
+   GALLERY LIST
+   ========================================================= */
+
+async function loadGallery() {
+  const container =
+    $a("gallery-list");
+
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML =
+    `<p class="a-item-meta">Loading gallery...</p>`;
+
+  try {
+    /*
+     * Admin must see both approved and pending.
+     */
+    const gallery =
+      await getAllGallery();
+
+    if (!gallery.length) {
+      container.innerHTML =
+        `<p class="a-item-meta">No gallery items found.</p>`;
+
+      return;
+    }
+
+    container.innerHTML =
+      gallery
+        .map(
+          item => `
+            <div class="a-item-card">
+
+              <div class="a-item-main">
+
+                ${
+                  item.media_url
+                    ? `
+                      <img
+                        src="${escapeHTML(
+                          item.media_url
+                        )}"
+                        alt="${escapeHTML(
+                          item.title
+                        )}"
+                        style="width:90px;height:65px;object-fit:cover;border-radius:8px;">
+                    `
+                    : ""
+                }
+
+                <div>
+                  <h3>
+                    ${escapeHTML(
+                      item.title ||
+                      "Untitled"
+                    )}
+                  </h3>
+
+                  ${
+                    item.description
+                      ? `
+                        <div class="a-item-meta">
+                          ${escapeHTML(
+                            item.description
+                          )}
+                        </div>
+                      `
+                      : ""
+                  }
+
+                  <div class="a-item-meta">
+                    ${
+                      item.approved
+                        ? "Approved / Public"
+                        : "Pending / Hidden"
+                    }
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="a-item-actions">
+
+                ${actionButton(
+                  item.approved
+                    ? "Hide"
+                    : "Approve",
+                  "toggle-gallery",
+                  item.id
+                )}
+
+                ${actionButton(
+                  "Delete",
+                  "delete-gallery",
+                  item.id,
+                  "a-btn a-btn-danger a-btn-small"
+                )}
+
+              </div>
+
+            </div>
+          `
+        )
+        .join("");
+
+  } catch (error) {
+    container.innerHTML =
+      `<p class="a-msg error">
+        ${escapeHTML(
+          error.message
+        )}
+      </p>`;
+  }
+}
+
+
+/* =========================================================
+   VIDEOS LIST
+   ========================================================= */
+
+async function loadVideos() {
+  const container =
+    $a("videos-list");
+
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML =
+    `<p class="a-item-meta">Loading videos...</p>`;
+
+  try {
+    const videos =
+      await getVideos();
+
+    if (!videos.length) {
+      container.innerHTML =
+        `<p class="a-item-meta">No videos found.</p>`;
+
+      return;
+    }
+
+    container.innerHTML =
+      videos
+        .map(
+          video => `
+            <div class="a-item-card">
+
+              <div class="a-item-main">
+                <div>
+                  <h3>
+                    ${escapeHTML(
+                      video.title
+                    )}
+                  </h3>
+
+                  ${
+                    video.description
+                      ? `
+                        <div class="a-item-meta">
+                          ${escapeHTML(
+                            video.description
+                          )}
+                        </div>
+                      `
+                      : ""
+                  }
+
+                  <div class="a-item-meta">
+                    YouTube ID:
+                    ${escapeHTML(
+                      video.youtube_id
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div class="a-item-actions">
+
+                ${actionButton(
+                  "Edit",
+                  "edit-video",
+                  video.id
+                )}
+
+                ${actionButton(
+                  "Delete",
+                  "delete-video",
+                  video.id,
+                  "a-btn a-btn-danger a-btn-small"
+                )}
+
+              </div>
+
+            </div>
+          `
+        )
+        .join("");
+
+  } catch (error) {
+    container.innerHTML =
+      `<p class="a-msg error">
+        ${escapeHTML(
+          error.message
+        )}
+      </p>`;
+  }
+}
+
+
+/* =========================================================
+   REVIEWS LIST
+   ========================================================= */
+
+async function loadReviews() {
+  const container =
+    $a("reviews-list");
+
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML =
+    `<p class="a-item-meta">Loading reviews...</p>`;
+
+  try {
+    /*
+     * Admin must see approved and pending reviews.
+     */
+    const reviews =
+      await getAllReviews();
+
+    if (!reviews.length) {
+      container.innerHTML =
+        `<p class="a-item-meta">No reviews found.</p>`;
+
+      return;
+    }
+
+    container.innerHTML =
+      reviews
+        .map(
+          review => `
+            <div class="a-item-card">
+
+              <div class="a-item-main">
+                <div>
+
+                  <h3>
+                    ${escapeHTML(
+                      review.name
+                    )}
+                  </h3>
+
+                  <div>
+                    ${"★".repeat(
+                      Math.max(
+                        0,
+                        Math.min(
+                          5,
+                          Number(
+                            review.rating
+                          ) || 0
+                        )
+                      )
+                    )}
+                  </div>
+
+                  <div class="a-item-meta">
+                    ${escapeHTML(
+                      review.comment
+                    )}
+                  </div>
+
+                  <div class="a-item-meta">
+                    ${
+                      review.approved
+                        ? "Approved / Public"
+                        : "Pending / Hidden"
+                    }
+                  </div>
+
+                  ${
+                    review.created_at
+                      ? `
+                        <div class="a-item-meta">
+                          ${escapeHTML(
+                            formatDate(
+                              review.created_at
+                            )
+                          )}
+                        </div>
+                      `
+                      : ""
+                  }
+
+                </div>
+              </div>
+
+              <div class="a-item-actions">
+
+                ${actionButton(
+                  "Edit",
+                  "edit-review",
+                  review.id
+                )}
+
+                ${actionButton(
+                  review.approved
+                    ? "Reject"
+                    : "Approve",
+                  "toggle-review",
+                  review.id
+                )}
+
+                ${actionButton(
+                  "Delete",
+                  "delete-review",
+                  review.id,
+                  "a-btn a-btn-danger a-btn-small"
+                )}
+
+              </div>
+
+            </div>
+          `
+        )
+        .join("");
+
+  } catch (error) {
+    container.innerHTML =
+      `<p class="a-msg error">
+        ${escapeHTML(
+          error.message
+        )}
+      </p>`;
+  }
+}
+
+
+/* =========================================================
+   ENQUIRIES LIST
+   ========================================================= */
+
+let cachedEnquiries =
+  [];
+
+
+async function loadEnquiries() {
+  const container =
+    $a("enquiries-list");
+
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML =
+    `<p class="a-item-meta">Loading enquiries...</p>`;
+
+  try {
+    cachedEnquiries =
+      await getEnquiries();
+
+    renderEnquiries(
+      cachedEnquiries
+    );
+
+  } catch (error) {
+    container.innerHTML =
+      `<p class="a-msg error">
+        ${escapeHTML(
+          error.message
+        )}
+      </p>`;
+  }
+}
+
+
+function renderEnquiries(
+  enquiries
+) {
+  const container =
+    $a("enquiries-list");
+
+  if (!container) {
+    return;
+  }
+
+  const filter =
+    getFieldValue(
+      "enquiry-filter"
+    ).toLowerCase();
+
+  const filtered =
+    filter
+      ? enquiries.filter(
+          item =>
+            String(
+              item.status || ""
+            ).toLowerCase() ===
+            filter
+        )
+      : enquiries;
+
+  if (!filtered.length) {
+    container.innerHTML =
+      `<p class="a-item-meta">No enquiries found.</p>`;
+
+    return;
+  }
+
+  container.innerHTML =
+    filtered
+      .map(
+        enquiry => `
+          <div class="a-item-card">
+
+            <div class="a-item-main">
+              <div>
+
+                <h3>
+                  ${escapeHTML(
+                    enquiry.name
+                  )}
+                </h3>
+
+                <div class="a-item-meta">
+                  Phone:
+                  ${escapeHTML(
+                    enquiry.phone
+                  )}
+                </div>
+
+                ${
+                  enquiry.trip
+                    ? `
+                      <div class="a-item-meta">
+                        Trip:
+                        ${escapeHTML(
+                          enquiry.trip
+                        )}
+                      </div>
+                    `
+                    : ""
+                }
+
+                ${
+                  enquiry.message
+                    ? `
+                      <div class="a-item-meta">
+                        ${escapeHTML(
+                          enquiry.message
+                        )}
+                      </div>
+                    `
+                    : ""
+                }
+
+                ${
+                  enquiry.created_at
+                    ? `
+                      <div class="a-item-meta">
+                        ${escapeHTML(
+                          formatDate(
+                            enquiry.created_at
+                          )
+                        )}
+                      </div>
+                    `
+                    : ""
+                }
+
+              </div>
+            </div>
+
+            <div class="a-item-actions">
+
+              <select
+                class="enquiry-status-select"
+                data-enquiry-id="${escapeHTML(
+                  enquiry.id
+                )}">
+
+                ${[
+                  "new",
+                  "contacted",
+                  "confirmed",
+                  "closed"
+                ]
+                  .map(
+                    status => `
+                      <option
+                        value="${status}"
+                        ${
+                          String(
+                            enquiry.status ||
+                              "new"
+                          ).toLowerCase() ===
+                          status
+                            ? "selected"
+                            : ""
+                        }>
+                        ${status.charAt(0).toUpperCase() +
+                          status.slice(1)}
+                      </option>
+                    `
+                  )
+                  .join("")}
+
+              </select>
+
+              ${actionButton(
+                "Delete",
+                "delete-enquiry",
+                enquiry.id,
+                "a-btn a-btn-danger a-btn-small"
+              )}
 
             </div>
 
           </div>
-
-        `).join("");
-
-    } catch (error) {
-
-      console.error(
-        "Enquiries error:",
-        error
-      );
-
-      list.innerHTML =
-        empty(
-          readableError(error)
-        );
-    }
-  };
+        `
+      )
+      .join("");
+}
 
 
 /* =========================================================
    SETTINGS
    ========================================================= */
 
-PANEL_LOADERS.settings =
-  async function () {
+async function loadSettings() {
+  try {
+    const settings =
+      await getSettings();
 
-    try {
-
-      const settings =
-        await getSettings();
-
-      if (!settings) {
-        return;
-      }
-
-      setFieldValue(
-        "settings-phone",
-        settings.phone
-      );
-
-      setFieldValue(
-        "settings-whatsapp",
-        settings.whatsapp
-      );
-
-      setFieldValue(
-        "settings-email",
-        settings.email
-      );
-
-      setFieldValue(
-        "settings-address",
-        settings.address
-      );
-
-      setFieldValue(
-        "settings-hours",
-        settings.hours
-      );
-
-      setFieldValue(
-        "settings-map",
-        settings.map_url
-      );
-
-      setFieldValue(
-        "settings-facebook",
-        settings.facebook
-      );
-
-      setFieldValue(
-        "settings-instagram",
-        settings.instagram
-      );
-
-      setFieldValue(
-        "settings-youtube",
-        settings.youtube
-      );
-
-      setFieldValue(
-        "settings-about",
-        settings.about_text
-      );
-
-      setFieldValue(
-        "settings-footer",
-        settings.footer_text
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Settings error:",
-        error
-      );
-
-      adminToast(
-        readableError(error),
-        "error"
-      );
+    if (!settings) {
+      return;
     }
-  };
 
-async function saveSettingsForm(event) {
+    setFieldValue(
+      "settings-phone",
+      settings.phone
+    );
 
-  event.preventDefault();
+    setFieldValue(
+      "settings-whatsapp",
+      settings.whatsapp
+    );
+
+    setFieldValue(
+      "settings-email",
+      settings.email
+    );
+
+    setFieldValue(
+      "settings-address",
+      settings.address
+    );
+
+    setFieldValue(
+      "settings-hours",
+      settings.hours
+    );
+
+    setFieldValue(
+      "settings-map",
+      settings.map_url
+    );
+
+    setFieldValue(
+      "settings-facebook",
+      settings.facebook
+    );
+
+    setFieldValue(
+      "settings-instagram",
+      settings.instagram
+    );
+
+    setFieldValue(
+      "settings-youtube",
+      settings.youtube
+    );
+
+    setFieldValue(
+      "settings-about",
+      settings.about_text ||
+      settings.description
+    );
+
+    setFieldValue(
+      "settings-footer",
+      settings.footer_text
+    );
+
+  } catch (error) {
+    console.error(
+      "[admin.js] Settings load failed:",
+      error
+    );
+  }
+}
+
+
+async function saveSettingsForm() {
+  const form =
+    $a("settings-form");
+
+  if (!form) {
+    return;
+  }
+
+  const submitButton =
+    form.querySelector(
+      'button[type="submit"]'
+    );
+
+  setButtonLoading(
+    submitButton,
+    true,
+    "Saving..."
+  );
 
   try {
+    /*
+     * IMPORTANT:
+     * Load existing settings first so business_name,
+     * description and other fields not shown in the
+     * dashboard are preserved.
+     */
+    const existing =
+      await getSettings();
 
     const settings = {
+      ...(existing || {}),
 
       phone:
         getFieldValue(
@@ -2738,88 +3077,900 @@ async function saveSettingsForm(event) {
       settings
     );
 
-    adminToast(
-      "Settings saved successfully.",
-      "success"
+    alert(
+      "Settings saved successfully."
     );
+
+    await refreshBusinessCache();
 
   } catch (error) {
-
-    console.error(
-      "Save settings error:",
-      error
+    alert(
+      error.message ||
+        "Failed to save settings."
     );
 
-    adminToast(
-      readableError(error),
-      "error"
+  } finally {
+    setButtonLoading(
+      submitButton,
+      false
     );
   }
 }
 
 
 /* =========================================================
-   NAVIGATION
+   CHANGE PASSWORD
    ========================================================= */
 
-async function showPanel(panel) {
+async function changeAdminPassword(
+  event
+) {
+  event.preventDefault();
 
-  panel =
-    panel || "dashboard";
+  const form =
+    event.currentTarget;
 
-  /*
-   * IMPORTANT:
-   * Show/hide panels BEFORE loading data.
-   * This prevents a failed database request from
-   * making the entire Admin Panel appear blank.
-   */
+  const errorBox =
+    $a("change-password-error");
 
-  document
-    .querySelectorAll(
-      "[data-panel]"
-    )
-    .forEach(button => {
+  const successBox =
+    $a(
+      "change-password-success"
+    );
 
-      button.classList.toggle(
-        "active",
-        button.dataset.panel ===
-        panel
-      );
-    });
+  if (errorBox) {
+    errorBox.textContent = "";
+    errorBox.style.display =
+      "none";
+  }
 
-  document
-    .querySelectorAll(
-      ".admin-panel"
-    )
-    .forEach(section => {
+  if (successBox) {
+    successBox.textContent = "";
+    successBox.style.display =
+      "none";
+  }
 
-      section.style.display =
-        section.id ===
-        `panel-${panel}`
-          ? ""
-          : "none";
-    });
+  const currentPassword =
+    getFieldValue(
+      "current-admin-password"
+    );
 
-  const loader =
-    PANEL_LOADERS[panel];
+  const newPassword =
+    getFieldValue(
+      "new-admin-password"
+    );
 
-  if (!loader) {
+  const confirmPassword =
+    getFieldValue(
+      "confirm-admin-password"
+    );
+
+  if (!currentPassword) {
+    showError(
+      "change-password-error",
+      "Enter your current password."
+    );
+
     return;
   }
 
-  /*
-   * Never allow a panel loader to prevent
-   * the Admin Panel itself from displaying.
-   */
-  try {
-    await loader();
-  } catch (error) {
+  if (
+    newPassword.length < 8
+  ) {
+    showError(
+      "change-password-error",
+      "New password must contain at least 8 characters."
+    );
 
-    console.error(
-      `Panel loader failed: ${panel}`,
+    return;
+  }
+
+  if (
+    newPassword !==
+    confirmPassword
+  ) {
+    showError(
+      "change-password-error",
+      "New passwords do not match."
+    );
+
+    return;
+  }
+
+  const button =
+    form.querySelector(
+      'button[type="submit"]'
+    );
+
+  setButtonLoading(
+    button,
+    true,
+    "Changing..."
+  );
+
+  try {
+    const db =
+      authClient();
+
+    /*
+     * Re-authenticate using the current password.
+     */
+    const session =
+      await db.auth.getSession();
+
+    const email =
+      session &&
+      session.data &&
+      session.data.session &&
+      session.data.session.user
+        ? session.data.session.user.email
+        : "";
+
+    if (!email) {
+      throw new Error(
+        "Your admin session has expired. Please login again."
+      );
+    }
+
+    const {
+      error: loginError
+    } =
+      await db.auth.signInWithPassword({
+        email,
+        password:
+          currentPassword
+      });
+
+    if (loginError) {
+      throw loginError;
+    }
+
+    const {
       error
+    } =
+      await db.auth.updateUser({
+        password:
+          newPassword
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    form.reset();
+
+    if (successBox) {
+      successBox.textContent =
+        "Password changed successfully.";
+
+      successBox.style.display =
+        "block";
+    }
+
+  } catch (error) {
+    showError(
+      "change-password-error",
+      error.message ||
+        "Failed to change password."
+    );
+
+  } finally {
+    setButtonLoading(
+      button,
+      false
     );
   }
+}
+
+
+/* =========================================================
+   PANEL LOADERS
+   ========================================================= */
+
+const PANEL_LOADERS = {
+  dashboard:
+    loadDashboardStats,
+
+  trips:
+    loadTrips,
+
+  vehicles:
+    loadVehicles,
+
+  gallery:
+    loadGallery,
+
+  videos:
+    loadVideos,
+
+  reviews:
+    loadReviews,
+
+  enquiries:
+    loadEnquiries,
+
+  settings:
+    loadSettings
+};
+
+
+/* =========================================================
+   DELETE / TOGGLE ACTIONS
+   ========================================================= */
+
+async function handleAdminAction(
+  action,
+  id
+) {
+  if (!action) {
+    return;
+  }
+
+  switch (action) {
+
+    case "edit-trip":
+      await openTripModal(id);
+      break;
+
+
+    case "delete-trip":
+      if (
+        !confirm(
+          "Delete this trip?"
+        )
+      ) {
+        return;
+      }
+
+      await deleteTrip(id);
+      await loadTrips();
+      await loadDashboardStats();
+      break;
+
+
+    case "edit-vehicle":
+      await openVehicleModal(id);
+      break;
+
+
+    case "delete-vehicle":
+      if (
+        !confirm(
+          "Delete this vehicle?"
+        )
+      ) {
+        return;
+      }
+
+      await deleteVehicle(id);
+      await loadVehicles();
+      await loadDashboardStats();
+      break;
+
+
+    case "toggle-gallery": {
+      const gallery =
+        await getAllGallery();
+
+      const item =
+        gallery.find(
+          entry =>
+            String(entry.id) ===
+            String(id)
+        );
+
+      if (!item) {
+        throw new Error(
+          "Gallery item not found."
+        );
+      }
+
+      await saveGallery({
+        ...item,
+        approved:
+          !item.approved
+      });
+
+      await loadGallery();
+      await loadDashboardStats();
+
+      break;
+    }
+
+
+    case "delete-gallery":
+      if (
+        !confirm(
+          "Delete this gallery item?"
+        )
+      ) {
+        return;
+      }
+
+      await deleteGallery(id);
+      await loadGallery();
+      await loadDashboardStats();
+      break;
+
+
+    case "edit-video":
+      await openVideoModal(id);
+      break;
+
+
+    case "delete-video":
+      if (
+        !confirm(
+          "Delete this video?"
+        )
+      ) {
+        return;
+      }
+
+      await deleteVideo(id);
+      await loadVideos();
+      await loadDashboardStats();
+      break;
+
+
+    case "edit-review":
+      await openReviewModal(id);
+      break;
+
+
+    case "toggle-review": {
+      const reviews =
+        await getAllReviews();
+
+      const review =
+        reviews.find(
+          entry =>
+            String(entry.id) ===
+            String(id)
+        );
+
+      if (!review) {
+        throw new Error(
+          "Review not found."
+        );
+      }
+
+      if (review.approved) {
+        await rejectReview(id);
+      } else {
+        await approveReview(id);
+      }
+
+      await loadReviews();
+      await loadDashboardStats();
+
+      break;
+    }
+
+
+    case "delete-review":
+      if (
+        !confirm(
+          "Delete this review?"
+        )
+      ) {
+        return;
+      }
+
+      await deleteReview(id);
+      await loadReviews();
+      await loadDashboardStats();
+      break;
+
+
+    case "delete-enquiry":
+      if (
+        !confirm(
+          "Delete this enquiry?"
+        )
+      ) {
+        return;
+      }
+
+      await deleteEnquiry(id);
+      await loadEnquiries();
+      await loadDashboardStats();
+      break;
+
+  }
+}
+
+
+/* =========================================================
+   EVENT HANDLERS
+   ========================================================= */
+
+function bindNavigation() {
+  document.addEventListener(
+    "click",
+    event => {
+      const link =
+        event.target.closest(
+          "[data-panel]"
+        );
+
+      if (!link) {
+        return;
+      }
+
+      event.preventDefault();
+
+      showPanel(
+        link.dataset.panel
+      );
+    }
+  );
+}
+
+
+function bindLogout() {
+  document.addEventListener(
+    "click",
+    event => {
+      const button =
+        event.target.closest(
+          ".a-logout-btn, #logout-btn, [data-logout]"
+        );
+
+      if (!button) {
+        return;
+      }
+
+      event.preventDefault();
+
+      adminLogout();
+    }
+  );
+}
+
+
+function bindQuickActions() {
+  document.addEventListener(
+    "click",
+    event => {
+      const button =
+        event.target.closest(
+          "[data-quick]"
+        );
+
+      if (!button) {
+        return;
+      }
+
+      const type =
+        button.dataset.quick;
+
+      switch (type) {
+        case "trip":
+          openTripModal();
+          break;
+
+        case "vehicle":
+          openVehicleModal();
+          break;
+
+        case "gallery":
+          showPanel(
+            "gallery"
+          );
+
+          setTimeout(
+            () => {
+              const input =
+                $a("g-image");
+
+              if (input) {
+                input.focus();
+              }
+            },
+            100
+          );
+
+          break;
+
+        case "video":
+          openVideoModal();
+          break;
+
+        case "review":
+          openReviewModal();
+          break;
+      }
+    }
+  );
+}
+
+
+function bindActionButtons() {
+  document.addEventListener(
+    "click",
+    async event => {
+      const button =
+        event.target.closest(
+          "[data-action]"
+        );
+
+      if (!button) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const action =
+        button.dataset.action;
+
+      const id =
+        button.dataset.id;
+
+      if (!action) {
+        return;
+      }
+
+      try {
+        button.disabled =
+          true;
+
+        await handleAdminAction(
+          action,
+          id
+        );
+
+      } catch (error) {
+        console.error(
+          "[admin.js] Action failed:",
+          error
+        );
+
+        alert(
+          error.message ||
+            "Action failed."
+        );
+
+      } finally {
+        button.disabled =
+          false;
+      }
+    }
+  );
+}
+
+
+function bindModalClose() {
+  document.addEventListener(
+    "click",
+    event => {
+      const closeButton =
+        event.target.closest(
+          "[data-close]"
+        );
+
+      if (!closeButton) {
+        return;
+      }
+
+      event.preventDefault();
+
+      closeModal(
+        closeButton.dataset.close
+      );
+    }
+  );
+
+
+  document.addEventListener(
+    "click",
+    event => {
+      if (
+        event.target.classList.contains(
+          "a-modal-overlay"
+        )
+      ) {
+        closeModal(
+          event.target.id
+        );
+      }
+    }
+  );
+
+
+  document.addEventListener(
+    "keydown",
+    event => {
+      if (
+        event.key !== "Escape"
+      ) {
+        return;
+      }
+
+      closeAllModals();
+    }
+  );
+}
+
+
+function bindForms() {
+  const tripForm =
+    $a("trip-form");
+
+  if (tripForm) {
+    tripForm.addEventListener(
+      "submit",
+      event => {
+        event.preventDefault();
+
+        saveTripForm()
+          .catch(error => {
+            console.error(
+              "[admin.js] Trip form error:",
+              error
+            );
+          });
+      }
+    );
+  }
+
+
+  const vehicleForm =
+    $a("vehicle-form");
+
+  if (vehicleForm) {
+    vehicleForm.addEventListener(
+      "submit",
+      event => {
+        event.preventDefault();
+
+        saveVehicleForm()
+          .catch(error => {
+            console.error(
+              "[admin.js] Vehicle form error:",
+              error
+            );
+          });
+      }
+    );
+  }
+
+
+  const galleryForm =
+    $a("gallery-add-form");
+
+  if (galleryForm) {
+    galleryForm.addEventListener(
+      "submit",
+      event => {
+        event.preventDefault();
+
+        saveGalleryForm()
+          .catch(error => {
+            console.error(
+              "[admin.js] Gallery form error:",
+              error
+            );
+          });
+      }
+    );
+  }
+
+
+  const videoForm =
+    $a("video-form");
+
+  if (videoForm) {
+    videoForm.addEventListener(
+      "submit",
+      event => {
+        event.preventDefault();
+
+        saveVideoForm()
+          .catch(error => {
+            console.error(
+              "[admin.js] Video form error:",
+              error
+            );
+          });
+      }
+    );
+  }
+
+
+  const reviewForm =
+    $a("review-form-admin");
+
+  if (reviewForm) {
+    reviewForm.addEventListener(
+      "submit",
+      event => {
+        event.preventDefault();
+
+        saveReviewForm()
+          .catch(error => {
+            console.error(
+              "[admin.js] Review form error:",
+              error
+            );
+          });
+      }
+    );
+  }
+
+
+  const settingsForm =
+    $a("settings-form");
+
+  if (settingsForm) {
+    settingsForm.addEventListener(
+      "submit",
+      event => {
+        event.preventDefault();
+
+        saveSettingsForm()
+          .catch(error => {
+            console.error(
+              "[admin.js] Settings form error:",
+              error
+            );
+          });
+      }
+    );
+  }
+
+
+  const passwordForm =
+    $a("change-password-form");
+
+  if (passwordForm) {
+    passwordForm.addEventListener(
+      "submit",
+      changeAdminPassword
+    );
+  }
+
+
+  const enquiryFilter =
+    $a("enquiry-filter");
+
+  if (enquiryFilter) {
+    enquiryFilter.addEventListener(
+      "change",
+      () => {
+        renderEnquiries(
+          cachedEnquiries
+        );
+      }
+    );
+  }
+
+
+  const search =
+    $a("trip-search");
+
+  if (search) {
+    search.addEventListener(
+      "input",
+      () => {
+        const query =
+          search.value
+            .trim()
+            .toLowerCase();
+
+        const filtered =
+          cachedTrips.filter(
+            trip =>
+              [
+                trip.name,
+                trip.destination,
+                trip.description,
+                trip.vehicle,
+                trip.price
+              ]
+                .join(" ")
+                .toLowerCase()
+                .includes(query)
+          );
+
+        renderTrips(
+          filtered
+        );
+      }
+    );
+  }
+}
+
+
+function bindAddButtons() {
+  const addTrip =
+    $a("add-trip-btn");
+
+  if (addTrip) {
+    addTrip.addEventListener(
+      "click",
+      () => openTripModal()
+    );
+  }
+
+
+  const addVehicle =
+    $a("add-vehicle-btn");
+
+  if (addVehicle) {
+    addVehicle.addEventListener(
+      "click",
+      () => openVehicleModal()
+    );
+  }
+
+
+  const addVideo =
+    $a("add-video-btn");
+
+  if (addVideo) {
+    addVideo.addEventListener(
+      "click",
+      () => openVideoModal()
+    );
+  }
+
+
+  const addReview =
+    $a("add-review-btn");
+
+  if (addReview) {
+    addReview.addEventListener(
+      "click",
+      () => openReviewModal()
+    );
+  }
+}
+
+
+function bindEnquiryActions() {
+  document.addEventListener(
+    "change",
+    async event => {
+      const select =
+        event.target.closest(
+          ".enquiry-status-select"
+        );
+
+      if (!select) {
+        return;
+      }
+
+      const id =
+        select.dataset.enquiryId;
+
+      const status =
+        select.value;
+
+      try {
+        select.disabled =
+          true;
+
+        await updateEnquiryStatus(
+          id,
+          status
+        );
+
+        await loadEnquiries();
+        await loadDashboardStats();
+
+      } catch (error) {
+        alert(
+          error.message ||
+            "Failed to update enquiry."
+        );
+
+      } finally {
+        select.disabled =
+          false;
+      }
+    }
+  );
 }
 
 
@@ -2827,140 +3978,7 @@ async function showPanel(panel) {
    IMAGE PREVIEWS
    ========================================================= */
 
-function setupImagePreview(
-  inputId,
-  previewId
-) {
-
-  const input =
-    $a(inputId);
-
-  const preview =
-    $a(previewId);
-
-  if (!input || !preview) {
-    return;
-  }
-
-  input.addEventListener(
-    "change",
-    () => {
-
-      const file =
-        input.files?.[0];
-
-      if (!file) {
-
-        preview.src = "";
-        preview.style.display =
-          "none";
-
-        return;
-      }
-
-      if (
-        !file.type.startsWith(
-          "image/"
-        )
-      ) {
-
-        adminToast(
-          "Please select an image file.",
-          "error"
-        );
-
-        input.value = "";
-        preview.src = "";
-        preview.style.display =
-          "none";
-
-        return;
-      }
-
-      if (
-        file.size >
-        5 * 1024 * 1024
-      ) {
-
-        adminToast(
-          "Image must be smaller than 5 MB.",
-          "error"
-        );
-
-        input.value = "";
-        preview.src = "";
-        preview.style.display =
-          "none";
-
-        return;
-      }
-
-      const reader =
-        new FileReader();
-
-      reader.onload =
-        event => {
-
-          preview.src =
-            event.target.result;
-
-          preview.style.display =
-            "block";
-        };
-
-      reader.readAsDataURL(
-        file
-      );
-    }
-  );
-}
-
-
-/* =========================================================
-   INIT ADMIN PANEL
-   ========================================================= */
-
-async function initAdmin() {
-
-  /*
-   * Prevent duplicate initialization.
-   */
-  if (window.__hdtAdminInitialized) {
-    return;
-  }
-
-  window.__hdtAdminInitialized = true;
-
-  /*
-   * Make sure the dashboard is visible immediately.
-   */
-  try {
-
-    document
-      .querySelectorAll(
-        ".admin-panel"
-      )
-      .forEach(section => {
-
-        section.style.display =
-          section.id ===
-          "panel-dashboard"
-            ? ""
-            : "none";
-      });
-
-  } catch (error) {
-    console.error(
-      "Initial panel visibility error:",
-      error
-    );
-  }
-
-
-  /* =======================================================
-     IMAGE PREVIEWS
-     ======================================================= */
-
+function bindImagePreviews() {
   setupImagePreview(
     "trip-image-input",
     "trip-image-preview"
@@ -2970,893 +3988,101 @@ async function initAdmin() {
     "vehicle-image-input",
     "vehicle-image-preview"
   );
-
-
-  /* =======================================================
-     FORMS
-     ======================================================= */
-
-  const tripForm =
-    $a("trip-form");
-
-  if (tripForm) {
-    tripForm.addEventListener(
-      "submit",
-      saveTripForm
-    );
-  }
-
-  const vehicleForm =
-    $a("vehicle-form");
-
-  if (vehicleForm) {
-    vehicleForm.addEventListener(
-      "submit",
-      saveVehicleForm
-    );
-  }
-
-  const galleryForm =
-    $a("gallery-add-form");
-
-  if (galleryForm) {
-    galleryForm.addEventListener(
-      "submit",
-      saveGalleryForm
-    );
-  }
-
-  const videoForm =
-    $a("video-form");
-
-  if (videoForm) {
-    videoForm.addEventListener(
-      "submit",
-      saveVideoForm
-    );
-  }
-
-  const reviewForm =
-    $a("review-form-admin");
-
-  if (reviewForm) {
-    reviewForm.addEventListener(
-      "submit",
-      saveReviewForm
-    );
-  }
-
-  const settingsForm =
-    $a("settings-form");
-
-  if (settingsForm) {
-    settingsForm.addEventListener(
-      "submit",
-      saveSettingsForm
-    );
-  }
-
-  const passwordForm =
-    $a("change-password-form");
-
-  if (passwordForm) {
-    passwordForm.addEventListener(
-      "submit",
-      saveChangePasswordForm
-    );
-  }
-
-
-  /* =======================================================
-     ADD BUTTONS
-     ======================================================= */
-
-  const addTrip =
-    $a("add-trip-btn");
-
-  if (addTrip) {
-    addTrip.addEventListener(
-      "click",
-      event => {
-        event.preventDefault();
-        openTripModal();
-      }
-    );
-  }
-
-  const addVehicle =
-    $a("add-vehicle-btn");
-
-  if (addVehicle) {
-    addVehicle.addEventListener(
-      "click",
-      event => {
-        event.preventDefault();
-        openVehicleModal();
-      }
-    );
-  }
-
-  const addVideo =
-    $a("add-video-btn");
-
-  if (addVideo) {
-    addVideo.addEventListener(
-      "click",
-      event => {
-        event.preventDefault();
-        openVideoModal();
-      }
-    );
-  }
-
-  const addReview =
-    $a("add-review-btn");
-
-  if (addReview) {
-    addReview.addEventListener(
-      "click",
-      event => {
-        event.preventDefault();
-        openReviewModal();
-      }
-    );
-  }
-
-
-  /* =======================================================
-     ENQUIRY FILTER
-     ======================================================= */
-
-  const enquiryFilter =
-    $a("enquiry-filter");
-
-  if (enquiryFilter) {
-
-    enquiryFilter.addEventListener(
-      "change",
-      () => {
-
-        PANEL_LOADERS.enquiries()
-          .catch(error => {
-
-            console.error(
-              "Enquiry filter error:",
-              error
-            );
-
-          });
-
-      }
-    );
-  }
-
-
-  /* =======================================================
-     TRIP SEARCH
-     ======================================================= */
-
-  const tripSearch =
-    $a("trip-search");
-
-  if (tripSearch) {
-
-    tripSearch.addEventListener(
-      "input",
-      () => {
-
-        const query =
-          tripSearch.value
-            .trim()
-            .toLowerCase();
-
-        document
-          .querySelectorAll(
-            "#trips-list [data-trip-search]"
-          )
-          .forEach(card => {
-
-            const text =
-              card.dataset.tripSearch ||
-              "";
-
-            card.style.display =
-              !query ||
-              text.includes(query)
-                ? ""
-                : "none";
-          });
-
-      }
-    );
-  }
-
-
-  /* =======================================================
-     GLOBAL CLICK HANDLER
-     ======================================================= */
-
-  document.addEventListener(
-    "click",
-    async event => {
-
-      /*
-       * Navigation
-       */
-      const panelButton =
-        event.target.closest(
-          "[data-panel]"
-        );
-
-      if (
-        panelButton &&
-        !event.target.closest(
-          "button[type='submit']"
-        )
-      ) {
-
-        event.preventDefault();
-
-        await showPanel(
-          panelButton.dataset.panel
-        );
-
-        return;
-      }
-
-
-      /*
-       * Quick actions
-       */
-      const quick =
-        event.target.closest(
-          "[data-quick]"
-        );
-
-      if (quick) {
-
-        event.preventDefault();
-
-        const type =
-          quick.dataset.quick;
-
-        if (type === "trip") {
-          openTripModal();
-          return;
-        }
-
-        if (type === "vehicle") {
-          openVehicleModal();
-          return;
-        }
-
-        if (type === "video") {
-          openVideoModal();
-          return;
-        }
-
-        if (type === "review") {
-          openReviewModal();
-          return;
-        }
-
-        if (type === "gallery") {
-          await showPanel("gallery");
-          return;
-        }
-      }
-
-
-      /*
-       * Recent dashboard buttons
-       */
-      const recent =
-        event.target.closest(
-          "[data-recent-panel]"
-        );
-
-      if (recent) {
-
-        event.preventDefault();
-
-        await showPanel(
-          recent.dataset.recentPanel
-        );
-
-        return;
-      }
-
-
-      /*
-       * Close modal
-       */
-      const closeButton =
-        event.target.closest(
-          "[data-close-modal]"
-        );
-
-      if (closeButton) {
-
-        const modalId =
-          closeButton.dataset.closeModal;
-
-        const modal =
-          $a(modalId);
-
-        if (modal) {
-          modal.style.display =
-            "none";
-        }
-
-        return;
-      }
-
-
-      /*
-       * Trip edit
-       */
-      const editTrip =
-        event.target.closest(
-          "[data-edit-trip]"
-        );
-
-      if (editTrip) {
-
-        await guard(async () => {
-
-          const trips =
-            await getTrips();
-
-          const trip =
-            trips.find(
-              row =>
-                String(row.id) ===
-                String(
-                  editTrip.dataset.editTrip
-                )
-            );
-
-          if (!trip) {
-            throw new Error(
-              "Trip not found."
-            );
-          }
-
-          openTripModal(trip);
-
-        });
-
-        return;
-      }
-
-
-      /*
-       * Trip delete
-       */
-      const deleteTrip =
-        event.target.closest(
-          "[data-delete-trip]"
-        );
-
-      if (deleteTrip) {
-
-        if (
-          !confirm(
-            "Delete this trip?"
-          )
-        ) {
-          return;
-        }
-
-        await guard(async () => {
-
-          await deleteTripById(
-            deleteTrip.dataset.deleteTrip
-          );
-
-          adminToast(
-            "Trip deleted successfully.",
-            "success"
-          );
-
-          await PANEL_LOADERS.trips();
-          await PANEL_LOADERS.dashboard();
-
-        });
-
-        return;
-      }
-
-
-      /*
-       * Vehicle edit
-       */
-      const editVehicle =
-        event.target.closest(
-          "[data-edit-vehicle]"
-        );
-
-      if (editVehicle) {
-
-        await guard(async () => {
-
-          const vehicles =
-            await getVehicles();
-
-          const vehicle =
-            vehicles.find(
-              row =>
-                String(row.id) ===
-                String(
-                  editVehicle.dataset.editVehicle
-                )
-            );
-
-          if (!vehicle) {
-            throw new Error(
-              "Vehicle not found."
-            );
-          }
-
-          openVehicleModal(vehicle);
-
-        });
-
-        return;
-      }
-
-
-      /*
-       * Vehicle delete
-       */
-      const deleteVehicle =
-        event.target.closest(
-          "[data-delete-vehicle]"
-        );
-
-      if (deleteVehicle) {
-
-        if (
-          !confirm(
-            "Delete this vehicle?"
-          )
-        ) {
-          return;
-        }
-
-        await guard(async () => {
-
-          await deleteVehicleById(
-            deleteVehicle.dataset.deleteVehicle
-          );
-
-          adminToast(
-            "Vehicle deleted successfully.",
-            "success"
-          );
-
-          await PANEL_LOADERS.vehicles();
-          await PANEL_LOADERS.dashboard();
-
-        });
-
-        return;
-      }
-
-
-      /*
-       * Gallery approve/hide
-       */
-      const toggleGallery =
-        event.target.closest(
-          "[data-toggle-gallery]"
-        );
-
-      if (toggleGallery) {
-
-        await guard(async () => {
-
-          const gallery =
-            await getGallery();
-
-          const item =
-            gallery.find(
-              row =>
-                Number(row.id) ===
-                Number(
-                  toggleGallery.dataset
-                    .toggleGallery
-                )
-            );
-
-          if (!item) {
-            throw new Error(
-              "Gallery item not found."
-            );
-          }
-
-          await updateGallery(
-            item.id,
-            {
-              approved:
-                !item.approved
-            }
-          );
-
-          adminToast(
-            "Gallery visibility updated.",
-            "success"
-          );
-
-          await PANEL_LOADERS.gallery();
-          await PANEL_LOADERS.dashboard();
-
-        });
-
-        return;
-      }
-
-
-      /*
-       * Gallery delete
-       */
-      const deleteGallery =
-        event.target.closest(
-          "[data-delete-gallery]"
-        );
-
-      if (deleteGallery) {
-
-        if (
-          !confirm(
-            "Delete this gallery item?"
-          )
-        ) {
-          return;
-        }
-
-        await guard(async () => {
-
-          await deleteGalleryById(
-            deleteGallery.dataset
-              .deleteGallery
-          );
-
-          adminToast(
-            "Gallery item deleted successfully.",
-            "success"
-          );
-
-          await PANEL_LOADERS.gallery();
-          await PANEL_LOADERS.dashboard();
-
-        });
-
-        return;
-      }
-
-
-      /*
-       * Video edit
-       */
-      const editVideo =
-        event.target.closest(
-          "[data-edit-video]"
-        );
-
-      if (editVideo) {
-
-        await guard(async () => {
-
-          const videos =
-            await getVideos();
-
-          const video =
-            videos.find(
-              row =>
-                String(row.id) ===
-                String(
-                  editVideo.dataset.editVideo
-                )
-            );
-
-          if (!video) {
-            throw new Error(
-              "Video not found."
-            );
-          }
-
-          openVideoModal(video);
-
-        });
-
-        return;
-      }
-
-
-      /*
-       * Video delete
-       */
-      const deleteVideo =
-        event.target.closest(
-          "[data-delete-video]"
-        );
-
-      if (deleteVideo) {
-
-        if (
-          !confirm(
-            "Delete this video?"
-          )
-        ) {
-          return;
-        }
-
-        await guard(async () => {
-
-          await deleteVideoById(
-            deleteVideo.dataset.deleteVideo
-          );
-
-          adminToast(
-            "Video deleted successfully.",
-            "success"
-          );
-
-          await PANEL_LOADERS.videos();
-          await PANEL_LOADERS.dashboard();
-
-        });
-
-        return;
-      }
-
-
-      /*
-       * Review edit
-       */
-      const editReview =
-        event.target.closest(
-          "[data-edit-review]"
-        );
-
-      if (editReview) {
-
-        await guard(async () => {
-
-          const reviews =
-            await getReviews();
-
-          const review =
-            reviews.find(
-              row =>
-                Number(row.id) ===
-                Number(
-                  editReview.dataset
-                    .editReview
-                )
-            );
-
-          if (!review) {
-            throw new Error(
-              "Review not found."
-            );
-          }
-
-          openReviewModal(review);
-
-        });
-
-        return;
-      }
-
-
-      /*
-       * Review approve/hide
-       */
-      const toggleReview =
-        event.target.closest(
-          "[data-toggle-review]"
-        );
-
-      if (toggleReview) {
-
-        await guard(async () => {
-
-          const reviews =
-            await getReviews();
-
-          const review =
-            reviews.find(
-              row =>
-                Number(row.id) ===
-                Number(
-                  toggleReview.dataset
-                    .toggleReview
-                )
-            );
-
-          if (!review) {
-            throw new Error(
-              "Review not found."
-            );
-          }
-
-          await updateReview(
-            review.id,
-            {
-              approved:
-                !review.approved
-            }
-          );
-
-          adminToast(
-            "Review visibility updated.",
-            "success"
-          );
-
-          await PANEL_LOADERS.reviews();
-          await PANEL_LOADERS.dashboard();
-
-        });
-
-        return;
-      }
-
-
-      /*
-       * Review delete
-       */
-      const deleteReview =
-        event.target.closest(
-          "[data-delete-review]"
-        );
-
-      if (deleteReview) {
-
-        if (
-          !confirm(
-            "Delete this review?"
-          )
-        ) {
-          return;
-        }
-
-        await guard(async () => {
-
-          await deleteReviewById(
-            deleteReview.dataset
-              .deleteReview
-          );
-
-          adminToast(
-            "Review deleted successfully.",
-            "success"
-          );
-
-          await PANEL_LOADERS.reviews();
-          await PANEL_LOADERS.dashboard();
-
-        });
-
-        return;
-      }
-
-
-      /*
-       * Logout
-       */
-      if (
-        event.target.closest(
-          "#logout-btn"
-        ) ||
-        event.target.closest(
-          "[data-logout]"
-        )
-      ) {
-
-        event.preventDefault();
-
-        await guard(async () => {
-          await adminLogout();
-        });
-
-        return;
-      }
-
-
-      /*
-       * Click outside modal
-       */
-      if (
-        event.target.classList.contains(
-          "admin-modal"
-        )
-      ) {
-
-        event.target.style.display =
-          "none";
-      }
-
-    }
-  );
-
-
-  /* =======================================================
-     ESCAPE KEY
-     ======================================================= */
-
-  document.addEventListener(
-    "keydown",
-    event => {
-
-      if (
-        event.key !== "Escape"
-      ) {
-        return;
-      }
-
-      document
-        .querySelectorAll(
-          ".admin-modal"
-        )
-        .forEach(modal => {
-
-          modal.style.display =
-            "none";
-        });
-    }
-  );
-
-
-  /* =======================================================
-     FINALLY SHOW DASHBOARD
-     ======================================================= */
-
-  /*
-   * This is intentionally NOT:
-   *
-   * await showPanel("dashboard")
-   *
-   * before showing the page.
-   *
-   * showPanel first makes the dashboard visible,
-   * then the loader runs safely.
-   */
-
-  await showPanel(
-    "dashboard"
-  );
 }
 
 
 /* =========================================================
-   GLOBAL ACCESS
+   INITIALIZE ADMIN
    ========================================================= */
 
-window.ADMIN_USER_ID =
-  ADMIN_USER_ID;
+let adminInitialized =
+  false;
 
-window.adminLogin =
-  adminLogin;
 
-window.adminLogout =
-  adminLogout;
+async function initAdmin() {
+  if (adminInitialized) {
+    return true;
+  }
 
-window.isAdminLoggedIn =
-  isAdminLoggedIn;
+  adminInitialized =
+    true;
 
-window.requireAdminAuth =
-  requireAdminAuth;
+  try {
+    /*
+     * Bind all handlers once.
+     */
+    bindNavigation();
+    bindLogout();
+    bindQuickActions();
+    bindActionButtons();
+    bindModalClose();
+    bindForms();
+    bindAddButtons();
+    bindEnquiryActions();
+    bindImagePreviews();
 
-window.initAdmin =
-  initAdmin;
+    /*
+     * Keep dashboard visible immediately.
+     */
+    showPanel(
+      "dashboard"
+    );
 
-window.showPanel =
-  showPanel;
+    /*
+     * Load dashboard information.
+     */
+    await loadDashboardStats();
 
-window.changeAdminPassword =
-  changeAdminPassword;
+    return true;
 
-window.PANEL_LOADERS =
-  PANEL_LOADERS;
+  } catch (error) {
+    console.error(
+      "[admin.js] Admin initialization failed:",
+      error
+    );
+
+    adminInitialized =
+      false;
+
+    return false;
+  }
+}
+
+
+/* =========================================================
+   GLOBAL EXPORTS
+   ========================================================= */
+
+if (
+  typeof window !== "undefined"
+) {
+  window.adminLogin =
+    adminLogin;
+
+  window.adminLogout =
+    adminLogout;
+
+  window.isAdminLoggedIn =
+    isAdminLoggedIn;
+
+  window.requireAdminAuth =
+    requireAdminAuth;
+
+  window.initAdmin =
+    initAdmin;
+
+  window.openTripModal =
+    openTripModal;
+
+  window.openVehicleModal =
+    openVehicleModal;
+
+  window.openVideoModal =
+    openVideoModal;
+
+  window.openReviewModal =
+    openReviewModal;
+
+  window.showPanel =
+    showPanel;
+}
