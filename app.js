@@ -2074,8 +2074,9 @@ function renderFooter() {
             .join("")
         }
 
+        <!-- Only change: force fresh admin login -->
         <a
-          href="login.html"
+          href="login.html?force=1"
           class="admin-link"
         >
           Admin
