@@ -3,49 +3,426 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Admin Login | Hazi Dada Travels</title>
+
 <meta name="robots" content="noindex, nofollow">
+
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="stylesheet" href="admin.css">
 </head>
+
 <body class="admin-body">
+
 <div class="admin-login-wrap">
+
   <div class="admin-login-card">
+
     <img src="logo.png" alt="Hazi Dada Travels logo">
+
     <h1>Hazi Dada Travels</h1>
-    <p class="sub"><strong>Admin Panel</strong></p>
+
+    <p class="sub">
+      <strong>Admin Panel</strong>
+    </p>
+
     <div id="login-msg"></div>
+
+    <!-- LOGIN FORM -->
     <form id="login-form" novalidate>
-      <div class="a-form-group"><label for="email">Email</label><input id="email" type="email" name="email" autocomplete="username"></div>
-      <div class="a-form-group"><label for="password">Password</label>
-        <div class="password-field"><input id="password" type="password" name="password" autocomplete="current-password">
-        <button type="button" class="password-toggle" id="toggle-password" aria-label="Show or hide password">👁️</button></div></div>
-      <button type="submit" class="a-btn a-btn-primary a-btn-block" id="login-btn">Login</button>
+
+      <div class="a-form-group">
+
+        <label for="email">Email</label>
+
+        <input
+          id="email"
+          type="email"
+          name="email"
+          autocomplete="username"
+          required
+        >
+
+      </div>
+
+
+      <div class="a-form-group">
+
+        <label for="password">Password</label>
+
+        <div class="password-field">
+
+          <input
+            id="password"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required
+          >
+
+          <button
+            type="button"
+            class="password-toggle"
+            id="toggle-password"
+            aria-label="Show or hide password"
+          >
+            👁️
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- LOGIN -->
+      <button
+        type="submit"
+        class="a-btn a-btn-primary a-btn-block"
+        id="login-btn"
+      >
+        Login
+      </button>
+
     </form>
-    <p class="sub" style="margin-top:1.2rem;"><a href="index.html" style="color:var(--a-blue);font-weight:700;">← Back to website</a></p>
+
+
+    <!-- FORGOT PASSWORD -->
+    <div style="text-align:center;margin-top:1rem;">
+
+      <a
+        href="reset-password.html"
+        style="color:var(--a-blue);font-weight:700;text-decoration:none;"
+      >
+        Forgot Password?
+      </a>
+
+    </div>
+
+
+    <!-- BACK TO WEBSITE -->
+    <p
+      class="sub"
+      style="margin-top:1.2rem;"
+    >
+
+      <a
+        href="index.html"
+        style="color:var(--a-blue);font-weight:700;"
+      >
+        ← Back to website
+      </a>
+
+    </p>
+
   </div>
+
 </div>
+
+
+<!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script src="supabase.js"></script>
 <script src="admin.js"></script>
+
+
 <script>
+
 document.addEventListener("DOMContentLoaded", async () => {
-  document.getElementById("toggle-password").addEventListener("click", () => {
-    const f = document.getElementById("password"); f.type = f.type === "password" ? "text" : "password";
-  });
-  document.getElementById("login-form").addEventListener("submit", async e => {
-    e.preventDefault();
-    const btn = document.getElementById("login-btn"), msg = document.getElementById("login-msg");
-    msg.innerHTML = ""; btn.disabled = true; btn.textContent = "Logging in...";
-    const res = await adminLogin(e.target.email.value.trim().toLowerCase(), e.target.password.value);
-    if (res.ok) { location.replace("dashboard.html"); return; }
-    msg.innerHTML = '<div class="a-msg error"></div>';
-    msg.firstChild.textContent = res.message;
-    btn.disabled = false; btn.textContent = "Login";
-  });
-  // Already signed in? Go straight to the dashboard (handlers above are attached first).
-  if (await isAdminLoggedIn()) location.replace("dashboard.html");
+
+  const loginForm =
+    document.getElementById("login-form");
+
+  const loginButton =
+    document.getElementById("login-btn");
+
+  const loginMessage =
+    document.getElementById("login-msg");
+
+  const passwordInput =
+    document.getElementById("password");
+
+  const togglePassword =
+    document.getElementById("toggle-password");
+
+
+  /*
+   * ----------------------------------------------------
+   * FORCE LOGIN MODE
+   * ----------------------------------------------------
+   *
+   * When Admin Panel is opened from the public website
+   * using:
+   *
+   * login.html?force=1
+   *
+   * any existing Supabase session is signed out first.
+   *
+   * This prevents:
+   *
+   * Website -> Admin Panel
+   *
+   * from automatically opening the dashboard when an
+   * old admin session still exists.
+   *
+   * Normal login behavior is not changed.
+   */
+
+  const params =
+    new URLSearchParams(window.location.search);
+
+  const forceLogin =
+    params.get("force") === "1";
+
+
+  if (forceLogin) {
+
+    try {
+
+      if (
+        typeof supabaseClient !== "undefined" &&
+        supabaseClient &&
+        supabaseClient.auth
+      ) {
+
+        await supabaseClient.auth.signOut();
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Unable to clear previous admin session:",
+        error
+      );
+
+    }
+
+    /*
+     * Remove ?force=1 from the visible URL after
+     * the session has been cleared.
+     *
+     * This prevents repeated forced logout if the
+     * page is refreshed.
+     */
+
+    try {
+
+      window.history.replaceState(
+        {},
+        document.title,
+        "login.html"
+      );
+
+    } catch (error) {
+
+      console.warn(
+        "Could not clean login URL:",
+        error
+      );
+
+    }
+
+  }
+
+
+  /*
+   * ----------------------------------------------------
+   * SHOW / HIDE PASSWORD
+   * ----------------------------------------------------
+   */
+
+  togglePassword.addEventListener(
+    "click",
+    () => {
+
+      passwordInput.type =
+        passwordInput.type === "password"
+          ? "text"
+          : "password";
+
+    }
+  );
+
+
+  /*
+   * ----------------------------------------------------
+   * LOGIN
+   * ----------------------------------------------------
+   */
+
+  loginForm.addEventListener(
+    "submit",
+    async (event) => {
+
+      event.preventDefault();
+
+      loginMessage.innerHTML = "";
+
+      loginButton.disabled = true;
+      loginButton.textContent = "Logging in...";
+
+
+      try {
+
+        const email =
+          document
+            .getElementById("email")
+            .value
+            .trim()
+            .toLowerCase();
+
+        const password =
+          passwordInput.value;
+
+
+        if (!email || !password) {
+
+          throw new Error(
+            "Please enter your email and password."
+          );
+
+        }
+
+
+        /*
+         * adminLogin() is the existing working
+         * authentication function from admin.js.
+         *
+         * We are NOT changing it.
+         */
+
+        const result =
+          await adminLogin(
+            email,
+            password
+          );
+
+
+        if (
+          result &&
+          result.ok
+        ) {
+
+          /*
+           * Successful admin login.
+           *
+           * Replace the login page rather than adding
+           * another browser-history entry.
+           */
+
+          window.location.replace(
+            "dashboard.html"
+          );
+
+          return;
+
+        }
+
+
+        /*
+         * Login failed
+         */
+
+        loginMessage.innerHTML =
+          '<div class="a-msg error"></div>';
+
+        loginMessage
+          .firstChild
+          .textContent =
+            result &&
+            result.message
+              ? result.message
+              : "Login failed.";
+
+      } catch (error) {
+
+        console.error(
+          "Login error:",
+          error
+        );
+
+        loginMessage.innerHTML =
+          '<div class="a-msg error"></div>';
+
+        loginMessage
+          .firstChild
+          .textContent =
+            error &&
+            error.message
+              ? error.message
+              : "Unable to login.";
+
+      }
+
+
+      loginButton.disabled = false;
+      loginButton.textContent = "Login";
+
+    }
+  );
+
+
+  /*
+   * ----------------------------------------------------
+   * EXISTING SESSION CHECK
+   * ----------------------------------------------------
+   *
+   * IMPORTANT:
+   *
+   * We do this only when force=1 was NOT used.
+   *
+   * Therefore:
+   *
+   * login.html
+   *      -> existing admin session
+   *      -> dashboard
+   *
+   * remains unchanged.
+   *
+   * But:
+   *
+   * login.html?force=1
+   *      -> sign out old session
+   *      -> stay on login page
+   */
+
+  if (!forceLogin) {
+
+    try {
+
+      if (
+        typeof isAdminLoggedIn === "function"
+      ) {
+
+        const alreadyLoggedIn =
+          await isAdminLoggedIn();
+
+
+        if (alreadyLoggedIn) {
+
+          window.location.replace(
+            "dashboard.html"
+          );
+
+        }
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Admin session check failed:",
+        error
+      );
+
+    }
+
+  }
+
 });
+
 </script>
+
 </body>
 </html>
