@@ -1,22 +1,8 @@
-const CACHE_NAME = "hazi-dada-travels-v1";
-
-const APP_SHELL = [
-  "/hazi-dada-travels/",
-  "/hazi-dada-travels/index.html",
-  "/hazi-dada-travels/style.css",
-  "/hazi-dada-travels/app.js",
-  "/hazi-dada-travels/data.js",
-  "/hazi-dada-travels/supabase.js",
-  "/hazi-dada-travels/logo.png",
-  "/hazi-dada-travels/manifest.json"
-];
+const CACHE_NAME = "hazi-dada-travels-v2";
 
 self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-  );
+  // Activate immediately.
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener("activate", event => {
@@ -34,47 +20,23 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const request = event.request;
 
+  // Only handle normal GET requests.
   if (request.method !== "GET") {
     return;
   }
 
   const url = new URL(request.url);
 
-  // Never interfere with Supabase/API/external requests.
+  // Leave Supabase, CDN and all external services alone.
   if (url.origin !== self.location.origin) {
     return;
   }
 
-  // Navigation: use the latest website when online,
-  // fall back to cached index when offline.
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-          const copy = response.clone();
-
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put("/hazi-dada-travels/index.html", copy);
-          });
-
-          return response;
-        })
-        .catch(() =>
-          caches.match("/hazi-dada-travels/index.html")
-        )
-    );
-
-    return;
-  }
-
-  // Static files: cache first, then network.
+  // Always try the live website first.
+  // If offline, use the cached response if available.
   event.respondWith(
-    caches.match(request).then(cachedResponse => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(request).then(response => {
+    fetch(request)
+      .then(response => {
         if (
           response &&
           response.status === 200 &&
@@ -88,7 +50,7 @@ self.addEventListener("fetch", event => {
         }
 
         return response;
-      });
-    })
+      })
+      .catch(() => caches.match(request))
   );
 });
