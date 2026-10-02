@@ -2063,14 +2063,18 @@ function renderFooter() {
             )
             .join("")
         }
+<!-- Privacy Policy -->
+<a href="privacy-policy.html">
+  Privacy Policy
+</a>
 
-        <!-- Admin Panel -->
-        <a
-          href="login.html?force=1"
-          class="admin-link"
-        >
-          Admin
-        </a>
+<!-- Admin Panel -->
+<a
+  href="login.html?force=1"
+  class="admin-link"
+>
+  Admin
+</a>
 
       </div>
 
