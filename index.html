@@ -2,23 +2,45 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
 <title>Hazi Dada Travels | Tours, Trips &amp; Vehicle Booking</title>
+
 <meta name="description" content="Hazi Dada Travels — explore trips, vehicles, photos, videos and reviews. Book by phone, WhatsApp or enquiry form.">
+
+<meta name="theme-color" content="#0b1220">
+
+<!-- PWA / Mobile App Support -->
+<link rel="manifest" href="/hazi-dada-travels/manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hazi Dada Travels">
+
+<!-- Social Sharing -->
 <meta property="og:title" content="Hazi Dada Travels">
 <meta property="og:description" content="Explore. Travel. Create Memories.">
 <meta property="og:type" content="website">
+
+<!-- App Icon -->
 <link rel="icon" href="logo.png" type="image/png">
+<link rel="apple-touch-icon" href="logo.png">
+
+<!-- Main Website CSS -->
 <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
 <header class="site-header">
   <div class="header-inner">
+
     <a href="#/" class="brand" data-action="nav" data-route="home">
       <img src="logo.png" alt="Hazi Dada Travels logo">
       <span>Hazi Dada Travels</span>
     </a>
+
     <nav class="top-nav" aria-label="Main navigation">
       <a href="#/" data-action="nav" data-route="home" data-i18n="nav_home">Home</a>
       <a href="#/trips" data-action="nav" data-route="trips" data-i18n="nav_trips">Trips</a>
@@ -28,96 +50,444 @@
       <a href="#/reviews" data-action="nav" data-route="reviews" data-i18n="nav_reviews">Reviews</a>
       <a href="#/contact" data-action="nav" data-route="contact" data-i18n="nav_contact">Contact</a>
     </nav>
+
     <div class="header-actions">
+
       <select class="lang-select" id="lang-select" aria-label="Language">
         <option value="en">English</option>
         <option value="te">తెలుగు</option>
         <option value="hi">हिन्दी</option>
       </select>
-      <button class="btn btn-primary btn-small header-book" data-action="book" data-kind="general" data-i18n="btn_book_now">Book Now</button>
-      <button class="nav-toggle" data-action="open-menu" aria-label="Menu"><span></span><span></span><span></span></button>
+
+      <button
+        class="btn btn-primary btn-small header-book"
+        data-action="book"
+        data-kind="general"
+        data-i18n="btn_book_now">
+        Book Now
+      </button>
+
+      <button
+        class="nav-toggle"
+        data-action="open-menu"
+        aria-label="Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
     </div>
   </div>
 </header>
 
+
+<!-- Mobile Navigation -->
 <div class="mobile-nav" id="mobile-nav">
+
   <div class="mobile-nav-panel">
-    <button class="mobile-nav-close" data-action="close-menu" aria-label="Close menu">&times;</button>
-    <a href="#/" data-action="nav" data-route="home" data-i18n="nav_home">Home</a>
-    <a href="#/trips" data-action="nav" data-route="trips" data-i18n="nav_trips">Trips</a>
-    <a href="#/vehicles" data-action="nav" data-route="vehicles" data-i18n="nav_vehicles">Vehicles</a>
-    <a href="#/gallery" data-action="nav" data-route="gallery" data-i18n="nav_gallery">Gallery</a>
-    <a href="#/videos" data-action="nav" data-route="videos" data-i18n="nav_videos">Videos</a>
-    <a href="#/reviews" data-action="nav" data-route="reviews" data-i18n="nav_reviews">Reviews</a>
-    <a href="#/contact" data-action="nav" data-route="contact" data-i18n="nav_contact">Contact</a>
+
+    <button
+      class="mobile-nav-close"
+      data-action="close-menu"
+      aria-label="Close menu">
+      &times;
+    </button>
+
+    <a href="#/" data-action="nav" data-route="home" data-i18n="nav_home">
+      Home
+    </a>
+
+    <a href="#/trips" data-action="nav" data-route="trips" data-i18n="nav_trips">
+      Trips
+    </a>
+
+    <a href="#/vehicles" data-action="nav" data-route="vehicles" data-i18n="nav_vehicles">
+      Vehicles
+    </a>
+
+    <a href="#/gallery" data-action="nav" data-route="gallery" data-i18n="nav_gallery">
+      Gallery
+    </a>
+
+    <a href="#/videos" data-action="nav" data-route="videos" data-i18n="nav_videos">
+      Videos
+    </a>
+
+    <a href="#/reviews" data-action="nav" data-route="reviews" data-i18n="nav_reviews">
+      Reviews
+    </a>
+
+    <a href="#/contact" data-action="nav" data-route="contact" data-i18n="nav_contact">
+      Contact
+    </a>
+
   </div>
 </div>
 
+
+<!-- Main Application -->
 <main id="app"></main>
+
+
+<!-- Footer -->
 <footer class="site-footer" id="site-footer"></footer>
 
+
+<!-- Floating Actions -->
 <div class="floating-actions">
-  <button class="floating-btn whatsapp" data-action="float-whatsapp" aria-label="WhatsApp">💬</button>
-  <button class="floating-btn call" data-action="float-call" aria-label="Call">📞</button>
+
+  <button
+    class="floating-btn whatsapp"
+    data-action="float-whatsapp"
+    aria-label="WhatsApp">
+    💬
+  </button>
+
+  <button
+    class="floating-btn call"
+    data-action="float-call"
+    aria-label="Call">
+    📞
+  </button>
+
 </div>
 
-<!-- Book Now sheet -->
+
+<!-- Book Now Sheet -->
 <div class="sheet-overlay" id="sheet-overlay">
+
   <div class="bottom-sheet">
+
     <div class="sheet-handle"></div>
-    <h2 class="sheet-title" data-i18n="book_title">Book / Enquire</h2>
+
+    <h2 class="sheet-title" data-i18n="book_title">
+      Book / Enquire
+    </h2>
+
     <p class="sheet-sub" id="sheet-context"></p>
+
     <div class="sheet-actions">
-      <button class="sheet-action-btn call" data-action="sheet-call"><span class="sa-icon">📞</span> <span data-i18n="btn_call">Call</span></button>
-      <button class="sheet-action-btn whatsapp" data-action="sheet-whatsapp"><span class="sa-icon">💬</span> <span data-i18n="btn_whatsapp">WhatsApp</span></button>
-      <button class="sheet-action-btn enquire" data-action="sheet-enquire"><span class="sa-icon">📝</span> <span data-i18n="btn_enquire">Enquire</span></button>
+
+      <button
+        class="sheet-action-btn call"
+        data-action="sheet-call">
+
+        <span class="sa-icon">📞</span>
+
+        <span data-i18n="btn_call">
+          Call
+        </span>
+
+      </button>
+
+
+      <button
+        class="sheet-action-btn whatsapp"
+        data-action="sheet-whatsapp">
+
+        <span class="sa-icon">💬</span>
+
+        <span data-i18n="btn_whatsapp">
+          WhatsApp
+        </span>
+
+      </button>
+
+
+      <button
+        class="sheet-action-btn enquire"
+        data-action="sheet-enquire">
+
+        <span class="sa-icon">📝</span>
+
+        <span data-i18n="btn_enquire">
+          Enquire
+        </span>
+
+      </button>
+
     </div>
-    <button class="sheet-cancel" data-action="dismiss" data-i18n="btn_close">Close</button>
+
+    <button
+      class="sheet-cancel"
+      data-action="dismiss"
+      data-i18n="btn_close">
+      Close
+    </button>
+
   </div>
 </div>
 
-<!-- Enquiry form -->
+
+<!-- Enquiry Form -->
 <div class="sheet-overlay" id="enquiry-overlay">
+
   <div class="bottom-sheet enquiry-sheet">
+
     <div class="sheet-handle"></div>
-    <h2 class="sheet-title" data-i18n="enquire_title">Send Enquiry</h2>
+
+    <h2 class="sheet-title" data-i18n="enquire_title">
+      Send Enquiry
+    </h2>
+
     <form id="enquiry-form" novalidate>
-      <div class="form-group"><label for="enq-name" data-i18n="form_name">Name</label><input id="enq-name" name="name" type="text" autocomplete="name"></div>
-      <div class="form-group"><label for="enq-phone" data-i18n="form_phone">Phone Number</label><input id="enq-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"></div>
-      <div class="form-group"><label for="enq-trip" data-i18n="form_trip">Selected Trip</label><input id="enq-trip" name="trip" type="text" list="enq-trip-list"><datalist id="enq-trip-list"></datalist></div>
-      <div class="form-row">
-        <div class="form-group"><label for="enq-date" data-i18n="form_date">Travel Date</label><input id="enq-date" name="travel_date" type="date"></div>
-        <div class="form-group"><label for="enq-people" data-i18n="form_people">Number of People</label><input id="enq-people" name="people" type="number" min="1" inputmode="numeric"></div>
+
+      <div class="form-group">
+
+        <label for="enq-name" data-i18n="form_name">
+          Name
+        </label>
+
+        <input
+          id="enq-name"
+          name="name"
+          type="text"
+          autocomplete="name">
+
       </div>
-      <div class="form-group"><label for="enq-message" data-i18n="form_message">Message</label><textarea id="enq-message" name="message"></textarea></div>
+
+
+      <div class="form-group">
+
+        <label for="enq-phone" data-i18n="form_phone">
+          Phone Number
+        </label>
+
+        <input
+          id="enq-phone"
+          name="phone"
+          type="tel"
+          inputmode="tel"
+          autocomplete="tel">
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="enq-trip" data-i18n="form_trip">
+          Selected Trip
+        </label>
+
+        <input
+          id="enq-trip"
+          name="trip"
+          type="text"
+          list="enq-trip-list">
+
+        <datalist id="enq-trip-list"></datalist>
+
+      </div>
+
+
+      <div class="form-row">
+
+        <div class="form-group">
+
+          <label for="enq-date" data-i18n="form_date">
+            Travel Date
+          </label>
+
+          <input
+            id="enq-date"
+            name="travel_date"
+            type="date">
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="enq-people" data-i18n="form_people">
+            Number of People
+          </label>
+
+          <input
+            id="enq-people"
+            name="people"
+            type="number"
+            min="1"
+            inputmode="numeric">
+
+        </div>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="enq-message" data-i18n="form_message">
+          Message
+        </label>
+
+        <textarea
+          id="enq-message"
+          name="message">
+        </textarea>
+
+      </div>
+
+
       <p class="form-error" id="enq-error"></p>
-      <button type="submit" class="btn btn-primary btn-block" id="enq-submit" data-i18n="btn_send_enquiry">Send Enquiry</button>
+
+
+      <button
+        type="submit"
+        class="btn btn-primary btn-block"
+        id="enq-submit"
+        data-i18n="btn_send_enquiry">
+        Send Enquiry
+      </button>
+
     </form>
-    <button class="sheet-cancel" data-action="dismiss" data-i18n="btn_close">Close</button>
+
+
+    <button
+      class="sheet-cancel"
+      data-action="dismiss"
+      data-i18n="btn_close">
+      Close
+    </button>
+
   </div>
 </div>
+
 
 <!-- Lightbox -->
 <div class="lightbox-overlay" id="lightbox-overlay">
-  <button class="lightbox-close" data-action="dismiss" aria-label="Close">&times;</button>
-  <button class="lightbox-nav lightbox-prev" data-action="lb-prev" aria-label="Previous">&#10094;</button>
-  <img id="lightbox-img" src="" alt="">
-  <button class="lightbox-nav lightbox-next" data-action="lb-next" aria-label="Next">&#10095;</button>
-  <p class="lightbox-caption" id="lightbox-caption"></p>
+
+  <button
+    class="lightbox-close"
+    data-action="dismiss"
+    aria-label="Close">
+    &times;
+  </button>
+
+  <button
+    class="lightbox-nav lightbox-prev"
+    data-action="lb-prev"
+    aria-label="Previous">
+    &#10094;
+  </button>
+
+  <img
+    id="lightbox-img"
+    src=""
+    alt="">
+
+  <button
+    class="lightbox-nav lightbox-next"
+    data-action="lb-next"
+    aria-label="Next">
+    &#10095;
+  </button>
+
+  <p
+    class="lightbox-caption"
+    id="lightbox-caption">
+  </p>
+
 </div>
 
-<!-- Video modal -->
+
+<!-- Video Modal -->
 <div class="video-overlay" id="video-overlay">
-  <button class="lightbox-close" data-action="dismiss" aria-label="Close">&times;</button>
+
+  <button
+    class="lightbox-close"
+    data-action="dismiss"
+    aria-label="Close">
+    &times;
+  </button>
+
   <div class="video-modal-inner">
-    <div class="video-frame-wrap" id="video-frame-wrap"></div>
-    <a class="btn btn-ghost btn-small hidden" id="video-external" target="_blank" rel="noopener" data-i18n="open_youtube">Open on YouTube</a>
+
+    <div
+      class="video-frame-wrap"
+      id="video-frame-wrap">
+    </div>
+
+    <a
+      class="btn btn-ghost btn-small hidden"
+      id="video-external"
+      target="_blank"
+      rel="noopener"
+      data-i18n="open_youtube">
+      Open on YouTube
+    </a>
+
   </div>
+
 </div>
 
+
+<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Existing Hazi Dada Travels files -->
 <script src="supabase.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
+
+
+<!-- PWA Service Worker -->
+<script>
+  (function () {
+    if (!("serviceWorker" in navigator)) {
+      return;
+    }
+
+    window.addEventListener("load", function () {
+
+      navigator.serviceWorker.register(
+        "/hazi-dada-travels/sw.js",
+        {
+          scope: "/hazi-dada-travels/"
+        }
+      )
+      .then(function (registration) {
+
+        console.log(
+          "Hazi Dada Travels PWA service worker registered:",
+          registration.scope
+        );
+
+        registration.addEventListener("updatefound", function () {
+
+          const newWorker = registration.installing;
+
+          if (!newWorker) {
+            return;
+          }
+
+          newWorker.addEventListener("statechange", function () {
+
+            if (
+              newWorker.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
+              console.log(
+                "Hazi Dada Travels app update available."
+              );
+            }
+
+          });
+
+        });
+
+      })
+      .catch(function (error) {
+
+        console.error(
+          "Hazi Dada Travels PWA service worker registration failed:",
+          error
+        );
+
+      });
+
+    });
+  })();
+</script>
+
 </body>
 </html>
